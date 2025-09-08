@@ -235,14 +235,44 @@
 
         const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+        const DEBUG = true;
+        const log = (...args) => { if (DEBUG) console.log(new Date().toISOString(), ...args); };
+
+        class NetworkError extends Error {
+            constructor(message, status) { super(message); this.name = 'NetworkError'; this.status = status; }
+        }
+        class ParseError extends Error {
+            constructor(message, status) { super(message); this.name = 'ParseError'; this.status = status; }
+        }
+        class ValidationError extends Error {
+            constructor(message) { super(message); this.name = 'ValidationError'; }
+        }
+
         const api = {
             async fetchUrl(url) {
                 const response = await fetch(`/api/fetch-url?url=${encodeURIComponent(url)}`);
+                const responseText = await response.text();
+                const correlationId = response.headers.get('x-correlation-id');
+                log(correlationId ? `[${correlationId}]` : '', `[fetchUrl] [${response.status}] ${url}:`, responseText.substring(0, 200));
                 if (!response.ok) {
-                    const err = await response.json().catch(() => ({ error: `Server responded with status ${response.status}` }));
-                    throw new Error(err.error);
+                    let error;
+                    try {
+                        const parsed = JSON.parse(responseText);
+                        error = parsed.error || parsed;
+                    } catch {
+                        error = { message: responseText, status: response.status };
+                    }
+                    const errorMessage = typeof error === 'object'
+                        ? (error.message || error.code || JSON.stringify(error))
+                        : String(error);
+                    throw new NetworkError(`[${response.status}] ${errorMessage}`, response.status);
                 }
-                return (await response.json()).html;
+                try {
+                    const parsed = JSON.parse(responseText);
+                    return parsed.data?.html || parsed.html || '';
+                } catch {
+                    throw new ParseError('Failed to parse fetch-url response', response.status);
+                }
             },
             async getSchema(payload) {
                 const response = await fetch('/api/get-schema', {
@@ -250,11 +280,28 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                const responseText = await response.text();
+                const correlationId = response.headers.get('x-correlation-id');
+                log(correlationId ? `[${correlationId}]` : '', `[getSchema] [${response.status}]:`, responseText.substring(0, 200));
                 if (!response.ok) {
-                    const err = await response.json().catch(() => ({ error: `AI server responded with status ${response.status}` }));
-                    throw new Error(err.error);
+                    let error;
+                    try {
+                        const parsed = JSON.parse(responseText);
+                        error = parsed.error || parsed;
+                    } catch {
+                        error = { message: responseText, status: response.status };
+                    }
+                    const errorMessage = typeof error === 'object'
+                        ? (error.message || error.code || JSON.stringify(error))
+                        : String(error);
+                    throw new NetworkError(`[${response.status}] ${errorMessage}`, response.status);
                 }
-                return await response.json();
+                try {
+                    const parsed = JSON.parse(responseText);
+                    return parsed.data || parsed;
+                } catch {
+                    throw new ParseError('Failed to parse schema response', response.status);
+                }
             }
         };
 
@@ -262,20 +309,36 @@
             url: (str) => {
                 try {
                     const url = new URL(str);
-                    if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Invalid protocol.');
+                    if (!['http:', 'https:'].includes(url.protocol)) throw new ValidationError('Invalid protocol.');
                     return url.href;
-                } catch (e) { throw new Error(`Invalid URL: ${str}`); }
+                } catch {
+                    throw new ValidationError(`Invalid URL: ${str}`);
+                }
             },
             screenshot: async (file) => {
-                if (!file) throw new Error('Screenshot file is missing.');
-                if (file.size > 5 * 1024 * 1024) throw new Error('File size exceeds 5MB limit.');
-                if (!file.type.startsWith('image/')) throw new Error('Invalid file type.');
+                if (!file) throw new ValidationError('Screenshot file is missing.');
+                if (file.size > 5 * 1024 * 1024) throw new ValidationError('File size exceeds 5MB limit.');
+                if (!file.type.startsWith('image/')) throw new ValidationError('Invalid file type.');
                 return file;
             }
         };
 
         const showError = message => { dom.errorMessage.textContent = message; dom.errorBox.classList.remove('hidden'); };
-        
+
+        async function verifyBackend() {
+            try {
+                const res = await fetch('/api/fetch-url?url=https://example.com');
+                const text = await res.text();
+                const correlationId = res.headers.get('x-correlation-id');
+                log(correlationId ? `[${correlationId}]` : '', `[verifyBackend] [${res.status}]`, text.substring(0, 200));
+                if (!res.ok) throw new Error(`Backend returned ${res.status}`);
+                return true;
+            } catch (e) {
+                showError(`Backend verification failed: ${e.message}. Check Netlify deployment.`);
+                return false;
+            }
+        }
+
         const updateRunButtons = (isScraping) => {
             dom.scrapeBtn.classList.toggle('hidden', isScraping);
             dom.pauseBtn.classList.toggle('hidden', !isScraping);
@@ -387,6 +450,7 @@
         };
         
         async function runSchemaScrape() {
+            if (!await verifyBackend()) return;
             const startUrl = validate.url(dom.urlInput.value.trim());
             const [mainPageFile, subPageFile, nextButtonFile] = await Promise.all([
                 validate.screenshot(dom.mainPageFileInput.files[0]),
@@ -484,6 +548,7 @@
         }
 
         async function runBulkScrape() {
+            if (!await verifyBackend()) return;
             const urls = dom.urlList.value.trim().split('\n').filter(Boolean).map(url => cleanUrl(validate.url(url)));
             if (urls.length === 0) throw new Error('Please paste at least one valid URL.');
             await processUrlsInParallel(urls, 'Scraping URL');
@@ -528,7 +593,22 @@
                         const text = extractMainContent(doc);
                         state.scrapeResults[index] = { index, url, text, metadata, html: dom.includeHtmlToggle.checked ? html : null, success: true };
                     } catch (error) {
-                        state.scrapeResults[index] = { index, url, text: '', metadata: {}, success: false, error: error.message, html: null };
+                        console.error(`Failed to scrape ${url}:`, error);
+                        const errorDetails = {
+                            message: error.message || error.toString(),
+                            status: error.status,
+                            stack: error.stack
+                        };
+                        state.scrapeResults[index] = {
+                            index,
+                            url,
+                            text: '',
+                            metadata: {},
+                            success: false,
+                            error: errorDetails.message,
+                            errorDetails,
+                            html: null
+                        };
                     } finally {
                         completed++;
                         renderResults();

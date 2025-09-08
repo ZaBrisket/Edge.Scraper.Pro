@@ -38,6 +38,8 @@ async function resolveHost(hostname, { forceRefresh = false } = {}) {
 }
 resolveHost.cache = hostCache;
 
+const log = (...args) => console.log(new Date().toISOString(), ...args);
+
 exports.handler = async (event) => {
   const correlationId = getCorrelationId(event);
   if (event.httpMethod === 'OPTIONS') {
@@ -82,6 +84,7 @@ exports.handler = async (event) => {
     }
 
     const html = await readLimited(response, MAX_BYTES);
+    log(`[${correlationId}] upstream [${response.status}] ${finalUrl}:`, html.substring(0, 200));
     if (!response.ok) {
       return json(response.status, { error: `Upstream responded ${response.status}`, html }, correlationId);
     }
@@ -190,8 +193,9 @@ async function robotsAllows(theUrl, correlationId) {
     const url = new URL(theUrl);
     const robotsUrl = new URL('/robots.txt', url.origin).href;
     const res = await fetchWithPolicy(robotsUrl, { headers: { 'User-Agent': UA }, correlationId });
-    if (!res.ok) return true; // no robots or inaccessible: allow
     const text = await res.text();
+    log(`[${correlationId}] robots [${res.status}] ${robotsUrl}:`, text.substring(0, 200));
+    if (!res.ok) return true; // no robots or inaccessible: allow
     return checkRobots(text, url.pathname);
   } catch {
     return true;
