@@ -7,6 +7,8 @@ const MODEL = 'gemini-1.5-flash';
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 const parser = require('postcss-selector-parser');
 const cheerio = require('cheerio');
+const { fetchWithPolicy } = require('../../src/lib/http/client');
+const { getCorrelationId } = require('../../src/lib/http/correlation');
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -15,23 +17,24 @@ const CORS_HEADERS = {
 };
 
 exports.handler = async (event) => {
+  const correlationId = getCorrelationId(event);
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: CORS_HEADERS };
+    return { statusCode: 204, headers: { ...CORS_HEADERS, 'x-correlation-id': correlationId } };
   }
   if (event.httpMethod !== 'POST') {
-    return json(405, { error: 'Method not allowed' });
+    return json(405, { ok: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' } }, correlationId);
   }
 
   try {
     const key = process.env.GEMINI_API_KEY;
-    if (!key) return json(500, { error: 'GEMINI_API_KEY is not configured on the server' });
+    if (!key) return json(500, { ok: false, error: { code: 'NO_API_KEY', message: 'GEMINI_API_KEY is not configured on the server' } }, correlationId);
 
     let body;
     try { body = JSON.parse(event.body || '{}'); } catch { body = {}; }
 
     const { mainPageHtml = '', mainPageB64, subPageB64, nextButtonB64 } = body;
     if (!mainPageHtml || !mainPageB64 || !subPageB64 || !nextButtonB64) {
-      return json(400, { error: 'Missing required payload: mainPageHtml, mainPageB64, subPageB64, nextButtonB64' });
+      return json(400, { ok: false, error: { code: 'BAD_REQUEST', message: 'Missing required payload: mainPageHtml, mainPageB64, subPageB64, nextButtonB64' } }, correlationId);
     }
 
     const $ = cheerio.load(mainPageHtml);
@@ -60,15 +63,16 @@ exports.handler = async (event) => {
       }
     };
 
-    const res = await fetch(API_URL + `?key=${encodeURIComponent(key)}`, {
+    const res = await fetchWithPolicy(API_URL + `?key=${encodeURIComponent(key)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
+      correlationId,
     });
 
     if (!res.ok) {
       const errText = await res.text().catch(() => '');
-      return json(res.status, { error: `Gemini error: ${res.status}`, detail: errText.slice(0, 500) });
+      return json(res.status, { ok: false, error: { code: 'UPSTREAM_ERROR', message: `Gemini error: ${res.status}`, detail: errText.slice(0, 500) } }, correlationId);
     }
 
     const data = await res.json();
@@ -100,14 +104,16 @@ exports.handler = async (event) => {
     }
 
     candidates.sort((a, b) => b.specificity - a.specificity);
-    return json(200, { candidates, nextButtonText });
+    return json(200, { ok: true, data: { candidates, nextButtonText } }, correlationId);
   } catch (err) {
-    return json(500, { error: err.message || 'Unknown error' });
+    const code = err.code || 'INTERNAL';
+    const message = err.message || 'Unknown error';
+    return json(500, { ok: false, error: { code, message } }, correlationId);
   }
 };
 
-function json(statusCode, obj) {
-  return { statusCode, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }, body: JSON.stringify(obj) };
+function json(statusCode, obj, correlationId) {
+  return { statusCode, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS, 'x-correlation-id': correlationId }, body: JSON.stringify(obj) };
 }
 
 function buildPrompt() {
