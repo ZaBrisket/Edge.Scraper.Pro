@@ -48,3 +48,15 @@ test('returns null for invalid JSON', () => {
   // Malformed input that cannot be parsed
   assert.strictEqual(safeParseJson('not json'), null);
 });
+
+test('handles multiple JSON blocks and returns first', () => {
+  const text = 'start {"a":1} middle {"b":2} end';
+  // Should parse only the first JSON object
+  assert.deepStrictEqual(safeParseJson(text), { a: 1 });
+});
+
+test('handles braces inside strings', () => {
+  const text = 'prefix {"a":"{braces}"} suffix';
+  // Braces within string values should not break parsing
+  assert.deepStrictEqual(safeParseJson(text), { a: '{braces}' });
+});

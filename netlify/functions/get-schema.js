@@ -153,12 +153,44 @@ function extractText(apiResponse) {
 
 function safeParseJson(text) {
   if (!text) return null;
-  // Try whole text
-  try { return JSON.parse(text); } catch {}
-  // Try to extract the first {...} block
-  const m = text.match(/\{[\s\S]*\}/);
-  if (m) {
-    try { return JSON.parse(m[0]); } catch {}
+  // Try whole text first
+  try {
+    return JSON.parse(text);
+  } catch {}
+
+  // Extract the first balanced { ... } block, ignoring braces in strings
+  const start = text.indexOf('{');
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escape) {
+        escape = false;
+      } else if (ch === '\\') {
+        escape = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+    } else if (ch === '{') {
+      depth++;
+    } else if (ch === '}') {
+      depth--;
+      if (depth === 0) {
+        const snippet = text.slice(start, i + 1);
+        try {
+          return JSON.parse(snippet);
+        } catch {
+          return null;
+        }
+      }
+    }
   }
   return null;
 }
