@@ -112,6 +112,11 @@
     </style>
 </head>
 <body>
+    <div id="resumeBanner" class="hidden" style="border:1px solid #000;padding:0.5em;margin-bottom:1em;background:#ff0;">
+        <span>Unfinished session detected.</span>
+        <button id="continueBtn">Continue</button>
+        <button id="restartBtn">Restart</button>
+    </div>
     <div class="container">
         <h1>AI Web Scraper</h1>
         <p>A tool to visually teach an AI to scrape websites. Built for function over form.</p>
@@ -182,6 +187,7 @@
         </div>
     </div>
 
+    <script src="idb.js"></script>
     <script>
         const dom = {
             schemaModeBtn: document.getElementById('schemaModeBtn'),
@@ -214,6 +220,9 @@
             resumeBtn: document.getElementById('resumeBtn'),
             stopBtn: document.getElementById('stopBtn'),
             includeHtmlToggle: document.getElementById('includeHtmlToggle'),
+            resumeBanner: document.getElementById('resumeBanner'),
+            continueBtn: document.getElementById('continueBtn'),
+            restartBtn: document.getElementById('restartBtn'),
         };
 
         let state = {
@@ -221,6 +230,11 @@
             scrapeResults: [],
             runControls: { paused: false, aborted: false }
         };
+
+        (async () => {
+            await ScraperDB.init();
+            if (await ScraperDB.hasUnfinished()) dom.resumeBanner.classList.remove('hidden');
+        })();
 
         const SITE_PROFILES_KEY = 'siteProfiles';
         const loadProfiles = () => { try { return JSON.parse(localStorage.getItem(SITE_PROFILES_KEY) || '{}'); } catch { return {}; } };
@@ -479,64 +493,81 @@
             
             const linksArray = Array.from(allLinksToVisit);
             if (linksArray.length === 0) throw new Error(`No valid links found after crawl.`);
-
-            await processUrlsInParallel(linksArray, 'Scraping sub-page');
+            await ScraperDB.clearAll();
+            await ScraperDB.enqueueUrls(linksArray);
+            await ScraperDB.saveSettings({ concurrency: dom.concurrencySlider.value, delay: dom.delayInput.value });
+            state.scrapeResults = [];
+            await processUrlsInParallel('Scraping sub-page');
         }
 
         async function runBulkScrape() {
             const urls = dom.urlList.value.trim().split('\n').filter(Boolean).map(url => cleanUrl(validate.url(url)));
             if (urls.length === 0) throw new Error('Please paste at least one valid URL.');
-            await processUrlsInParallel(urls, 'Scraping URL');
+            await ScraperDB.clearAll();
+            await ScraperDB.enqueueUrls(urls);
+            await ScraperDB.saveSettings({ concurrency: dom.concurrencySlider.value, delay: dom.delayInput.value });
+            state.scrapeResults = [];
+            await processUrlsInParallel('Scraping URL');
         }
 
-        async function processUrlsInParallel(urls, statusPrefix) {
-            let completed = 0;
+        function renderResults() {
+            dom.resultsCode.textContent = state.scrapeResults
+                .filter(Boolean).sort((a, b) => a.index - b.index)
+                .map(r => {
+                    let output = `\n\n--- Content from ${r.url} ---\n\n`;
+                    if(r.error) output += `Error: ${r.error}`;
+                    else {
+                        if(r.metadata.title) output += `Title: ${r.metadata.title}\n`;
+                        if(r.metadata.author) output += `Author: ${r.metadata.author}\n`;
+                        if(r.metadata.published_at) output += `Published: ${r.metadata.published_at}\n`;
+                        if(r.metadata.description) output += `Description: ${r.metadata.description}\n\n`;
+                        output += r.text;
+                    }
+                    return output;
+                }).join('');
+        }
+
+        async function processUrlsInParallel(statusPrefix) {
+            let completed = state.scrapeResults.filter(Boolean).length;
             const maxConcurrency = parseInt(dom.concurrencySlider.value, 10);
             const perRequestDelay = parseInt(dom.delayInput.value, 10);
-            const urlQueue = [...new Set(urls)].map((url, index) => ({ index, url }));
-            const totalUrls = urlQueue.length;
-            state.scrapeResults = new Array(totalUrls);
-
-            const renderResults = () => {
-                dom.resultsCode.textContent = state.scrapeResults
-                    .filter(Boolean).sort((a, b) => a.index - b.index)
-                    .map(r => {
-                        let output = `\n\n--- Content from ${r.url} ---\n\n`;
-                        if(r.error) output += `Error: ${r.error}`;
-                        else {
-                            if(r.metadata.title) output += `Title: ${r.metadata.title}\n`;
-                            if(r.metadata.author) output += `Author: ${r.metadata.author}\n`;
-                            if(r.metadata.published_at) output += `Published: ${r.metadata.published_at}\n`;
-                            if(r.metadata.description) output += `Description: ${r.metadata.description}\n\n`;
-                            output += r.text;
-                        }
-                        return output;
-                    }).join('');
-            };
+            const totalUrls = await ScraperDB.countQueue();
 
             async function worker() {
-                while (urlQueue.length > 0 && !state.runControls.aborted) {
+                while (!state.runControls.aborted) {
                     await cooperativelyYield();
                     if (state.runControls.aborted) break;
-                    
-                    const { index, url } = urlQueue.shift();
+
+                    const item = await ScraperDB.getNext();
+                    if (!item) break;
+                    const { id, url, index } = item;
                     try {
                         dom.statusText.textContent = `${statusPrefix} (${completed + 1}/${totalUrls}): ${url.substring(0, 50)}...`;
                         const html = await api.fetchUrl(url);
                         const doc = new DOMParser().parseFromString(html, 'text/html');
                         const metadata = extractMetadata(doc);
                         const text = extractMainContent(doc);
-                        state.scrapeResults[index] = { index, url, text, metadata, html: dom.includeHtmlToggle.checked ? html : null, success: true };
+                        const result = { index, url, text, metadata, html: dom.includeHtmlToggle.checked ? html : null, success: true };
+                        state.scrapeResults[index] = result;
+                        await ScraperDB.markComplete(id, result);
                     } catch (error) {
-                        state.scrapeResults[index] = { index, url, text: '', metadata: {}, success: false, error: error.message, html: null };
+                        const result = { index, url, text: '', metadata: {}, success: false, error: error.message, html: null };
+                        state.scrapeResults[index] = result;
+                        await ScraperDB.markFailed(id, result);
                     } finally {
                         completed++;
                         renderResults();
+                        if (completed % 10 === 0) {
+                            await ScraperDB.saveSettings({
+                                concurrency: maxConcurrency,
+                                delay: perRequestDelay
+                            });
+                        }
                     }
                     await delay(perRequestDelay);
                 }
             }
-            
+
             const workers = Array(Math.min(maxConcurrency, totalUrls)).fill(null).map(worker);
             dom.resultsContainer.style.display = 'block';
             await Promise.all(workers);
@@ -621,6 +652,22 @@
                 dom.copyBtn.textContent = 'Copied!';
                 setTimeout(() => { dom.copyBtn.textContent = 'Copy'; }, 2000);
             } catch (err) { showError('Failed to copy text.'); }
+        });
+
+        dom.continueBtn.addEventListener('click', async () => {
+            dom.resumeBanner.classList.add('hidden');
+            const { results, settings } = await ScraperDB.loadState();
+            state.scrapeResults = [];
+            results.forEach(r => { state.scrapeResults[r.index] = r; });
+            if (settings.concurrency) dom.concurrencySlider.value = settings.concurrency;
+            if (settings.delay) dom.delayInput.value = settings.delay;
+            renderResults();
+            await processUrlsInParallel('Resuming URL');
+        });
+
+        dom.restartBtn.addEventListener('click', async () => {
+            await ScraperDB.clearAll();
+            dom.resumeBanner.classList.add('hidden');
         });
     </script>
 </body>

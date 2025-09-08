@@ -1,0 +1,10 @@
+{
+  "name": "edge-scraper-pro",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^4.0.2"
+  }
+}
