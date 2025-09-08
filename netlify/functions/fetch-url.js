@@ -6,6 +6,8 @@
 const dns = require('dns').promises;
 const { URL } = require('url');
 const net = require('net');
+const { fetchWithPolicy } = require('../../src/lib/http/client');
+const { getCorrelationId } = require('../../src/lib/http/correlation');
 
 // Cache for resolved hostnames
 const hostCache = new Map();
@@ -37,63 +39,69 @@ async function resolveHost(hostname, { forceRefresh = false } = {}) {
 resolveHost.cache = hostCache;
 
 exports.handler = async (event) => {
+  const correlationId = getCorrelationId(event);
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: CORS_HEADERS };
+    return { statusCode: 204, headers: { ...CORS_HEADERS, 'x-correlation-id': correlationId } };
   }
 
   try {
     const urlParam = (event.queryStringParameters && event.queryStringParameters.url) || '';
-    if (!urlParam) return json(400, { error: 'Missing ?url=' });
+    if (!urlParam) return json(400, { error: 'Missing ?url=' }, correlationId);
 
     const startUrl = new URL(urlParam);
-    if (!['http:', 'https:'].includes(startUrl.protocol)) return json(400, { error: 'Only http/https are allowed' });
+    if (!['http:', 'https:'].includes(startUrl.protocol)) return json(400, { error: 'Only http/https are allowed' }, correlationId);
 
     // Disallow non-standard ports (basic SSRF mitigation)
     const port = startUrl.port ? Number(startUrl.port) : (startUrl.protocol === 'http:' ? 80 : 443);
-    if (!ALLOWED_PORTS.has(port)) return json(400, { error: 'Non-standard ports are blocked' });
+    if (!ALLOWED_PORTS.has(port)) return json(400, { error: 'Non-standard ports are blocked' }, correlationId);
 
     // Resolve and block private IPs using cache
     try {
       await resolveHost(startUrl.hostname);
     } catch {
-      return json(400, { error: 'Blocked by SSRF policy (private or local address)' });
+      return json(400, { error: 'Blocked by SSRF policy (private or local address)' }, correlationId);
     }
 
     // robots.txt (best-effort)
-    const allowedByRobots = await robotsAllows(startUrl);
-    if (!allowedByRobots) return json(403, { error: 'Blocked by robots.txt' });
+    const allowedByRobots = await robotsAllows(startUrl, correlationId);
+    if (!allowedByRobots) return json(403, { error: 'Blocked by robots.txt' }, correlationId);
 
-    const { response, finalUrl } = await safeFetchWithRedirects(startUrl.href);
+    const { response, finalUrl } = await safeFetchWithRedirects(startUrl.href, correlationId);
     const ct = (response.headers.get('content-type') || '').toLowerCase();
     if (!(ct.includes('text/html') || ct.includes('application/xhtml'))) {
       // Allow text/plain as a fallback to still return html-like content
       if (!ct.includes('text/plain')) {
-        return json(415, { error: `Unsupported content-type: ${ct || 'unknown'}` });
+        return json(415, { error: `Unsupported content-type: ${ct || 'unknown'}` }, correlationId);
       }
     }
 
     // Size limits
     const lenHeader = response.headers.get('content-length');
     if (lenHeader && Number(lenHeader) > MAX_BYTES) {
-      return json(413, { error: `Content too large: ${lenHeader} bytes` });
+      return json(413, { error: `Content too large: ${lenHeader} bytes` }, correlationId);
     }
 
     const html = await readLimited(response, MAX_BYTES);
     if (!response.ok) {
-      return json(response.status, { error: `Upstream responded ${response.status}`, html });
+      return json(response.status, { error: `Upstream responded ${response.status}`, html }, correlationId);
     }
 
-    return json(200, { html, url: finalUrl });
+    return json(200, { html, url: finalUrl }, correlationId);
   } catch (err) {
-    return json(500, { error: err.message || 'Unknown error' });
+    const code = err.code || 'INTERNAL';
+    const message = err.message || 'Unknown error';
+    return json(500, { error: { code, message } }, correlationId);
   }
 };
 
-function json(statusCode, obj) {
-  return { statusCode, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }, body: JSON.stringify(obj) };
+function json(statusCode, obj, correlationId) {
+  const payload = Object.prototype.hasOwnProperty.call(obj, 'error')
+    ? { ok: false, error: typeof obj.error === 'string' ? { message: obj.error } : obj.error }
+    : { ok: true, data: obj };
+  return { statusCode, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS, 'x-correlation-id': correlationId }, body: JSON.stringify(payload) };
 }
 
-async function safeFetchWithRedirects(inputUrl) {
+async function safeFetchWithRedirects(inputUrl, correlationId) {
   let current = new URL(inputUrl);
   for (let i = 0; i <= MAX_REDIRECTS; i++) {
     const firstIP = await resolveHost(current.hostname);
@@ -102,7 +110,7 @@ async function safeFetchWithRedirects(inputUrl) {
       hostCache.delete(current.hostname);
       throw new Error('DNS rebinding detected');
     }
-    const res = await fetchResolved(current, finalIP, { redirect: 'manual', headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml,*/*' } });
+    const res = await fetchResolved(current, finalIP, { redirect: 'manual', headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml,*/*' }, correlationId });
     if ([301, 302, 303, 307, 308].includes(res.status)) {
       const loc = res.headers.get('location');
       if (!loc) throw new Error(`Redirect without Location header`);
@@ -139,21 +147,11 @@ async function readLimited(response, maxBytes) {
   return merged.toString('utf-8');
 }
 
-async function fetchWithTimeout(url, opts) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), TIMEOUT_MS);
-  try {
-    return await fetch(url, { ...opts, signal: controller.signal });
-  } finally {
-    clearTimeout(id);
-  }
-}
-
 async function fetchResolved(urlObj, ip, opts) {
   const authority = ip + (urlObj.port ? `:${urlObj.port}` : '');
   const target = `${urlObj.protocol}//${authority}${urlObj.pathname}${urlObj.search}`;
   const headers = { ...opts.headers, Host: urlObj.hostname };
-  return fetchWithTimeout(target, { ...opts, headers });
+  return fetchWithPolicy(target, { ...opts, headers, correlationId: opts.correlationId });
 }
 
 function isPrivateIP(ip) {
@@ -187,11 +185,11 @@ exports.checkRobots = checkRobots;
 exports.resolveHost = resolveHost;
 exports.safeFetchWithRedirects = safeFetchWithRedirects;
 
-async function robotsAllows(theUrl) {
+async function robotsAllows(theUrl, correlationId) {
   try {
     const url = new URL(theUrl);
     const robotsUrl = new URL('/robots.txt', url.origin).href;
-    const res = await fetchWithTimeout(robotsUrl, { headers: { 'User-Agent': UA } });
+    const res = await fetchWithPolicy(robotsUrl, { headers: { 'User-Agent': UA }, correlationId });
     if (!res.ok) return true; // no robots or inaccessible: allow
     const text = await res.text();
     return checkRobots(text, url.pathname);
