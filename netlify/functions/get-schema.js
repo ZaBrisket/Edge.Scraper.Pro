@@ -5,6 +5,8 @@
  */
 const MODEL = 'gemini-1.5-flash';
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+const parser = require('postcss-selector-parser');
+const cheerio = require('cheerio');
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -31,6 +33,9 @@ exports.handler = async (event) => {
     if (!mainPageHtml || !mainPageB64 || !subPageB64 || !nextButtonB64) {
       return json(400, { error: 'Missing required payload: mainPageHtml, mainPageB64, subPageB64, nextButtonB64' });
     }
+
+    const $ = cheerio.load(mainPageHtml);
+    const totalLinks = $('a').length;
 
     const prompt = buildPrompt();
     const htmlSnippet = mainPageHtml.slice(0, 200000); // keep request bounded
@@ -69,17 +74,33 @@ exports.handler = async (event) => {
     const data = await res.json();
     const text = extractText(data);
 
-    const parsed = safeParseJson(text);
-    if (parsed && parsed.linkSelector) {
-      // Normalize selector a little
-      parsed.linkSelector = String(parsed.linkSelector).trim();
-      parsed.nextButtonText = String(parsed.nextButtonText || '').trim();
-      return json(200, parsed);
+    const parsed = safeParseJson(text) || {};
+    let candidates = [];
+    let nextButtonText = String(parsed.nextButtonText || 'next').trim();
+
+    const trySelector = sel => {
+      try {
+        parser().astSync(sel);
+      } catch {
+        return;
+      }
+      if (isTooGeneric($, sel)) return;
+      candidates.push(buildCandidate($, sel, totalLinks));
+    };
+
+    if (parsed.linkSelector) {
+      const sel = String(parsed.linkSelector).trim();
+      trySelector(sel);
     }
 
-    // Fallback heuristic if model returns something unexpected
-    const fallback = { linkSelector: 'main a[href*="/"]:not([rel="prev"]):not([rel="nofollow"])', nextButtonText: 'next' };
-    return json(200, fallback);
+    if (!candidates.length) {
+      const fallbacks = analyzeFallback($);
+      if (!fallbacks.length) fallbacks.push('main a[href*="/"]:not([rel="prev"]):not([rel="nofollow"])');
+      fallbacks.forEach(trySelector);
+    }
+
+    candidates.sort((a, b) => b.specificity - a.specificity);
+    return json(200, { candidates, nextButtonText });
   } catch (err) {
     return json(500, { error: err.message || 'Unknown error' });
   }
@@ -142,6 +163,55 @@ function safeParseJson(text) {
   return null;
 }
 
+function getSpecificity(selector) {
+  try {
+    const ast = parser().astSync(selector);
+    let max = 0;
+    ast.each(sel => {
+      let a = 0, b = 0, c = 0;
+      sel.walk(node => {
+        if (node.type === 'id') a++;
+        else if (node.type === 'class' || node.type === 'attribute' || (node.type === 'pseudo' && !node.value.startsWith('::'))) b++;
+        else if (node.type === 'tag' || (node.type === 'pseudo' && node.value.startsWith('::'))) c++;
+      });
+      const spec = a * 100 + b * 10 + c;
+      if (spec > max) max = spec;
+    });
+    return max;
+  } catch {
+    return 0;
+  }
+}
+
+function isTooGeneric($, selector) {
+  const total = $('a').length;
+  const matches = $(selector).length;
+  return !matches || (total && matches / total > 0.5);
+}
+
+function buildCandidate($, selector, totalLinks) {
+  const matches = $(selector).length;
+  const ratio = totalLinks ? matches / totalLinks : 1;
+  const confidence = Math.max(0, Math.min(100, Math.round((1 - ratio) * 100)));
+  return { selector, specificity: getSpecificity(selector), confidence };
+}
+
+function analyzeFallback($) {
+  const selectors = new Set();
+  if ($('article a').length) selectors.add('article a');
+  ['post', 'entry', 'item'].forEach(key => {
+    $(`[class*="${key}"]`).each((_, el) => {
+      const classNames = ($(el).attr('class') || '').split(/\s+/);
+      const cls = classNames.find(c => c.toLowerCase().includes(key));
+      if (cls) selectors.add(`.${cls} a`);
+    });
+  });
+  return Array.from(selectors);
+}
+
 // Export utility functions for testing
 exports.extractText = extractText;
 exports.safeParseJson = safeParseJson;
+exports.getSpecificity = getSpecificity;
+exports.isTooGeneric = isTooGeneric;
+exports.analyzeFallback = analyzeFallback;
