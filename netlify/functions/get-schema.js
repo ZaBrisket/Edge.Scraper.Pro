@@ -1,4 +1,3 @@
-\
 /**
  * Netlify Function: get-schema
  * Calls Gemini to infer a stable CSS selector for sub-page links and the "Next" button text.
@@ -97,7 +96,7 @@ function buildPrompt() {
     '  • The HTML of a main listing/index page.',
     '  • A screenshot of that main page.',
     '  • A screenshot of a typical sub-page/detail page.',
-    '  • A screenshot of the site\\'s pagination NEXT button.',
+    '  • A screenshot of the site\'s pagination NEXT button.',
     '',
     'Task: Infer a robust CSS selector that selects ONLY the link elements on the main page that lead to the sub-pages (detail pages), not navigation, ads, or unrelated links.',
     'Also infer the human-visible text that the site uses for its "Next page" control (e.g., "Next", "Older posts", "›").',
