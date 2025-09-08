@@ -175,6 +175,8 @@ function isPrivateIP(ip) {
 
 // Export for testing
 exports.isPrivateIP = isPrivateIP;
+exports.robotsAllows = robotsAllows;
+exports.checkRobots = checkRobots;
 
 async function robotsAllows(theUrl) {
   try {
