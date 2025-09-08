@@ -9,6 +9,7 @@ const parser = require('postcss-selector-parser');
 const cheerio = require('cheerio');
 const { fetchWithPolicy } = require('../../src/lib/http/client');
 const { getCorrelationId } = require('../../src/lib/http/correlation');
+const log = (...args) => console.log(new Date().toISOString(), ...args);
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -18,24 +19,24 @@ const CORS_HEADERS = {
 
 exports.handler = async (event) => {
   const correlationId = getCorrelationId(event);
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: { ...CORS_HEADERS, 'x-correlation-id': correlationId } };
-  }
-  if (event.httpMethod !== 'POST') {
-    return json(405, { ok: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' } }, correlationId);
-  }
+    if (event.httpMethod === 'OPTIONS') {
+      return { statusCode: 204, headers: { ...CORS_HEADERS, 'x-correlation-id': correlationId } };
+    }
+    if (event.httpMethod !== 'POST') {
+      return json(405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' } }, correlationId);
+    }
 
   try {
     const key = process.env.GEMINI_API_KEY;
-    if (!key) return json(500, { ok: false, error: { code: 'NO_API_KEY', message: 'GEMINI_API_KEY is not configured on the server' } }, correlationId);
+      if (!key) return json(500, { error: { code: 'NO_API_KEY', message: 'GEMINI_API_KEY is not configured on the server' } }, correlationId);
 
     let body;
     try { body = JSON.parse(event.body || '{}'); } catch { body = {}; }
 
     const { mainPageHtml = '', mainPageB64, subPageB64, nextButtonB64 } = body;
-    if (!mainPageHtml || !mainPageB64 || !subPageB64 || !nextButtonB64) {
-      return json(400, { ok: false, error: { code: 'BAD_REQUEST', message: 'Missing required payload: mainPageHtml, mainPageB64, subPageB64, nextButtonB64' } }, correlationId);
-    }
+      if (!mainPageHtml || !mainPageB64 || !subPageB64 || !nextButtonB64) {
+        return json(400, { error: { code: 'BAD_REQUEST', message: 'Missing required payload: mainPageHtml, mainPageB64, subPageB64, nextButtonB64' } }, correlationId);
+      }
 
     const $ = cheerio.load(mainPageHtml);
     const totalLinks = $('a').length;
@@ -63,19 +64,19 @@ exports.handler = async (event) => {
       }
     };
 
-    const res = await fetchWithPolicy(API_URL + `?key=${encodeURIComponent(key)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-      correlationId,
-    });
+      const res = await fetchWithPolicy(API_URL + `?key=${encodeURIComponent(key)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+        correlationId,
+      });
+      const resText = await res.text();
+      log(`[${correlationId}] upstream [${res.status}] ${API_URL}:`, resText.substring(0, 200));
+      if (!res.ok) {
+        return json(res.status, { error: { code: 'UPSTREAM_ERROR', message: `Gemini error: ${res.status}`, detail: resText.slice(0, 500) } }, correlationId);
+      }
 
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '');
-      return json(res.status, { ok: false, error: { code: 'UPSTREAM_ERROR', message: `Gemini error: ${res.status}`, detail: errText.slice(0, 500) } }, correlationId);
-    }
-
-    const data = await res.json();
+      const data = JSON.parse(resText);
     const text = extractText(data);
 
     const parsed = safeParseJson(text) || {};
@@ -103,18 +104,21 @@ exports.handler = async (event) => {
       fallbacks.forEach(trySelector);
     }
 
-    candidates.sort((a, b) => b.specificity - a.specificity);
-    return json(200, { ok: true, data: { candidates, nextButtonText } }, correlationId);
-  } catch (err) {
-    const code = err.code || 'INTERNAL';
-    const message = err.message || 'Unknown error';
-    return json(500, { ok: false, error: { code, message } }, correlationId);
-  }
-};
+      candidates.sort((a, b) => b.specificity - a.specificity);
+      return json(200, { linkSelector: candidates[0]?.selector || '', nextButtonText }, correlationId);
+    } catch (err) {
+      const code = err.code || 'INTERNAL';
+      const message = err.message || 'Unknown error';
+      return json(500, { error: { code, message } }, correlationId);
+    }
+  };
 
-function json(statusCode, obj, correlationId) {
-  return { statusCode, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS, 'x-correlation-id': correlationId }, body: JSON.stringify(obj) };
-}
+  function json(statusCode, obj, correlationId) {
+    const payload = Object.prototype.hasOwnProperty.call(obj, 'error')
+      ? { ok: false, error: typeof obj.error === 'string' ? { message: obj.error } : obj.error }
+      : { ok: true, data: obj };
+    return { statusCode, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS, 'x-correlation-id': correlationId }, body: JSON.stringify(payload) };
+  }
 
 function buildPrompt() {
   return [
