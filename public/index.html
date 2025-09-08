@@ -1,8 +1,7 @@
 <!-- 
   This application is a single-file, production-grade AI Web Scraper.
-  It has been refactored for a brutalist, early-web UI and includes advanced
-  features like site-profile caching and selector-drift auto-correction.
-  All network requests are handled by serverless Netlify Functions for security.
+  It uses a brutalist, early-web UI and all network requests
+  are handled by serverless Netlify Functions for security.
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -38,21 +37,6 @@
             margin-bottom: 1em;
         }
 
-        .tab-container { display: flex; border-bottom: 1px solid #000; margin-bottom: 1em; }
-        .tab-button {
-            padding: 0.5em 1em;
-            border: 1px solid #000;
-            border-bottom: none;
-            background-color: #eee;
-            cursor: pointer;
-            margin-right: 5px;
-            margin-bottom: -1px;
-        }
-        .tab-button.active {
-            background-color: #fff;
-            font-weight: bold;
-        }
-
         input[type="url"], input[type="number"], textarea {
             width: 100%;
             padding: 0.5em;
@@ -74,17 +58,6 @@
         }
         button:hover { background-color: #ddd; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
-
-        input[type="file"] { display: none; }
-        .file-label {
-            display: block;
-            border: 1px dashed #000;
-            padding: 1em;
-            text-align: center;
-            cursor: pointer;
-            margin-bottom: 1em;
-        }
-        .file-label:hover { background-color: #f0f0f0; }
 
         #resultsCode {
             background-color: #f5f5f5;
@@ -114,27 +87,9 @@
 <body>
     <div class="container">
         <h1>AI Web Scraper</h1>
-        <p>A tool to visually teach an AI to scrape websites. Built for function over form.</p>
+        <p>A tool to scrape websites in bulk. Built for function over form.</p>
 
-        <div class="tab-container">
-            <button id="schemaModeBtn" class="tab-button active">Schema Scrape</button>
-            <button id="bulkModeBtn" class="tab-button">Bulk Scrape</button>
-        </div>
-
-        <div id="schemaInputs" class="section">
-            <p><b>Step 1:</b> Teach the AI by providing a start URL and screenshots of the site structure.</p>
-            <input type="url" id="urlInput" placeholder="Enter a single starting URL...">
-            <div style="display: flex; gap: 1em;">
-                <label for="main-page-upload" class="file-label" style="flex:1;"><span id="mainPageFileName"><u>Click to Upload Main Page Screenshot</u></span></label>
-                <input id="main-page-upload" type="file" accept="image/*"/>
-                <label for="sub-page-upload" class="file-label" style="flex:1;"><span id="subPageFileName"><u>Click to Upload Sub-Page Screenshot</u></span></label>
-                <input id="sub-page-upload" type="file" accept="image/*"/>
-            </div>
-            <label for="next-button-upload" class="file-label"><span id="nextButtonFileName"><u>Click to Upload "Next Button" Screenshot</u></span></label>
-            <input id="next-button-upload" type="file" accept="image/*"/>
-        </div>
-
-        <div id="bulkInputs" class="section hidden">
+        <div id="bulkInputs" class="section">
             <p><b>Instructions:</b> Paste a list of URLs (one per line) to scrape all text from each page.</p>
             <textarea id="urlList" placeholder="https://example.com/page1&#10;https://example.com/page2"></textarea>
         </div>
@@ -184,18 +139,8 @@
 
     <script>
         const dom = {
-            schemaModeBtn: document.getElementById('schemaModeBtn'),
-            bulkModeBtn: document.getElementById('bulkModeBtn'),
-            schemaInputs: document.getElementById('schemaInputs'),
             bulkInputs: document.getElementById('bulkInputs'),
-            urlInput: document.getElementById('urlInput'),
             urlList: document.getElementById('urlList'),
-            mainPageFileInput: document.getElementById('main-page-upload'),
-            subPageFileInput: document.getElementById('sub-page-upload'),
-            nextButtonFileInput: document.getElementById('next-button-upload'),
-            mainPageFileNameSpan: document.getElementById('mainPageFileName'),
-            subPageFileNameSpan: document.getElementById('subPageFileName'),
-            nextButtonFileNameSpan: document.getElementById('nextButtonFileName'),
             scrapeBtn: document.getElementById('scrapeBtn'),
             statusContainer: document.getElementById('statusContainer'),
             statusText: document.getElementById('statusText'),
@@ -217,21 +162,9 @@
         };
 
         let state = {
-            currentMode: 'schema',
             scrapeResults: [],
             runControls: { paused: false, aborted: false }
         };
-
-        const SITE_PROFILES_KEY = 'siteProfiles';
-        const loadProfiles = () => { try { return JSON.parse(localStorage.getItem(SITE_PROFILES_KEY) || '{}'); } catch { return {}; } };
-        const saveProfiles = (p) => { localStorage.setItem(SITE_PROFILES_KEY, JSON.stringify(p)); };
-
-        const toBase64 = file => new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve({ data: reader.result.split(',')[1], mimeType: file.type });
-            reader.onerror = error => reject(error);
-        });
 
         const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -273,35 +206,6 @@
                 } catch {
                     throw new ParseError('Failed to parse fetch-url response', response.status);
                 }
-            },
-            async getSchema(payload) {
-                const response = await fetch('/api/get-schema', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const responseText = await response.text();
-                const correlationId = response.headers.get('x-correlation-id');
-                log(correlationId ? `[${correlationId}]` : '', `[getSchema] [${response.status}]:`, responseText.substring(0, 200));
-                if (!response.ok) {
-                    let error;
-                    try {
-                        const parsed = JSON.parse(responseText);
-                        error = parsed.error || parsed;
-                    } catch {
-                        error = { message: responseText, status: response.status };
-                    }
-                    const errorMessage = typeof error === 'object'
-                        ? (error.message || error.code || JSON.stringify(error))
-                        : String(error);
-                    throw new NetworkError(`[${response.status}] ${errorMessage}`, response.status);
-                }
-                try {
-                    const parsed = JSON.parse(responseText);
-                    return parsed.data || parsed;
-                } catch {
-                    throw new ParseError('Failed to parse schema response', response.status);
-                }
             }
         };
 
@@ -314,12 +218,6 @@
                 } catch {
                     throw new ValidationError(`Invalid URL: ${str}`);
                 }
-            },
-            screenshot: async (file) => {
-                if (!file) throw new ValidationError('Screenshot file is missing.');
-                if (file.size > 5 * 1024 * 1024) throw new ValidationError('File size exceeds 5MB limit.');
-                if (!file.type.startsWith('image/')) throw new ValidationError('Invalid file type.');
-                return file;
             }
         };
 
@@ -346,30 +244,6 @@
             dom.resumeBtn.classList.add('hidden');
         };
 
-        dom.schemaModeBtn.addEventListener('click', () => {
-            state.currentMode = 'schema';
-            dom.schemaModeBtn.classList.add('active'); dom.bulkModeBtn.classList.remove('active');
-            dom.schemaInputs.classList.remove('hidden'); dom.bulkInputs.classList.add('hidden');
-        });
-        dom.bulkModeBtn.addEventListener('click', () => {
-            state.currentMode = 'bulk';
-            dom.bulkModeBtn.classList.add('active'); dom.schemaModeBtn.classList.remove('active');
-            dom.bulkInputs.classList.remove('hidden'); dom.schemaInputs.classList.add('hidden');
-        });
-
-        // Explicit mapping for file inputs
-        const fileInputs = [
-            { input: dom.mainPageFileInput, span: dom.mainPageFileNameSpan },
-            { input: dom.subPageFileInput, span: dom.subPageFileNameSpan },
-            { input: dom.nextButtonFileInput, span: dom.nextButtonFileNameSpan }
-        ];
-        fileInputs.forEach(({ input, span }) => {
-            const defaultText = span.innerHTML;
-            input.addEventListener('change', () => {
-                span.textContent = input.files.length > 0 ? `File: ${input.files[0].name}` : defaultText;
-            });
-        });
-
         dom.scrapeBtn.addEventListener('click', async () => {
             dom.errorBox.classList.add('hidden');
             dom.resultsContainer.style.display = 'none';
@@ -381,8 +255,7 @@
             dom.resultsCode.textContent = '';
 
             try {
-                if (state.currentMode === 'schema') await runSchemaScrape();
-                else await runBulkScrape();
+                await runBulkScrape();
             } catch (error) {
                 if (!state.runControls.aborted) {
                     console.error('Scraping Error:', error);
@@ -424,128 +297,6 @@
                 return url.href;
             } catch { return href; }
         };
-
-        const findNextPageUrl = (doc, baseUrl, hintText) => {
-            const relNext = doc.querySelector('a[rel="next"], link[rel="next"]');
-            if (relNext) return new URL(relNext.getAttribute('href') || relNext.href, baseUrl).href;
-
-            const norm = s => (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
-            const hint = norm(hintText);
-            const NEXT_TOKENS = ['next', 'older', 'more', 'load more', '›', '»', '>'];
-            const candidates = Array.from(doc.querySelectorAll('a, button'));
-
-            const scored = candidates.map(el => {
-                const text = norm(el.textContent || el.innerText || '');
-                let score = 0;
-                if (hint && text === hint) score += 10;
-                if (NEXT_TOKENS.some(token => text.includes(token))) score += 5;
-                if (el.getAttribute('aria-label')?.toLowerCase().includes('next')) score += 5;
-                if ((el.className || '').toLowerCase().includes('next')) score += 3;
-                const href = el.closest('a')?.href || el.href || el.querySelector('a')?.href;
-                if (!href) score = -1;
-                return { href, score };
-            }).filter(c => c.score > 0).sort((a, b) => b.score - a.score);
-
-            return scored.length > 0 ? new URL(scored[0].href, baseUrl).href : null;
-        };
-        
-        async function runSchemaScrape() {
-            if (!await verifyBackend()) return;
-            const startUrl = validate.url(dom.urlInput.value.trim());
-            const [mainPageFile, subPageFile, nextButtonFile] = await Promise.all([
-                validate.screenshot(dom.mainPageFileInput.files[0]),
-                validate.screenshot(dom.subPageFileInput.files[0]),
-                validate.screenshot(dom.nextButtonFileInput.files[0])
-            ]);
-
-            dom.statusText.textContent = 'Fetching main page HTML...';
-            const mainPageHtml = await api.fetchUrl(startUrl);
-
-            let linkSelector, nextButtonText;
-            const origin = new URL(startUrl).origin;
-            let profiles = loadProfiles();
-
-            if (profiles[origin]) {
-                ({ linkSelector, nextButtonText } = profiles[origin]);
-                dom.statusText.textContent = 'Using saved site profile...';
-            } else {
-                const [mainPageB64, subPageB64, nextButtonB64] = await Promise.all([toBase64(mainPageFile), toBase64(subPageFile), toBase64(nextButtonFile)]);
-                dom.statusText.textContent = 'Teaching AI...';
-                ({ linkSelector, nextButtonText } = await api.getSchema({ mainPageHtml, mainPageB64, subPageB64, nextButtonB64 }));
-            }
-           
-            const parser = new DOMParser();
-            let mainDoc = parser.parseFromString(mainPageHtml, 'text/html');
-            let preflightMatches = mainDoc.querySelectorAll(linkSelector);
-
-            if (preflightMatches.length === 0) {
-                if (profiles[origin]) {
-                    delete profiles[origin];
-                    saveProfiles(profiles);
-                    throw new Error(`Pre-flight failed with saved profile. Please re-teach the AI.`);
-                }
-                throw new Error(`Pre-flight check failed: Selector "${linkSelector}" found 0 links.`);
-            }
-            dom.statusText.textContent = `Pre-flight passed! Found ${preflightMatches.length} links. Starting crawl...`;
-            
-            if (!profiles[origin]) {
-                profiles[origin] = { linkSelector, nextButtonText, ts: Date.now() };
-                saveProfiles(profiles);
-            }
-
-            const allLinksToVisit = new Set();
-            let currentPageUrl = startUrl, pageCount = 1, currentHtml = mainPageHtml;
-            let baselineMatchCount = preflightMatches.length, driftStrikes = 0;
-
-            while (currentPageUrl && !state.runControls.aborted) {
-                await cooperativelyYield();
-                dom.statusText.textContent = `Finding links on page ${pageCount}...`;
-                const doc = parser.parseFromString(currentHtml, 'text/html');
-                
-                const currentMatches = doc.querySelectorAll(linkSelector);
-                if(pageCount > 1 && baselineMatchCount > 0 && currentMatches.length < baselineMatchCount * 0.2) {
-                    driftStrikes++;
-                    if(driftStrikes >= 2) {
-                        dom.statusText.textContent = 'Selector drift detected. Re-teaching AI...';
-                        const [mainB64, subB64, nextB64] = await Promise.all([toBase64(mainPageFile), toBase64(subPageFile), toBase64(nextButtonFile)]);
-                        ({ linkSelector, nextButtonText } = await api.getSchema({ mainPageHtml: currentHtml, mainPageB64: mainB64, subPageB64: subB64, nextButtonB64: nextB64 }));
-                        
-                        profiles[origin] = { linkSelector, nextButtonText, ts: Date.now() };
-                        saveProfiles(profiles);
-                        
-                        baselineMatchCount = doc.querySelectorAll(linkSelector).length;
-                        driftStrikes = 0;
-                        dom.statusText.textContent = `AI re-taught. Resuming crawl...`;
-                    }
-                } else {
-                    driftStrikes = 0;
-                }
-
-                doc.querySelectorAll(linkSelector).forEach(el => {
-                    const a = el.closest('a') || el.querySelector('a');
-                    if(a && a.href) {
-                        const newUrl = new URL(a.href, currentPageUrl).href;
-                        if(new URL(newUrl).origin === origin) allLinksToVisit.add(cleanUrl(newUrl));
-                    }
-                });
-                
-                let nextUrl = findNextPageUrl(doc, currentPageUrl, nextButtonText);
-
-                if (nextUrl) {
-                    currentPageUrl = nextUrl;
-                    await delay(500);
-                    currentHtml = await api.fetchUrl(currentPageUrl);
-                    pageCount++;
-                } else {
-                    currentPageUrl = null;
-                }
-            }
-            
-            const linksArray = Array.from(allLinksToVisit);
-            if (linksArray.length === 0) throw new Error(`No valid links found after crawl.`);
-
-            await processUrlsInParallel(linksArray, 'Scraping sub-page');
-        }
 
         async function runBulkScrape() {
             if (!await verifyBackend()) return;

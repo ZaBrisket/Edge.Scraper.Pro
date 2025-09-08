@@ -1,6 +1,6 @@
 {
   "name": "edge.scraper.pro",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "",
   "main": "index.js",
   "directories": {
@@ -14,8 +14,6 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "cheerio": "^1.1.2",
-    "postcss-selector-parser": "^7.1.0",
     "bottleneck": "^2.19.5",
     "pino": "^8.15.0",
     "zod": "^3.22.4"

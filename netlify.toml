@@ -12,6 +12,7 @@
   status = 200
 
 [[redirects]]
+  # Temporary mapping for deprecated schema endpoint; returns 410
   from = "/api/get-schema"
   to = "/.netlify/functions/get-schema"
   status = 200
