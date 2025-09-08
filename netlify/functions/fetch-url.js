@@ -1,4 +1,3 @@
-\
 /**
  * Netlify Function: fetch-url
  * Securely fetches HTML for a given URL with basic SSRF protections,
@@ -173,6 +172,9 @@ function isPrivateIP(ip) {
   }
   return false;
 }
+
+// Export for testing
+exports.isPrivateIP = isPrivateIP;
 
 async function robotsAllows(theUrl) {
   try {
