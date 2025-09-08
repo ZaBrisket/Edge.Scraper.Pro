@@ -141,3 +141,7 @@ function safeParseJson(text) {
   }
   return null;
 }
+
+// Export utility functions for testing
+exports.extractText = extractText;
+exports.safeParseJson = safeParseJson;
