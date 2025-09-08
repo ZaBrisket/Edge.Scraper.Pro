@@ -1,0 +1,627 @@
+<!-- 
+  This application is a single-file, production-grade AI Web Scraper.
+  It has been refactored for a brutalist, early-web UI and includes advanced
+  features like site-profile caching and selector-drift auto-correction.
+  All network requests are handled by serverless Netlify Functions for security.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Web Scraper</title>
+    <style>
+        /* Brutalist, Early-Web UI Theme */
+        body { 
+            font-family: serif; 
+            background-color: #fff; 
+            color: #000;
+            margin: 0;
+            padding: 1em;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+            border: 1px solid #000;
+            padding: 1em;
+        }
+        h1 { font-size: 2em; margin-bottom: 0.5em; font-weight: bold; }
+        p { margin-bottom: 1em; }
+        a { color: #0000ff; }
+        a:visited { color: #800080; }
+
+        .section {
+            border: 1px solid #000;
+            padding: 1em;
+            margin-bottom: 1em;
+        }
+
+        .tab-container { display: flex; border-bottom: 1px solid #000; margin-bottom: 1em; }
+        .tab-button {
+            padding: 0.5em 1em;
+            border: 1px solid #000;
+            border-bottom: none;
+            background-color: #eee;
+            cursor: pointer;
+            margin-right: 5px;
+            margin-bottom: -1px;
+        }
+        .tab-button.active {
+            background-color: #fff;
+            font-weight: bold;
+        }
+
+        input[type="url"], input[type="number"], textarea {
+            width: 100%;
+            padding: 0.5em;
+            font-family: monospace;
+            border: 1px solid #000;
+            margin-bottom: 1em;
+            box-sizing: border-box;
+        }
+        textarea {
+             min-height: 150px;
+        }
+
+        button {
+            padding: 0.5em 1em;
+            border: 1px solid #000;
+            background-color: #eee;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background-color: #ddd; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        input[type="file"] { display: none; }
+        .file-label {
+            display: block;
+            border: 1px dashed #000;
+            padding: 1em;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 1em;
+        }
+        .file-label:hover { background-color: #f0f0f0; }
+
+        #resultsCode {
+            background-color: #f5f5f5;
+            border: 1px solid #000;
+            padding: 1em;
+            height: 400px;
+            overflow: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        .spinner {
+            border: 4px solid #ccc;
+            border-radius: 50%;
+            border-top: 4px solid #000;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2em auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Web Scraper</h1>
+        <p>A tool to visually teach an AI to scrape websites. Built for function over form.</p>
+
+        <div class="tab-container">
+            <button id="schemaModeBtn" class="tab-button active">Schema Scrape</button>
+            <button id="bulkModeBtn" class="tab-button">Bulk Scrape</button>
+        </div>
+
+        <div id="schemaInputs" class="section">
+            <p><b>Step 1:</b> Teach the AI by providing a start URL and screenshots of the site structure.</p>
+            <input type="url" id="urlInput" placeholder="Enter a single starting URL...">
+            <div style="display: flex; gap: 1em;">
+                <label for="main-page-upload" class="file-label" style="flex:1;"><span id="mainPageFileName"><u>Click to Upload Main Page Screenshot</u></span></label>
+                <input id="main-page-upload" type="file" accept="image/*"/>
+                <label for="sub-page-upload" class="file-label" style="flex:1;"><span id="subPageFileName"><u>Click to Upload Sub-Page Screenshot</u></span></label>
+                <input id="sub-page-upload" type="file" accept="image/*"/>
+            </div>
+            <label for="next-button-upload" class="file-label"><span id="nextButtonFileName"><u>Click to Upload "Next Button" Screenshot</u></span></label>
+            <input id="next-button-upload" type="file" accept="image/*"/>
+        </div>
+
+        <div id="bulkInputs" class="section hidden">
+            <p><b>Instructions:</b> Paste a list of URLs (one per line) to scrape all text from each page.</p>
+            <textarea id="urlList" placeholder="https://example.com/page1&#10;https://example.com/page2"></textarea>
+        </div>
+        
+        <div class="section">
+            <p><b>Step 2:</b> Configure scrape settings and run.</p>
+            <div style="display: flex; align-items: center; gap: 1em; margin-bottom: 1em;">
+                <label for="concurrency">Concurrency:</label>
+                <input id="concurrency" type="range" min="1" max="10" value="5" style="flex-grow: 1;" />
+                <span id="concurrencyValue">5</span>
+                <label for="delay" style="margin-left: 2em;">Delay (ms):</label>
+                <input id="delay" type="number" value="250" style="width: 80px; margin-bottom: 0;"/>
+            </div>
+             <div style="display: flex; gap: 1em;">
+                <button id="scrapeBtn" style="width: 100%;">Scrape</button>
+                <button id="pauseBtn" class="hidden">Pause</button>
+                <button id="resumeBtn" class="hidden">Resume</button>
+                <button id="stopBtn" class="hidden">Stop</button>
+            </div>
+        </div>
+
+        <div class="section">
+             <p><b>Step 3:</b> Review and export results.</p>
+            <div id="statusContainer" class="hidden">
+                <div class="spinner"></div>
+                <p id="statusText" style="text-align: center;"></p>
+            </div>
+            <div id="errorBox" class="hidden" style="color: red; border: 1px solid red; padding: 1em; margin-bottom: 1em;">
+                <b>Error:</b> <span id="errorMessage"></span>
+            </div>
+            <div id="resultsContainer" style="display:none;">
+                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em;">
+                    <div>
+                        <label><input type="checkbox" id="includeHtmlToggle"> Include Raw HTML</label>
+                    </div>
+                    <div>
+                        <button id="copyBtn">Copy</button>
+                        <button id="downloadTxtBtn">Download .txt</button>
+                        <button id="downloadJsonlBtn">Download .jsonl</button>
+                        <button id="downloadCsvBtn">Download .csv</button>
+                    </div>
+                </div>
+                <div id="resultsCode"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dom = {
+            schemaModeBtn: document.getElementById('schemaModeBtn'),
+            bulkModeBtn: document.getElementById('bulkModeBtn'),
+            schemaInputs: document.getElementById('schemaInputs'),
+            bulkInputs: document.getElementById('bulkInputs'),
+            urlInput: document.getElementById('urlInput'),
+            urlList: document.getElementById('urlList'),
+            mainPageFileInput: document.getElementById('main-page-upload'),
+            subPageFileInput: document.getElementById('sub-page-upload'),
+            nextButtonFileInput: document.getElementById('next-button-upload'),
+            mainPageFileNameSpan: document.getElementById('mainPageFileName'),
+            subPageFileNameSpan: document.getElementById('subPageFileName'),
+            nextButtonFileNameSpan: document.getElementById('nextButtonFileName'),
+            scrapeBtn: document.getElementById('scrapeBtn'),
+            statusContainer: document.getElementById('statusContainer'),
+            statusText: document.getElementById('statusText'),
+            errorBox: document.getElementById('errorBox'),
+            errorMessage: document.getElementById('errorMessage'),
+            resultsContainer: document.getElementById('resultsContainer'),
+            resultsCode: document.getElementById('resultsCode'),
+            copyBtn: document.getElementById('copyBtn'),
+            downloadTxtBtn: document.getElementById('downloadTxtBtn'),
+            downloadJsonlBtn: document.getElementById('downloadJsonlBtn'),
+            downloadCsvBtn: document.getElementById('downloadCsvBtn'),
+            concurrencySlider: document.getElementById('concurrency'),
+            concurrencyValue: document.getElementById('concurrencyValue'),
+            delayInput: document.getElementById('delay'),
+            pauseBtn: document.getElementById('pauseBtn'),
+            resumeBtn: document.getElementById('resumeBtn'),
+            stopBtn: document.getElementById('stopBtn'),
+            includeHtmlToggle: document.getElementById('includeHtmlToggle'),
+        };
+
+        let state = {
+            currentMode: 'schema',
+            scrapeResults: [],
+            runControls: { paused: false, aborted: false }
+        };
+
+        const SITE_PROFILES_KEY = 'siteProfiles';
+        const loadProfiles = () => { try { return JSON.parse(localStorage.getItem(SITE_PROFILES_KEY) || '{}'); } catch { return {}; } };
+        const saveProfiles = (p) => { localStorage.setItem(SITE_PROFILES_KEY, JSON.stringify(p)); };
+
+        const toBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve({ data: reader.result.split(',')[1], mimeType: file.type });
+            reader.onerror = error => reject(error);
+        });
+
+        const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+        const api = {
+            async fetchUrl(url) {
+                const response = await fetch(`/api/fetch-url?url=${encodeURIComponent(url)}`);
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({ error: `Server responded with status ${response.status}` }));
+                    throw new Error(err.error);
+                }
+                return (await response.json()).html;
+            },
+            async getSchema(payload) {
+                const response = await fetch('/api/get-schema', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({ error: `AI server responded with status ${response.status}` }));
+                    throw new Error(err.error);
+                }
+                return await response.json();
+            }
+        };
+
+        const validate = {
+            url: (str) => {
+                try {
+                    const url = new URL(str);
+                    if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Invalid protocol.');
+                    return url.href;
+                } catch (e) { throw new Error(`Invalid URL: ${str}`); }
+            },
+            screenshot: async (file) => {
+                if (!file) throw new Error('Screenshot file is missing.');
+                if (file.size > 5 * 1024 * 1024) throw new Error('File size exceeds 5MB limit.');
+                if (!file.type.startsWith('image/')) throw new Error('Invalid file type.');
+                return file;
+            }
+        };
+
+        const showError = message => { dom.errorMessage.textContent = message; dom.errorBox.classList.remove('hidden'); };
+        
+        const updateRunButtons = (isScraping) => {
+            dom.scrapeBtn.classList.toggle('hidden', isScraping);
+            dom.pauseBtn.classList.toggle('hidden', !isScraping);
+            dom.stopBtn.classList.toggle('hidden', !isScraping);
+            dom.resumeBtn.classList.add('hidden');
+        };
+
+        dom.schemaModeBtn.addEventListener('click', () => {
+            state.currentMode = 'schema';
+            dom.schemaModeBtn.classList.add('active'); dom.bulkModeBtn.classList.remove('active');
+            dom.schemaInputs.classList.remove('hidden'); dom.bulkInputs.classList.add('hidden');
+        });
+        dom.bulkModeBtn.addEventListener('click', () => {
+            state.currentMode = 'bulk';
+            dom.bulkModeBtn.classList.add('active'); dom.schemaModeBtn.classList.remove('active');
+            dom.bulkInputs.classList.remove('hidden'); dom.schemaInputs.classList.add('hidden');
+        });
+
+        // Explicit mapping for file inputs
+        const fileInputs = [
+            { input: dom.mainPageFileInput, span: dom.mainPageFileNameSpan },
+            { input: dom.subPageFileInput, span: dom.subPageFileNameSpan },
+            { input: dom.nextButtonFileInput, span: dom.nextButtonFileNameSpan }
+        ];
+        fileInputs.forEach(({ input, span }) => {
+            const defaultText = span.innerHTML;
+            input.addEventListener('change', () => {
+                span.textContent = input.files.length > 0 ? `File: ${input.files[0].name}` : defaultText;
+            });
+        });
+
+        dom.scrapeBtn.addEventListener('click', async () => {
+            dom.errorBox.classList.add('hidden');
+            dom.resultsContainer.style.display = 'none';
+            dom.statusContainer.classList.remove('hidden');
+            updateRunButtons(true);
+            
+            state.runControls = { paused: false, aborted: false };
+            state.scrapeResults = [];
+            dom.resultsCode.textContent = '';
+
+            try {
+                if (state.currentMode === 'schema') await runSchemaScrape();
+                else await runBulkScrape();
+            } catch (error) {
+                if (!state.runControls.aborted) {
+                    console.error('Scraping Error:', error);
+                    showError(error.message);
+                }
+            } finally {
+                dom.statusContainer.classList.add('hidden');
+                updateRunButtons(false);
+            }
+        });
+        
+        dom.concurrencySlider.addEventListener('input', () => dom.concurrencyValue.textContent = dom.concurrencySlider.value);
+        dom.pauseBtn.addEventListener('click', () => {
+            state.runControls.paused = true;
+            dom.pauseBtn.classList.add('hidden');
+            dom.resumeBtn.classList.remove('hidden');
+            dom.statusText.textContent = 'Scraping paused...';
+        });
+        dom.resumeBtn.addEventListener('click', () => {
+            state.runControls.paused = false;
+            dom.resumeBtn.classList.add('hidden');
+            dom.pauseBtn.classList.remove('hidden');
+        });
+        dom.stopBtn.addEventListener('click', () => {
+            state.runControls.aborted = true;
+            dom.statusText.textContent = 'Scraping stopped by user.';
+        });
+
+        const cooperativelyYield = async () => {
+            while (state.runControls.paused) await delay(200);
+            if (state.runControls.aborted) throw new Error('Run aborted by user');
+        };
+
+        const cleanUrl = (href) => {
+            try {
+                const url = new URL(href);
+                url.hash = '';
+                ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid'].forEach(p => url.searchParams.delete(p));
+                return url.href;
+            } catch { return href; }
+        };
+
+        const findNextPageUrl = (doc, baseUrl, hintText) => {
+            const relNext = doc.querySelector('a[rel="next"], link[rel="next"]');
+            if (relNext) return new URL(relNext.getAttribute('href') || relNext.href, baseUrl).href;
+
+            const norm = s => (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+            const hint = norm(hintText);
+            const NEXT_TOKENS = ['next', 'older', 'more', 'load more', '›', '»', '>'];
+            const candidates = Array.from(doc.querySelectorAll('a, button'));
+
+            const scored = candidates.map(el => {
+                const text = norm(el.textContent || el.innerText || '');
+                let score = 0;
+                if (hint && text === hint) score += 10;
+                if (NEXT_TOKENS.some(token => text.includes(token))) score += 5;
+                if (el.getAttribute('aria-label')?.toLowerCase().includes('next')) score += 5;
+                if ((el.className || '').toLowerCase().includes('next')) score += 3;
+                const href = el.closest('a')?.href || el.href || el.querySelector('a')?.href;
+                if (!href) score = -1;
+                return { href, score };
+            }).filter(c => c.score > 0).sort((a, b) => b.score - a.score);
+
+            return scored.length > 0 ? new URL(scored[0].href, baseUrl).href : null;
+        };
+        
+        async function runSchemaScrape() {
+            const startUrl = validate.url(dom.urlInput.value.trim());
+            const [mainPageFile, subPageFile, nextButtonFile] = await Promise.all([
+                validate.screenshot(dom.mainPageFileInput.files[0]),
+                validate.screenshot(dom.subPageFileInput.files[0]),
+                validate.screenshot(dom.nextButtonFileInput.files[0])
+            ]);
+
+            dom.statusText.textContent = 'Fetching main page HTML...';
+            const mainPageHtml = await api.fetchUrl(startUrl);
+
+            let linkSelector, nextButtonText;
+            const origin = new URL(startUrl).origin;
+            let profiles = loadProfiles();
+
+            if (profiles[origin]) {
+                ({ linkSelector, nextButtonText } = profiles[origin]);
+                dom.statusText.textContent = 'Using saved site profile...';
+            } else {
+                const [mainPageB64, subPageB64, nextButtonB64] = await Promise.all([toBase64(mainPageFile), toBase64(subPageFile), toBase64(nextButtonFile)]);
+                dom.statusText.textContent = 'Teaching AI...';
+                ({ linkSelector, nextButtonText } = await api.getSchema({ mainPageHtml, mainPageB64, subPageB64, nextButtonB64 }));
+            }
+           
+            const parser = new DOMParser();
+            let mainDoc = parser.parseFromString(mainPageHtml, 'text/html');
+            let preflightMatches = mainDoc.querySelectorAll(linkSelector);
+
+            if (preflightMatches.length === 0) {
+                if (profiles[origin]) {
+                    delete profiles[origin];
+                    saveProfiles(profiles);
+                    throw new Error(`Pre-flight failed with saved profile. Please re-teach the AI.`);
+                }
+                throw new Error(`Pre-flight check failed: Selector "${linkSelector}" found 0 links.`);
+            }
+            dom.statusText.textContent = `Pre-flight passed! Found ${preflightMatches.length} links. Starting crawl...`;
+            
+            if (!profiles[origin]) {
+                profiles[origin] = { linkSelector, nextButtonText, ts: Date.now() };
+                saveProfiles(profiles);
+            }
+
+            const allLinksToVisit = new Set();
+            let currentPageUrl = startUrl, pageCount = 1, currentHtml = mainPageHtml;
+            let baselineMatchCount = preflightMatches.length, driftStrikes = 0;
+
+            while (currentPageUrl && !state.runControls.aborted) {
+                await cooperativelyYield();
+                dom.statusText.textContent = `Finding links on page ${pageCount}...`;
+                const doc = parser.parseFromString(currentHtml, 'text/html');
+                
+                const currentMatches = doc.querySelectorAll(linkSelector);
+                if(pageCount > 1 && baselineMatchCount > 0 && currentMatches.length < baselineMatchCount * 0.2) {
+                    driftStrikes++;
+                    if(driftStrikes >= 2) {
+                        dom.statusText.textContent = 'Selector drift detected. Re-teaching AI...';
+                        const [mainB64, subB64, nextB64] = await Promise.all([toBase64(mainPageFile), toBase64(subPageFile), toBase64(nextButtonFile)]);
+                        ({ linkSelector, nextButtonText } = await api.getSchema({ mainPageHtml: currentHtml, mainPageB64: mainB64, subPageB64: subB64, nextButtonB64: nextB64 }));
+                        
+                        profiles[origin] = { linkSelector, nextButtonText, ts: Date.now() };
+                        saveProfiles(profiles);
+                        
+                        baselineMatchCount = doc.querySelectorAll(linkSelector).length;
+                        driftStrikes = 0;
+                        dom.statusText.textContent = `AI re-taught. Resuming crawl...`;
+                    }
+                } else {
+                    driftStrikes = 0;
+                }
+
+                doc.querySelectorAll(linkSelector).forEach(el => {
+                    const a = el.closest('a') || el.querySelector('a');
+                    if(a && a.href) {
+                        const newUrl = new URL(a.href, currentPageUrl).href;
+                        if(new URL(newUrl).origin === origin) allLinksToVisit.add(cleanUrl(newUrl));
+                    }
+                });
+                
+                let nextUrl = findNextPageUrl(doc, currentPageUrl, nextButtonText);
+
+                if (nextUrl) {
+                    currentPageUrl = nextUrl;
+                    await delay(500);
+                    currentHtml = await api.fetchUrl(currentPageUrl);
+                    pageCount++;
+                } else {
+                    currentPageUrl = null;
+                }
+            }
+            
+            const linksArray = Array.from(allLinksToVisit);
+            if (linksArray.length === 0) throw new Error(`No valid links found after crawl.`);
+
+            await processUrlsInParallel(linksArray, 'Scraping sub-page');
+        }
+
+        async function runBulkScrape() {
+            const urls = dom.urlList.value.trim().split('\n').filter(Boolean).map(url => cleanUrl(validate.url(url)));
+            if (urls.length === 0) throw new Error('Please paste at least one valid URL.');
+            await processUrlsInParallel(urls, 'Scraping URL');
+        }
+
+        async function processUrlsInParallel(urls, statusPrefix) {
+            let completed = 0;
+            const maxConcurrency = parseInt(dom.concurrencySlider.value, 10);
+            const perRequestDelay = parseInt(dom.delayInput.value, 10);
+            const urlQueue = [...new Set(urls)].map((url, index) => ({ index, url }));
+            const totalUrls = urlQueue.length;
+            state.scrapeResults = new Array(totalUrls);
+
+            const renderResults = () => {
+                dom.resultsCode.textContent = state.scrapeResults
+                    .filter(Boolean).sort((a, b) => a.index - b.index)
+                    .map(r => {
+                        let output = `\n\n--- Content from ${r.url} ---\n\n`;
+                        if(r.error) output += `Error: ${r.error}`;
+                        else {
+                            if(r.metadata.title) output += `Title: ${r.metadata.title}\n`;
+                            if(r.metadata.author) output += `Author: ${r.metadata.author}\n`;
+                            if(r.metadata.published_at) output += `Published: ${r.metadata.published_at}\n`;
+                            if(r.metadata.description) output += `Description: ${r.metadata.description}\n\n`;
+                            output += r.text;
+                        }
+                        return output;
+                    }).join('');
+            };
+
+            async function worker() {
+                while (urlQueue.length > 0 && !state.runControls.aborted) {
+                    await cooperativelyYield();
+                    if (state.runControls.aborted) break;
+                    
+                    const { index, url } = urlQueue.shift();
+                    try {
+                        dom.statusText.textContent = `${statusPrefix} (${completed + 1}/${totalUrls}): ${url.substring(0, 50)}...`;
+                        const html = await api.fetchUrl(url);
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        const metadata = extractMetadata(doc);
+                        const text = extractMainContent(doc);
+                        state.scrapeResults[index] = { index, url, text, metadata, html: dom.includeHtmlToggle.checked ? html : null, success: true };
+                    } catch (error) {
+                        state.scrapeResults[index] = { index, url, text: '', metadata: {}, success: false, error: error.message, html: null };
+                    } finally {
+                        completed++;
+                        renderResults();
+                    }
+                    await delay(perRequestDelay);
+                }
+            }
+            
+            const workers = Array(Math.min(maxConcurrency, totalUrls)).fill(null).map(worker);
+            dom.resultsContainer.style.display = 'block';
+            await Promise.all(workers);
+
+            if (!state.runControls.aborted) dom.statusText.textContent = `Scrape complete! Processed ${completed} URLs.`;
+        }
+
+        function extractMetadata(doc) {
+            const get = (selector, attr = 'content') => doc.querySelector(selector)?.getAttribute(attr) || '';
+            return {
+                title: get('meta[property="og:title"]') || doc.title || '',
+                description: get('meta[name="description"]') || get('meta[property="og:description"]') || '',
+                author: get('meta[name="author"]') || '',
+                published_at: get('meta[property="article:published_time"]') || get('meta[name="date"]') || ''
+            };
+        }
+
+        function extractMainContent(doc) {
+             const docClone = doc.cloneNode(true);
+             docClone.querySelectorAll('script, style, nav, footer, header, aside, form, [role="navigation"], [role="banner"], [role="complementary"], noscript, iframe, svg').forEach(el => el.remove());
+             const candidates = Array.from(docClone.querySelectorAll('main, article, [role="main"], .main-content, .post, .post-body, .entry, .entry-content, #content, .content, section'));
+             if (docClone.body) candidates.push(docClone.body);
+
+             const scoreNode = (node) => {
+                if (!node || !node.innerText) return 0;
+                const text = node.innerText.trim();
+                const textLength = text.length;
+                if (textLength < 100) return 0;
+                const linkCount = node.querySelectorAll('a').length;
+                const pCount = node.querySelectorAll('p').length;
+                const headingCount = node.querySelectorAll('h1, h2, h3').length;
+                const linkDensity = linkCount / (text.split(/\s+/).length + 1);
+                return (textLength * (1 - linkDensity)) + (pCount * 50) + (headingCount * 100);
+             };
+
+             let bestNode = docClone.body, maxScore = 0;
+             candidates.forEach(node => {
+                const score = scoreNode(node);
+                if (score > maxScore) { maxScore = score; bestNode = node; }
+             });
+
+             let mainText = bestNode?.innerText?.trim() || '';
+             if (mainText.length < 200) {
+                 const metaDescription = extractMetadata(doc).description;
+                 if (metaDescription && metaDescription.length > mainText.length) mainText = metaDescription;
+             }
+             return mainText.replace(/(\r\n|\n|\r){3,}/g, '\n\n');
+        }
+        
+        function downloadFile(filename, text) {
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename;
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+
+        dom.downloadTxtBtn.addEventListener('click', () => {
+            const textContent = state.scrapeResults.filter(Boolean).sort((a,b)=> a.index - b.index).map(r => `--- Content from ${r.url} ---\n\n${r.error ? `ERROR: ${r.error}` : r.text}`).join('\n\n');
+            downloadFile('scrape_results.txt', textContent);
+        });
+
+        dom.downloadJsonlBtn.addEventListener('click', () => {
+            const jsonlContent = state.scrapeResults.filter(Boolean).sort((a,b)=> a.index - b.index).map(r => JSON.stringify(r)).join('\n');
+            downloadFile('scrape_results.jsonl', jsonlContent);
+        });
+        
+        dom.downloadCsvBtn.addEventListener('click', () => {
+            const header = ['url', 'title', 'author', 'published_at', 'description', 'text', 'success', 'error', 'html'];
+            const esc = s => `"${(s || '').toString().replace(/"/g, '""')}"`;
+            const rows = state.scrapeResults.filter(Boolean).sort((a,b)=> a.index - b.index).map(r => {
+                const { url, metadata, text, success, error, html } = r;
+                return [url, metadata.title, metadata.author, metadata.published_at, metadata.description, text, success, error, dom.includeHtmlToggle.checked ? html : ''].map(esc).join(',');
+            });
+            downloadFile('scrape_results.csv', [header.join(','), ...rows].join('\n'));
+        });
+
+        dom.copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(dom.resultsCode.textContent);
+                dom.copyBtn.textContent = 'Copied!';
+                setTimeout(() => { dom.copyBtn.textContent = 'Copy'; }, 2000);
+            } catch (err) { showError('Failed to copy text.'); }
+        });
+    </script>
+</body>
+</html>

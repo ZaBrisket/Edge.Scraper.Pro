@@ -1,0 +1,14 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+# Proxy API routes to Netlify Functions
+[[redirects]]
+  from = "/api/fetch-url"
+  to = "/.netlify/functions/fetch-url"
+  status = 200
+
+[[redirects]]
+  from = "/api/get-schema"
+  to = "/.netlify/functions/get-schema"
+  status = 200
