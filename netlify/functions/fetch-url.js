@@ -7,6 +7,10 @@ const dns = require('dns').promises;
 const { URL } = require('url');
 const net = require('net');
 
+// Cache for resolved hostnames
+const hostCache = new Map();
+const CACHE_TTL_MS = 5000;
+
 const UA = 'EdgeScraper/1.0 (+https://github.com/ZaBrisket/Edge.Scraper.Pro)';
 const MAX_REDIRECTS = 3;
 const MAX_BYTES = 2.5 * 1024 * 1024; // 2.5 MB
@@ -18,6 +22,19 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type'
 };
+
+async function resolveHost(hostname, { forceRefresh = false } = {}) {
+  const now = Date.now();
+  const cached = hostCache.get(hostname);
+  if (!forceRefresh && cached && now - cached.resolvedAt < CACHE_TTL_MS) {
+    return cached.ip;
+  }
+  const { address: ip } = await dns.lookup(hostname);
+  if (isPrivateIP(ip)) throw new Error('Resolved to private IP');
+  hostCache.set(hostname, { ip, resolvedAt: now });
+  return ip;
+}
+resolveHost.cache = hostCache;
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
@@ -35,8 +52,10 @@ exports.handler = async (event) => {
     const port = startUrl.port ? Number(startUrl.port) : (startUrl.protocol === 'http:' ? 80 : 443);
     if (!ALLOWED_PORTS.has(port)) return json(400, { error: 'Non-standard ports are blocked' });
 
-    // Resolve and block private IPs
-    if (!(await isPublicHost(startUrl.hostname))) {
+    // Resolve and block private IPs using cache
+    try {
+      await resolveHost(startUrl.hostname);
+    } catch {
       return json(400, { error: 'Blocked by SSRF policy (private or local address)' });
     }
 
@@ -77,17 +96,20 @@ function json(statusCode, obj) {
 async function safeFetchWithRedirects(inputUrl) {
   let current = new URL(inputUrl);
   for (let i = 0; i <= MAX_REDIRECTS; i++) {
-    const res = await timedFetch(current.href, { redirect: 'manual', headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml,*/*' } });
-    // Follow 3xx redirects manually so we can re-validate hosts/ports each hop
+    const firstIP = await resolveHost(current.hostname);
+    const finalIP = await resolveHost(current.hostname, { forceRefresh: true });
+    if (firstIP !== finalIP) {
+      hostCache.delete(current.hostname);
+      throw new Error('DNS rebinding detected');
+    }
+    const res = await fetchResolved(current, finalIP, { redirect: 'manual', headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml,*/*' } });
     if ([301, 302, 303, 307, 308].includes(res.status)) {
       const loc = res.headers.get('location');
       if (!loc) throw new Error(`Redirect without Location header`);
       const nextUrl = new URL(loc, current.href);
-      // Block non-http(s) schemes and private IPs on redirect
       if (!['http:', 'https:'].includes(nextUrl.protocol)) throw new Error('Redirected to unsupported protocol');
       const port = nextUrl.port ? Number(nextUrl.port) : (nextUrl.protocol === 'http:' ? 80 : 443);
       if (!ALLOWED_PORTS.has(port)) throw new Error('Redirected to blocked port');
-      if (!(await isPublicHost(nextUrl.hostname))) throw new Error('Redirected to private/local host');
       current = nextUrl;
       continue;
     }
@@ -117,36 +139,21 @@ async function readLimited(response, maxBytes) {
   return merged.toString('utf-8');
 }
 
-async function timedFetch(url, opts) {
+async function fetchWithTimeout(url, opts) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(url, { ...opts, signal: controller.signal });
-    return res;
+    return await fetch(url, { ...opts, signal: controller.signal });
   } finally {
     clearTimeout(id);
   }
 }
 
-async function isPublicHost(hostname) {
-  const lower = hostname.toLowerCase();
-  if (lower === 'localhost' || lower === '127.0.0.1' || lower === '::1') return false;
-  if (lower.endsWith('.localhost') || lower.endsWith('.local')) return false;
-
-  // If hostname is already an IP literal
-  if (net.isIP(hostname)) {
-    return !isPrivateIP(hostname);
-  }
-
-  try {
-    const addrs = await dns.lookup(hostname, { all: true });
-    if (!addrs || addrs.length === 0) return false;
-    // If any resolved address is public, consider host public
-    return addrs.some((a) => !isPrivateIP(a.address));
-  } catch {
-    // DNS failure, disallow
-    return false;
-  }
+async function fetchResolved(urlObj, ip, opts) {
+  const authority = ip + (urlObj.port ? `:${urlObj.port}` : '');
+  const target = `${urlObj.protocol}//${authority}${urlObj.pathname}${urlObj.search}`;
+  const headers = { ...opts.headers, Host: urlObj.hostname };
+  return fetchWithTimeout(target, { ...opts, headers });
 }
 
 function isPrivateIP(ip) {
@@ -177,12 +184,14 @@ function isPrivateIP(ip) {
 exports.isPrivateIP = isPrivateIP;
 exports.robotsAllows = robotsAllows;
 exports.checkRobots = checkRobots;
+exports.resolveHost = resolveHost;
+exports.safeFetchWithRedirects = safeFetchWithRedirects;
 
 async function robotsAllows(theUrl) {
   try {
     const url = new URL(theUrl);
     const robotsUrl = new URL('/robots.txt', url.origin).href;
-    const res = await timedFetch(robotsUrl, { headers: { 'User-Agent': UA } });
+    const res = await fetchWithTimeout(robotsUrl, { headers: { 'User-Agent': UA } });
     if (!res.ok) return true; // no robots or inaccessible: allow
     const text = await res.text();
     return checkRobots(text, url.pathname);
