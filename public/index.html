@@ -341,8 +341,25 @@
                         const html = await api.fetchUrl(url);
                         const doc = new DOMParser().parseFromString(html, 'text/html');
                         const metadata = extractMetadata(doc);
-                        const text = extractMainContent(doc);
-                        state.scrapeResults[index] = { index, url, text, metadata, html: dom.includeHtmlToggle.checked ? html : null, success: true };
+                        const extractionResult = extractMainContentWithDebug(doc);
+                        const text = extractionResult.content;
+                        
+                        // Log extraction details for debugging
+                        if (DEBUG) {
+                            console.log(`[Content Extraction] ${url}:`, {
+                                selectedMethod: extractionResult.method,
+                                contentLength: text.length,
+                                score: extractionResult.score,
+                                candidatesFound: extractionResult.candidatesCount
+                            });
+                        }
+                        
+                        state.scrapeResults[index] = { 
+                            index, url, text, metadata, 
+                            html: dom.includeHtmlToggle.checked ? html : null, 
+                            success: true,
+                            extractionDebug: extractionResult.debug
+                        };
                     } catch (error) {
                         console.error(`Failed to scrape ${url}:`, error);
                         const errorDetails = {
@@ -385,37 +402,361 @@
             };
         }
 
-        function extractMainContent(doc) {
-             const docClone = doc.cloneNode(true);
-             docClone.querySelectorAll('script, style, nav, footer, header, aside, form, [role="navigation"], [role="banner"], [role="complementary"], noscript, iframe, svg').forEach(el => el.remove());
-             const candidates = Array.from(docClone.querySelectorAll('main, article, [role="main"], .main-content, .post, .post-body, .entry, .entry-content, #content, .content, section'));
-             if (docClone.body) candidates.push(docClone.body);
-
-             const scoreNode = (node) => {
-                if (!node || !node.innerText) return 0;
-                const text = node.innerText.trim();
-                const textLength = text.length;
-                if (textLength < 100) return 0;
-                const linkCount = node.querySelectorAll('a').length;
-                const pCount = node.querySelectorAll('p').length;
-                const headingCount = node.querySelectorAll('h1, h2, h3').length;
-                const linkDensity = linkCount / (text.split(/\s+/).length + 1);
-                return (textLength * (1 - linkDensity)) + (pCount * 50) + (headingCount * 100);
-             };
-
-             let bestNode = docClone.body, maxScore = 0;
-             candidates.forEach(node => {
-                const score = scoreNode(node);
-                if (score > maxScore) { maxScore = score; bestNode = node; }
-             });
-
-             let mainText = bestNode?.innerText?.trim() || '';
-             if (mainText.length < 200) {
-                 const metaDescription = extractMetadata(doc).description;
-                 if (metaDescription && metaDescription.length > mainText.length) mainText = metaDescription;
-             }
-             return mainText.replace(/(\r\n|\n|\r){3,}/g, '\n\n');
+        function extractMainContentWithDebug(doc) {
+            const result = extractMainContentInternal(doc);
+            return {
+                content: result.content,
+                method: result.selectedContent?.source || 'fallback',
+                score: result.selectedContent?.score || 0,
+                candidatesCount: result.candidatesCount,
+                debug: {
+                    method: result.selectedContent?.source || 'fallback',
+                    score: result.selectedContent?.score || 0,
+                    candidates: result.candidatesCount,
+                    contentLength: result.content.length
+                }
+            };
         }
+
+        function extractMainContent(doc) {
+            return extractMainContentInternal(doc).content;
+        }
+
+        function extractMainContentInternal(doc) {
+            // Multi-pass content detection with comprehensive selector patterns
+            const docClone = doc.cloneNode(true);
+            
+            // Phase 1: Surgical content cleaning - preserve content-bearing elements
+            const removeSelectors = [
+                'script', 'style', 'noscript', 'iframe', 'object', 'embed',
+                'nav:not([class*="content"]):not([id*="content"])', 
+                'footer:not([class*="content"]):not([id*="content"])', 
+                'header:not([class*="content"]):not([id*="content"])',
+                'aside:not([class*="content"]):not([id*="content"]):not([class*="article"])',
+                'form:not([class*="content"]):not([id*="content"])',
+                '[role="navigation"]:not([class*="content"])', 
+                '[role="banner"]:not([class*="content"])', 
+                '[role="complementary"]:not([class*="content"])',
+                '[class*="advertisement"]', '[class*="ads"]', '[id*="ads"]',
+                '[class*="sidebar"]:not([class*="content"])', '[class*="widget"]:not([class*="content"])',
+                '[class*="menu"]:not([class*="content"])', '[class*="navigation"]:not([class*="content"])',
+                '[class*="social"]:not([class*="content"])', '[class*="share"]:not([class*="content"])',
+                '[class*="comment"]:not([class*="content"])', '[class*="footer"]:not([class*="content"])',
+                '[class*="header"]:not([class*="content"])', '.skip-link', '[aria-hidden="true"]'
+            ];
+            
+            removeSelectors.forEach(selector => {
+                try {
+                    docClone.querySelectorAll(selector).forEach(el => el.remove());
+                } catch (e) {
+                    // Continue if selector fails
+                }
+            });
+
+            // Phase 2: Multi-pass content detection
+            const contentResults = [];
+            
+            // Pass 1: Standard semantic selectors
+            const semanticSelectors = [
+                'main', 'article', '[role="main"]', '[role="article"]'
+            ];
+            contentResults.push(...findContentBySelectors(docClone, semanticSelectors, 'semantic'));
+            
+            // Pass 2: Comprehensive CSS class-based detection
+            const classBasedSelectors = [
+                // Content containers
+                '[class*="content"]', '[class*="article"]', '[class*="story"]', '[class*="post"]',
+                '[id*="content"]', '[id*="article"]', '[id*="story"]', '[id*="post"]',
+                
+                // News/blog specific
+                '.post-body', '.entry-content', '.article-body', '.story-body', '.news-content',
+                '.blog-post', '.blog-content', '.entry', '.post-content', '.article-content',
+                '.main-content', '.primary-content', '.page-content', '.site-content',
+                
+                // Publication specific
+                '.text', '.body', '.copy', '.editorial', '.journalism', '.reporting',
+                '.publication', '.manuscript', '.document', '.paper', '.report',
+                
+                // Layout containers
+                '.main', '.primary', '.central', '.center', '.middle',
+                '[class*="main"]', '[class*="primary"]', '[class*="central"]',
+                
+                // Generic content indicators
+                '.prose', '.rich-text', '.formatted-text', '.wysiwyg',
+                '[class*="text"]', '[class*="body"]', '[class*="copy"]'
+            ];
+            contentResults.push(...findContentBySelectors(docClone, classBasedSelectors, 'class-based'));
+            
+            // Pass 3: Structured content sections
+            const structuredSelectors = [
+                'section[class*="content"]', 'section[id*="content"]', 'section[class*="article"]',
+                'div[class*="content"]', 'div[id*="content"]', 'div[class*="article"]',
+                'section:has(h1)', 'section:has(h2)', 'section:has(p)',
+                '.container:has(p)', '.wrapper:has(p)', '.inner:has(p)'
+            ];
+            contentResults.push(...findContentBySelectors(docClone, structuredSelectors, 'structured'));
+            
+            // Pass 4: Largest text block analysis (fallback)
+            const allTextContainers = Array.from(docClone.querySelectorAll('div, section, article, p'))
+                .filter(el => el.innerText && el.innerText.trim().length > 100);
+            contentResults.push(...allTextContainers.map(el => ({ element: el, source: 'text-block' })));
+            
+            // Add body as final fallback
+            if (docClone.body) {
+                contentResults.push({ element: docClone.body, source: 'body-fallback' });
+            }
+
+            // Phase 3: Advanced content scoring and selection
+            const scoredResults = contentResults
+                .filter(result => result.element && result.element.innerText)
+                .map(result => ({
+                    ...result,
+                    score: advancedScoreNode(result.element),
+                    text: result.element.innerText.trim()
+                }))
+                .filter(result => result.score > 0)
+                .sort((a, b) => b.score - a.score);
+
+            // Phase 4: Content validation and selection
+            let selectedContent = null;
+            const minContentThreshold = 300; // Minimum characters for substantial content
+            
+            for (const result of scoredResults) {
+                if (result.text.length >= minContentThreshold && validateContentQuality(result.element)) {
+                    selectedContent = result;
+                    break;
+                }
+            }
+            
+            // If no substantial content found, try with lower threshold
+            if (!selectedContent && scoredResults.length > 0) {
+                selectedContent = scoredResults.find(r => r.text.length >= 100) || scoredResults[0];
+            }
+            
+            // Phase 5: Enhanced output formatting
+            let mainText = selectedContent?.text || '';
+            
+            // Fallback to meta description if content is still insufficient
+            if (mainText.length < 200) {
+                const metaDescription = extractMetadata(doc).description;
+                if (metaDescription && metaDescription.length > mainText.length) {
+                    mainText = metaDescription;
+                }
+            }
+            
+            // Structure and clean the extracted content
+            const finalContent = structureExtractedContent(mainText, selectedContent?.element);
+            
+            return {
+                content: finalContent,
+                selectedContent,
+                candidatesCount: scoredResults.length
+            };
+        }
+
+        function findContentBySelectors(docClone, selectors, source) {
+            const results = [];
+            for (const selector of selectors) {
+                try {
+                    const elements = Array.from(docClone.querySelectorAll(selector));
+                    results.push(...elements.map(el => ({ element: el, source })));
+                } catch (e) {
+                    // Continue if selector fails
+                }
+            }
+            return results;
+        }
+
+        function advancedScoreNode(node) {
+            if (!node || !node.innerText) return 0;
+            
+            const text = node.innerText.trim();
+            const textLength = text.length;
+            if (textLength < 50) return 0;
+            
+            // Basic metrics
+            const words = text.split(/\s+/);
+            const wordCount = words.length;
+            const linkCount = node.querySelectorAll('a').length;
+            const paragraphCount = node.querySelectorAll('p').length;
+            const headingCount = node.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
+            const listCount = node.querySelectorAll('ul, ol').length;
+            const listItemCount = node.querySelectorAll('li').length;
+            
+            // Quality indicators
+            const sentenceCount = (text.match(/[.!?]+/g) || []).length;
+            const avgWordsPerSentence = sentenceCount > 0 ? wordCount / sentenceCount : 0;
+            const hasProperPunctuation = /[.!?]/.test(text);
+            const hasCapitalization = /[A-Z]/.test(text);
+            
+            // Content structure scoring
+            let structureScore = 0;
+            structureScore += paragraphCount * 30; // Reward paragraph structure
+            structureScore += headingCount * 80; // Reward heading hierarchy
+            structureScore += listCount * 20; // Reward organized lists
+            structureScore += Math.min(listItemCount * 5, 100); // Cap list item bonus
+            
+            // Text quality scoring
+            let qualityScore = 0;
+            qualityScore += textLength * 0.5; // Base text length score
+            qualityScore += Math.min(wordCount * 2, 1000); // Word count bonus (capped)
+            qualityScore += sentenceCount * 10; // Sentence structure bonus
+            
+            if (avgWordsPerSentence >= 8 && avgWordsPerSentence <= 25) {
+                qualityScore += 100; // Reward good sentence length
+            }
+            if (hasProperPunctuation) qualityScore += 50;
+            if (hasCapitalization) qualityScore += 50;
+            
+            // Link density penalty (but not as harsh)
+            const linkDensity = linkCount / (wordCount + 1);
+            const linkPenalty = linkDensity > 0.1 ? (linkDensity - 0.1) * 500 : 0;
+            
+            // Content-to-noise ratio
+            const noiseElements = node.querySelectorAll('script, style, nav, footer, aside, .ad, .advertisement');
+            const noisePenalty = noiseElements.length * 20;
+            
+            // Semantic relevance indicators
+            let semanticBonus = 0;
+            const className = node.className || '';
+            const id = node.id || '';
+            const semanticKeywords = ['content', 'article', 'story', 'post', 'body', 'text', 'main'];
+            
+            semanticKeywords.forEach(keyword => {
+                if (className.toLowerCase().includes(keyword)) semanticBonus += 100;
+                if (id.toLowerCase().includes(keyword)) semanticBonus += 100;
+            });
+            
+            const finalScore = structureScore + qualityScore + semanticBonus - linkPenalty - noisePenalty;
+            return Math.max(0, finalScore);
+        }
+
+        function validateContentQuality(element) {
+            if (!element || !element.innerText) return false;
+            
+            const text = element.innerText.trim();
+            const words = text.split(/\s+/);
+            
+            // Basic quality checks
+            if (words.length < 20) return false; // Too short
+            if (text.length / words.length < 3) return false; // Words too short on average
+            
+            // Check for reasonable sentence structure
+            const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+            if (sentences.length === 0) return false;
+            
+            const avgWordsPerSentence = words.length / sentences.length;
+            if (avgWordsPerSentence < 3 || avgWordsPerSentence > 50) return false;
+            
+            // Check for excessive link density
+            const linkCount = element.querySelectorAll('a').length;
+            const linkDensity = linkCount / words.length;
+            if (linkDensity > 0.3) return false; // Too many links relative to content
+            
+            // Check for reasonable character distribution
+            const alphaCount = (text.match(/[a-zA-Z]/g) || []).length;
+            const alphaRatio = alphaCount / text.length;
+            if (alphaRatio < 0.5) return false; // Too few alphabetic characters
+            
+            return true;
+        }
+
+        function structureExtractedContent(text, sourceElement) {
+            if (!text) return '';
+            
+            // Clean up excessive whitespace while preserving paragraph breaks
+            let cleanedText = text
+                .replace(/[\r\n\t]+/g, '\n') // Normalize line breaks
+                .replace(/[ \u00A0]+/g, ' ') // Normalize spaces (including non-breaking)
+                .replace(/\n\s*\n\s*\n+/g, '\n\n') // Reduce multiple line breaks to double
+                .trim();
+            
+            // If we have access to the source element, try to preserve some structure
+            if (sourceElement) {
+                // Try to maintain heading structure
+                const headings = sourceElement.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                if (headings.length > 0) {
+                    // Add extra spacing around headings in the text
+                    headings.forEach(heading => {
+                        const headingText = heading.innerText.trim();
+                        if (headingText && cleanedText.includes(headingText)) {
+                            cleanedText = cleanedText.replace(
+                                new RegExp(`(^|\\n)(${escapeRegex(headingText)})($|\\n)`, 'g'),
+                                `$1\n$2\n$3`
+                            );
+                        }
+                    });
+                }
+            }
+            
+            // Final cleanup
+            return cleanedText.replace(/\n\s*\n\s*\n+/g, '\n\n').trim();
+        }
+
+        function escapeRegex(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        // Test function to validate extraction improvements
+        function testExtractionImprovements() {
+            const testHtml = `
+                <html>
+                <head>
+                    <title>Test Article</title>
+                    <meta name="description" content="A test article for validating extraction improvements">
+                </head>
+                <body>
+                    <nav class="navigation">Navigation content</nav>
+                    <header class="site-header">Site header</header>
+                    <aside class="sidebar">Sidebar content</aside>
+                    
+                    <main class="main-content">
+                        <article class="article-body">
+                            <h1>Main Article Title</h1>
+                            <p>This is the first paragraph of the main article content. It contains substantial text that should be extracted by the improved algorithm.</p>
+                            <p>This is the second paragraph with more detailed information. The enhanced scraper should identify this as primary content due to its structure and length.</p>
+                            <h2>Subheading</h2>
+                            <p>Additional content under a subheading. This demonstrates the hierarchical structure that the new scoring system should recognize and reward.</p>
+                            <ul>
+                                <li>List item one</li>
+                                <li>List item two</li>
+                            </ul>
+                            <p>Final paragraph with concluding thoughts and substantial content that validates the extraction quality.</p>
+                        </article>
+                    </main>
+                    
+                    <footer class="site-footer">Footer content</footer>
+                    <div class="advertisement">Ad content</div>
+                </body>
+                </html>
+            `;
+            
+            const doc = new DOMParser().parseFromString(testHtml, 'text/html');
+            const result = extractMainContentWithDebug(doc);
+            
+            console.log('Test Extraction Results:', {
+                method: result.method,
+                score: result.score,
+                candidates: result.candidatesCount,
+                contentLength: result.content.length,
+                content: result.content.substring(0, 200) + '...'
+            });
+            
+            // Validate that key content is extracted
+            const expectedContent = ['Main Article Title', 'first paragraph', 'second paragraph', 'Subheading', 'List item', 'Final paragraph'];
+            const hasAllContent = expectedContent.every(text => result.content.includes(text));
+            
+            console.log('Content validation:', hasAllContent ? 'PASSED' : 'FAILED');
+            console.log('Expected content found:', expectedContent.map(text => ({ 
+                text, 
+                found: result.content.includes(text) 
+            })));
+            
+            return result;
+        }
+
+        // Make test function available globally for debugging
+        window.testExtractionImprovements = testExtractionImprovements;
         
         function downloadFile(filename, text) {
             const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
