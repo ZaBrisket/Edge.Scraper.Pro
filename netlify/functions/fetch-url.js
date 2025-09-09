@@ -108,12 +108,20 @@ async function safeFetchWithRedirects(inputUrl, correlationId) {
   let current = new URL(inputUrl);
   for (let i = 0; i <= MAX_REDIRECTS; i++) {
     const firstIP = await resolveHost(current.hostname);
-    const finalIP = await resolveHost(current.hostname, { forceRefresh: true });
-    if (firstIP !== finalIP) {
-      hostCache.delete(current.hostname);
-      throw new Error('DNS rebinding detected');
+    const secondIP = await resolveHost(current.hostname, { forceRefresh: true });
+    if (firstIP !== secondIP) {
+      // Block if new resolution is private/local
+      if (isPrivateIP(secondIP)) {
+        hostCache.delete(current.hostname);
+        throw new Error('DNS rebinding detected');
+      }
+      // Allow public-to-public changes only for HTTPS to reduce SSRF risk
+      if (current.protocol !== 'https:') {
+        hostCache.delete(current.hostname);
+        throw new Error('DNS rebinding detected');
+      }
     }
-    const res = await fetchResolved(current, finalIP, { redirect: 'manual', headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml,*/*' }, correlationId });
+    const res = await fetchResolved(current, firstIP, { redirect: 'manual', headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml,*/*' }, correlationId });
     if ([301, 302, 303, 307, 308].includes(res.status)) {
       const loc = res.headers.get('location');
       if (!loc) throw new Error(`Redirect without Location header`);
@@ -151,6 +159,11 @@ async function readLimited(response, maxBytes) {
 }
 
 async function fetchResolved(urlObj, ip, opts) {
+  // For HTTPS, use the hostname to preserve TLS SNI and certificate validation
+  if (urlObj.protocol === 'https:') {
+    return fetchWithPolicy(urlObj.toString(), { ...opts, headers: { ...(opts.headers || {}) }, correlationId: opts.correlationId });
+  }
+  // For HTTP, it's safe to use the resolved IP while preserving Host header
   const authority = ip + (urlObj.port ? `:${urlObj.port}` : '');
   const target = `${urlObj.protocol}//${authority}${urlObj.pathname}${urlObj.search}`;
   const headers = { ...opts.headers, Host: urlObj.hostname };
