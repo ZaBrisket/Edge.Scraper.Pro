@@ -7,7 +7,12 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "build": "tsc",
+    "export:trivia": "npm run build && node bin/edge-scraper export"
+  },
+  "bin": {
+    "edge-scraper": "./bin/edge-scraper"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +24,11 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "nock": "^13.3.3"
+    "@types/node": "^24.3.1",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "commander": "^14.0.0",
+    "nock": "^13.3.3",
+    "typescript": "^5.9.2"
   }
 }

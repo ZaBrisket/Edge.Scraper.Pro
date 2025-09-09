@@ -1,0 +1,114 @@
+{
+  "$id": "trivia_v1.qb_season.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["player_id", "season", "age", "team_full", "team_abbrs", "pos", "G", "GS", "Awards", "multi_team"],
+  "properties": {
+    "player_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "season": {
+      "type": "integer",
+      "minimum": 1997,
+      "maximum": 2024
+    },
+    "age": {
+      "type": "integer",
+      "minimum": 18,
+      "maximum": 50
+    },
+    "team_full": {
+      "type": "string",
+      "minLength": 1
+    },
+    "team_abbrs": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pos": {
+      "type": "string",
+      "const": "QB"
+    },
+    "G": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "GS": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "Awards": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "multi_team": {
+      "type": "boolean"
+    },
+    "Cmp": {
+      "type": "number",
+      "minimum": 0
+    },
+    "Att": {
+      "type": "number",
+      "minimum": 0
+    },
+    "CmpPct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "Yds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "TD": {
+      "type": "number",
+      "minimum": 0
+    },
+    "Int": {
+      "type": "number",
+      "minimum": 0
+    },
+    "Rate": {
+      "type": "number",
+      "minimum": 0
+    },
+    "Sk": {
+      "type": "number",
+      "minimum": 0
+    },
+    "SkYds": {
+      "type": "number"
+    },
+    "Y/A": {
+      "type": "number"
+    },
+    "AY/A": {
+      "type": "number"
+    },
+    "Y/C": {
+      "type": "number"
+    },
+    "Y/G": {
+      "type": "number"
+    },
+    "NY/A": {
+      "type": "number"
+    },
+    "ANY/A": {
+      "type": "number"
+    },
+    "4QC": {
+      "type": "number",
+      "minimum": 0
+    },
+    "GWD": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false
+}
