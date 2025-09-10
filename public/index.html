@@ -206,11 +206,12 @@
         <div class="section">
             <p><b>Step 2:</b> Configure scrape settings and run.</p>
             <div style="display: flex; align-items: center; gap: 1em; margin-bottom: 1em;">
-                <label for="concurrency">Concurrency:</label>
-                <input id="concurrency" type="range" min="1" max="10" value="5" style="flex-grow: 1;" />
-                <span id="concurrencyValue">5</span>
-                <label for="delay" style="margin-left: 2em;">Delay (ms):</label>
-                <input id="delay" type="number" value="250" style="width: 80px; margin-bottom: 0;"/>
+                <label for="delay">Delay between URLs (ms):</label>
+                <input id="delay" type="number" value="1500" style="width: 120px; margin-bottom: 0;"/>
+                <span style="font-size: 0.9em; color: #666;">Processing 1 URL at a time for maximum reliability</span>
+            </div>
+            <div style="background-color: #f0f8ff; border: 1px solid #b0d4f1; padding: 0.5em; margin-bottom: 1em; font-size: 0.9em;">
+                <strong>Reliability Mode:</strong> URLs are processed sequentially with optimal delays to minimize errors and avoid rate limiting. This approach trades speed for maximum success rate.
             </div>
              <div style="display: flex; gap: 1em;">
                 <button id="scrapeBtn" style="width: 100%;">Scrape</button>
@@ -272,8 +273,6 @@
             downloadEnhancedCsvBtn: document.getElementById('downloadEnhancedCsvBtn'),
             downloadStructuredJsonBtn: document.getElementById('downloadStructuredJsonBtn'),
             downloadPlayerDbBtn: document.getElementById('downloadPlayerDbBtn'),
-            concurrencySlider: document.getElementById('concurrency'),
-            concurrencyValue: document.getElementById('concurrencyValue'),
             delayInput: document.getElementById('delay'),
             pauseBtn: document.getElementById('pauseBtn'),
             resumeBtn: document.getElementById('resumeBtn'),
@@ -288,8 +287,8 @@
         // Initialize PFR validator and batch processor
         const pfrValidator = new PFRValidator();
         
-        // Get timeout from environment or use default
-        const TIMEOUT_MS = parseInt(window.HTTP_DEADLINE_MS || '10000', 10);
+        // Get timeout from environment or use default (increased for single URL processing)
+        const TIMEOUT_MS = parseInt(window.HTTP_DEADLINE_MS || '15000', 10);
 
         let state = {
             scrapeResults: [],
@@ -536,7 +535,6 @@
             }, 'Scrape Button Click');
         });
         
-        dom.concurrencySlider.addEventListener('input', () => dom.concurrencyValue.textContent = dom.concurrencySlider.value);
         dom.pauseBtn.addEventListener('click', () => {
             if (state.batchProcessor) {
                 state.batchProcessor.pause();
@@ -593,7 +591,7 @@
             
             // Initialize batch processor with current settings
             state.batchProcessor = new BatchProcessor({
-                concurrency: parseInt(dom.concurrencySlider.value, 10),
+                concurrency: 1, // Process one URL at a time for maximum reliability
                 delayMs: parseInt(dom.delayInput.value, 10),
                 timeout: TIMEOUT_MS,
                 onProgress: (progress) => {
