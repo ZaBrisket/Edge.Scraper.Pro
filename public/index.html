@@ -204,7 +204,7 @@
         </div>
         
         <div class="section">
-            <p><b>Step 2:</b> Configure scrape settings and run.</p>
+            <p><b>Step 2:</b> Single-request mode enabled for reliability.</p>
             <div style="display: flex; align-items: center; gap: 1em; margin-bottom: 1em;">
                 <label for="concurrency">Concurrency:</label>
                 <input id="concurrency" type="range" min="1" max="10" value="5" style="flex-grow: 1;" />
@@ -584,6 +584,17 @@
             } catch { return href; }
         };
 
+        function computeOptimalDelayMs(urls) {
+            try {
+                const hosts = urls.map(u => new URL(u).hostname.toLowerCase());
+                // Use 2s for PFR due to strict limits, else 1s default
+                if (hosts.some(h => h.includes('pro-football-reference.com'))) return 2000;
+                return 1000;
+            } catch {
+                return 1000;
+            }
+        }
+
         async function runBulkScrape() {
             if (!await verifyBackend()) return;
             
@@ -591,10 +602,18 @@
             const rawUrls = dom.urlList.value.trim().split('\n').filter(Boolean);
             if (rawUrls.length === 0) throw new Error('Please paste at least one valid URL.');
             
+            // Enforce single-request mode and compute optimal delay per run
+            const autoDelayMs = computeOptimalDelayMs(rawUrls);
+            dom.concurrencySlider.value = 1;
+            dom.concurrencyValue.textContent = '1';
+            dom.concurrencySlider.disabled = true;
+            dom.delayInput.value = autoDelayMs;
+            dom.delayInput.disabled = true;
+
             // Initialize batch processor with current settings
             state.batchProcessor = new BatchProcessor({
-                concurrency: parseInt(dom.concurrencySlider.value, 10),
-                delayMs: parseInt(dom.delayInput.value, 10),
+                concurrency: 1,
+                delayMs: autoDelayMs,
                 timeout: TIMEOUT_MS,
                 onProgress: (progress) => {
                     if (progress.phase === 'validation') {
