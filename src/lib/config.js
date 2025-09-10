@@ -5,17 +5,17 @@ const schema = z.object({
   HTTP_MAX_RETRIES: z.coerce.number().int().min(0).default(3),
   HTTP_RATE_LIMIT_PER_SEC: z.coerce.number().int().min(1).default(5),
   HTTP_MAX_CONCURRENCY: z.coerce.number().int().min(1).default(2),
-  HTTP_CIRCUIT_BREAKER_THRESHOLD: z.coerce.number().int().min(1).default(5),
-  HTTP_CIRCUIT_BREAKER_RESET_MS: z.coerce.number().int().positive().default(30000),
+  HTTP_CIRCUIT_BREAKER_THRESHOLD: z.coerce.number().int().min(1).default(10),
+  HTTP_CIRCUIT_BREAKER_RESET_MS: z.coerce.number().int().positive().default(60000),
   // Per-host rate limiting
   HOST_LIMIT__DEFAULT__RPS: z.coerce.number().positive().default(1.0),
   HOST_LIMIT__DEFAULT__BURST: z.coerce.number().int().min(1).default(2),
-  HOST_LIMIT__www_pro_football_reference_com__RPS: z.coerce.number().positive().default(0.5),
+  HOST_LIMIT__www_pro_football_reference_com__RPS: z.coerce.number().positive().default(0.3),
   HOST_LIMIT__www_pro_football_reference_com__BURST: z.coerce.number().int().min(1).default(1),
   // Retry configuration
   HTTP_RETRY_BUDGET_PER_BATCH: z.coerce.number().int().min(1).default(10),
-  HTTP_BASE_BACKOFF_MS: z.coerce.number().int().positive().default(1000),
-  HTTP_MAX_BACKOFF_MS: z.coerce.number().int().positive().default(30000),
+  HTTP_BASE_BACKOFF_MS: z.coerce.number().int().positive().default(2000),
+  HTTP_MAX_BACKOFF_MS: z.coerce.number().int().positive().default(60000),
   HTTP_JITTER_FACTOR: z.coerce.number().min(0).max(1).default(0.1),
   // Circuit breaker half-open
   HTTP_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS: z.coerce.number().int().min(1).default(3),

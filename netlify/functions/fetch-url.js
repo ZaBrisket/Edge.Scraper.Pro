@@ -6,7 +6,7 @@
 const dns = require('dns').promises;
 const { URL } = require('url');
 const net = require('net');
-const { fetchWithPolicy } = require('../../src/lib/http/client');
+const { fetchWithPolicy } = require('../../src/lib/http/enhanced-client');
 const { getCorrelationId } = require('../../src/lib/http/correlation');
 
 // Cache for resolved hostnames
