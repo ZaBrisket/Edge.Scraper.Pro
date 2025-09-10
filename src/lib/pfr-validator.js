@@ -284,6 +284,109 @@ class PFRValidator {
   }
 
   /**
+   * Generate HTML validation report for UI display
+   * @param {object} batchResult - Result from validateBatch
+   * @returns {string} HTML formatted report
+   */
+  generateHTMLReport(batchResult) {
+    const html = [];
+    
+    html.push('<div class="validation-report">');
+    html.push('<h3>URL Validation Report</h3>');
+    html.push('<div class="validation-summary">');
+    html.push(`<div>Total URLs: <strong>${batchResult.total}</strong></div>`);
+    html.push(`<div>Valid URLs: <strong style="color: green">${batchResult.summary.validCount}</strong></div>`);
+    html.push(`<div>Invalid URLs: <strong style="color: red">${batchResult.summary.invalidCount}</strong></div>`);
+    html.push(`<div>Duplicate URLs: <strong style="color: orange">${batchResult.summary.duplicateCount}</strong></div>`);
+    html.push('</div>');
+
+    // Report duplicates
+    if (batchResult.duplicates.length > 0) {
+      html.push('<div class="validation-section">');
+      html.push('<h4>Duplicates Found:</h4>');
+      
+      const duplicateGroups = new Map();
+      batchResult.duplicates.forEach(dup => {
+        if (!duplicateGroups.has(dup.normalized)) {
+          duplicateGroups.set(dup.normalized, []);
+        }
+        duplicateGroups.get(dup.normalized).push(dup);
+      });
+
+      html.push('<div class="validation-category">');
+      duplicateGroups.forEach((dups, normalized) => {
+        html.push('<h5>' + this.escapeHtml(normalized) + '</h5>');
+        html.push('<ul>');
+        dups.forEach(dup => {
+          html.push('<li>' + this.escapeHtml(dup.url) + ' (position ' + (dup.index + 1) + ')</li>');
+        });
+        // Also show the first occurrence
+        const firstOccurrence = batchResult.valid.find(v => v.normalized === normalized);
+        if (firstOccurrence) {
+          html.push('<li><em>First occurrence: ' + this.escapeHtml(firstOccurrence.url) + ' (position ' + (firstOccurrence.index + 1) + ')</em></li>');
+        }
+        html.push('</ul>');
+      });
+      html.push('</div>');
+      html.push('</div>');
+    }
+
+    // Report invalid URLs by category
+    const invalidCategories = Object.entries(batchResult.invalid)
+      .filter(([_, urls]) => urls.length > 0);
+
+    if (invalidCategories.length > 0) {
+      html.push('<div class="validation-section">');
+      html.push('<h4>Invalid URLs:</h4>');
+      
+      invalidCategories.forEach(([category, urls]) => {
+        const categoryName = category.replace(/_/g, ' ').toUpperCase();
+        html.push('<div class="validation-category">');
+        html.push(`<h5>${categoryName} (${urls.length})</h5>`);
+        html.push('<ul>');
+        
+        urls.forEach(({ url, error, index }) => {
+          html.push('<li class="invalid-url">');
+          html.push(this.escapeHtml(url) + ' (position ' + (index + 1) + ')');
+          if (error) {
+            html.push('<br><small>Error: ' + this.escapeHtml(error) + '</small>');
+          }
+          html.push('</li>');
+        });
+        
+        html.push('</ul>');
+        html.push('</div>');
+      });
+      
+      html.push('</div>');
+    }
+
+    html.push('</div>');
+    
+    return html.join('\n');
+  }
+
+  /**
+   * Escape HTML special characters
+   * @param {string} text - Text to escape
+   * @returns {string} Escaped text
+   */
+  escapeHtml(text) {
+    const div = typeof document !== 'undefined' ? document.createElement('div') : null;
+    if (div) {
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    // Fallback for non-browser environments
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  /**
    * Clear the validation cache
    */
   clearCache() {
