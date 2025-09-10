@@ -259,8 +259,77 @@ class BatchProcessor {
    */
   async processUrls(validUrls, processor) {
     const results = new Array(validUrls.length);
-    const queue = [...validUrls];
     let completed = 0;
+    
+    // For single URL processing (concurrency = 1), use a simpler sequential approach
+    if (this.options.concurrency === 1) {
+      for (let i = 0; i < validUrls.length && !this.controls.aborted; i++) {
+        const item = validUrls[i];
+        
+        // Check pause state
+        while (this.controls.paused && !this.controls.aborted) {
+          await this.delay(200);
+        }
+        
+        if (this.controls.aborted) break;
+        
+        try {
+          const startTime = Date.now();
+          
+          // Process with timeout
+          const result = await this.withTimeout(
+            processor(item.url, item),
+            this.options.timeout
+          );
+          
+          const processingTime = Date.now() - startTime;
+          
+          results[item.index] = {
+            ...item,
+            success: true,
+            result,
+            processingTime,
+            timestamp: new Date().toISOString()
+          };
+          
+        } catch (error) {
+          const errorInfo = this.categorizeError(error);
+          
+          results[item.index] = {
+            ...item,
+            success: false,
+            error: error.message,
+            errorCategory: errorInfo.category,
+            errorDetails: errorInfo,
+            timestamp: new Date().toISOString()
+          };
+          
+          this.recordError(item.url, errorInfo);
+        }
+        
+        completed++;
+        this.processedCount = completed;
+        
+        // Report progress
+        this.onProgress({
+          phase: 'processing',
+          completed,
+          total: validUrls.length,
+          percentage: Math.round((completed / validUrls.length) * 100),
+          currentUrl: item.url
+        });
+        
+        // Delay between requests (except for the last one)
+        if (this.options.delayMs > 0 && i < validUrls.length - 1) {
+          await this.delay(this.options.delayMs);
+        }
+      }
+      
+      return results.filter(Boolean);
+    }
+    
+    // Original concurrent processing for higher concurrency values
+    const queue = [...validUrls];
     
     const worker = async () => {
       while (queue.length > 0 && !this.controls.aborted) {
