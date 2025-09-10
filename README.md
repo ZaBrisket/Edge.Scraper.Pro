@@ -154,14 +154,170 @@ The exporter produces a JSON file with the following structure:
 - **[Operations Manual](docs/OPERATIONS.md)**: Deployment and configuration details
 - **[Contributing Guide](CONTRIBUTING.md)**: Development standards and guidelines
 
-## HTTP Reliability Policy
-All Netlify functions delegate outbound HTTP requests to a shared client. The
-client enforces timeouts, retries with jitter, per-host concurrency limits, and
-adds an `x-correlation-id` for traceability. Configuration is driven by
-environment variables validated via `zod`; see `.env.example` for defaults.
+## HTTP Resilience & Rate Limiting
 
-## Performance Metrics
+### Overview
+The system uses a comprehensive HTTP client with per-host rate limiting, intelligent 429 handling, and circuit breaker protection. This prevents overwhelming upstream servers while ensuring reliable data extraction.
+
+### Key Features
+- **Per-Host Rate Limiting**: Token bucket algorithm with configurable RPS and burst limits
+- **429-Aware Retries**: Proper handling of rate limits with Retry-After header support
+- **Circuit Breaker Hygiene**: Only genuine failures (5xx/network) trigger circuit opens, not rate limits
+- **Exponential Backoff**: Full jitter backoff with configurable delays and caps
+- **Comprehensive Observability**: Structured metrics for rate limits, retries, and circuit states
+
+### Configuration
+
+#### Environment Variables
+
+```bash
+# HTTP timeouts and retries
+HTTP_DEADLINE_MS=10000                    # Request timeout (default: 10s)
+HTTP_MAX_RETRIES=3                        # Maximum retry attempts (default: 3)
+HTTP_MAX_CONCURRENCY=2                    # Concurrent requests per host (default: 2)
+
+# Circuit breaker settings
+HTTP_CIRCUIT_BREAKER_THRESHOLD=10         # Failures to trigger open (default: 10)
+HTTP_CIRCUIT_BREAKER_RESET_MS=60000       # Reset timeout (default: 60s)
+HTTP_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS=3 # Half-open test calls (default: 3)
+
+# Retry backoff configuration
+HTTP_RETRY_BASE_DELAY_MS=1000             # Base delay for exponential backoff (default: 1s)
+HTTP_RETRY_MAX_DELAY_MS=30000             # Maximum backoff delay (default: 30s)
+HTTP_RETRY_JITTER_MAX_MS=1000             # Additional random jitter (default: 1s)
+
+# Default rate limits for all hosts
+HOST_LIMIT__DEFAULT__RPS=2.0              # Default requests per second (default: 2.0)
+HOST_LIMIT__DEFAULT__BURST=5              # Default burst capacity (default: 5)
+
+# Pro-Football-Reference specific limits (conservative)
+HOST_LIMIT__www.pro-football-reference.com__RPS=0.8    # 0.8 RPS (default: 0.8)
+HOST_LIMIT__www.pro-football-reference.com__BURST=2    # Burst of 2 (default: 2)
+
+# Custom host limits (example)
+HOST_LIMIT__api.example.com__RPS=5.0      # 5 RPS for api.example.com
+HOST_LIMIT__api.example.com__BURST=10     # Burst of 10
+```
+
+#### Rate Limiting Best Practices
+
+**Pro-Football-Reference (PFR) Tuning:**
+- Default: 0.8 RPS with burst of 2 (conservative, production-safe)
+- Aggressive: 1.5 RPS with burst of 3 (higher throughput, monitor for 429s)
+- Conservative: 0.5 RPS with burst of 1 (safest for large batches)
+
+**General Sports Sites:**
+- Start with 2.0 RPS and adjust based on 429 frequency
+- Monitor rate limit dashboard for optimal tuning
+- Increase burst capacity for bursty workloads
+
+### Monitoring & Observability
+
+#### Rate Limiting Dashboard
+```bash
+# View real-time rate limiting statistics
+node tools/http-stats.js dashboard
+
+# Show all HTTP metrics
+node tools/http-stats.js all
+
+# Monitor circuit breaker status
+node tools/http-stats.js circuits
+```
+
+#### Key Metrics to Watch
+
+**Rate Limiting:**
+- `rate_limit.hit` - Pre-request rate limiting triggers
+- `429.deferred` - Upstream 429s properly handled as deferrals
+- `retry.scheduled` - Retry attempts with backoff
+
+**Circuit Breaker:**
+- `circuit.open/half_open/closed` - State transitions
+- Only 5xx and network errors should trigger opens, never 429s
+
+**Request Success:**
+- No "[500] Upstream 429" errors in logs
+- Circuit breakers remain closed during 429 bursts
+- Batch completion with 0 fatal 500s from rate limiting
+
+#### Log Analysis
+```bash
+# Analyze error patterns
+node tools/analyze_errors.js path/to/error.log
+
+# Monitor structured logs for rate limiting events
+grep "rate_limit.hit\|429.deferred\|retry.scheduled" logs/app.log
+```
+
+### Troubleshooting
+
+#### High 429 Rate
+**Symptoms:** Many `429.deferred` events, slow batch completion
+**Solutions:**
+1. Reduce RPS: `HOST_LIMIT__<host>__RPS=0.5`
+2. Increase retry delays: `HTTP_RETRY_BASE_DELAY_MS=2000`
+3. Check if Retry-After headers are being honored
+
+#### Circuit Breaker Opens
+**Symptoms:** `circuit.open` events, `CircuitOpenError` in logs
+**Investigation:**
+1. Verify 429s are NOT counting as failures
+2. Check for genuine 5xx or network errors
+3. Consider increasing threshold: `HTTP_CIRCUIT_BREAKER_THRESHOLD=15`
+
+#### Slow Batch Processing
+**Symptoms:** Long completion times, high wait times
+**Tuning:**
+1. Increase burst capacity for bursty workloads
+2. Optimize retry delays for your traffic pattern
+3. Monitor rate limit token availability
+
+### Error Handling Changes
+
+#### Before (Problematic)
+```javascript
+// ❌ Old behavior - 429s mapped to 500s
+if (response.status === 429) {
+  throw new Error('[500] Upstream 429'); // Wrong!
+}
+```
+
+#### After (Correct)
+```javascript
+// ✅ New behavior - 429s are deferrals, not failures
+if (response.status === 429) {
+  const retryAfter = parseRetryAfter(response.headers.get('Retry-After'));
+  throw new RateLimitError('Upstream rate limited', { 
+    status: 429,
+    retryAfter: retryAfter 
+  }); // Triggers intelligent retry, not circuit failure
+}
+```
+
+### Testing Resilience
+
+Run the comprehensive test suite to validate resilient HTTP handling:
+
+```bash
+# Unit and integration tests
+npm test tests/http-resilience.test.js
+
+# End-to-end PFR batch test (requires network)
+node tests/pfr-batch-integration.js
+```
+
+**Acceptance Criteria:**
+- ✅ Batch of 100+ PFR URLs completes with 0 fatal 500s from 429s
+- ✅ Circuit breakers remain closed during 429 bursts  
+- ✅ Rate limiting prevents overwhelming upstream servers
+- ✅ Retry-After headers are properly honored
+- ✅ Exponential backoff with jitter smooths retry spikes
+
+### Performance Metrics
 - **Extraction Speed**: < 100ms per sports page
-- **Content Accuracy**: ≥ 85% for player information
+- **Content Accuracy**: ≥ 85% for player information  
 - **Structured Data Quality**: ≥ 70% completeness
 - **Test Suite**: 80%+ pass rate for production readiness
+- **Rate Limit Compliance**: 0 fatal 500s from upstream 429s
+- **Circuit Breaker Health**: Closed state during normal 429 activity
