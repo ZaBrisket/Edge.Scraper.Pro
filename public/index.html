@@ -205,12 +205,11 @@
         
         <div class="section">
             <p><b>Step 2:</b> Configure scrape settings and run.</p>
-            <div style="display: flex; align-items: center; gap: 1em; margin-bottom: 1em;">
-                <label for="concurrency">Concurrency:</label>
-                <input id="concurrency" type="range" min="1" max="10" value="5" style="flex-grow: 1;" />
-                <span id="concurrencyValue">5</span>
-                <label for="delay" style="margin-left: 2em;">Delay (ms):</label>
-                <input id="delay" type="number" value="250" style="width: 80px; margin-bottom: 0;"/>
+            <div style="margin-bottom: 1em;">
+                <p style="color: #666; margin-bottom: 0.5em;">URLs will be processed one at a time for maximum reliability.</p>
+                <label for="delay">Delay between URLs (seconds):</label>
+                <input id="delay" type="number" value="2.5" min="1" max="10" step="0.5" style="width: 80px; margin-bottom: 0;"/>
+                <span style="color: #888; font-size: 0.9em; margin-left: 0.5em;">(2-3 seconds recommended)</span>
             </div>
              <div style="display: flex; gap: 1em;">
                 <button id="scrapeBtn" style="width: 100%;">Scrape</button>
@@ -272,8 +271,6 @@
             downloadEnhancedCsvBtn: document.getElementById('downloadEnhancedCsvBtn'),
             downloadStructuredJsonBtn: document.getElementById('downloadStructuredJsonBtn'),
             downloadPlayerDbBtn: document.getElementById('downloadPlayerDbBtn'),
-            concurrencySlider: document.getElementById('concurrency'),
-            concurrencyValue: document.getElementById('concurrencyValue'),
             delayInput: document.getElementById('delay'),
             pauseBtn: document.getElementById('pauseBtn'),
             resumeBtn: document.getElementById('resumeBtn'),
@@ -536,7 +533,6 @@
             }, 'Scrape Button Click');
         });
         
-        dom.concurrencySlider.addEventListener('input', () => dom.concurrencyValue.textContent = dom.concurrencySlider.value);
         dom.pauseBtn.addEventListener('click', () => {
             if (state.batchProcessor) {
                 state.batchProcessor.pause();
@@ -591,10 +587,14 @@
             const rawUrls = dom.urlList.value.trim().split('\n').filter(Boolean);
             if (rawUrls.length === 0) throw new Error('Please paste at least one valid URL.');
             
-            // Initialize batch processor with current settings
+            // Initialize batch processor with sequential processing (concurrency = 1)
+            // Convert delay from seconds to milliseconds
+            const delaySeconds = parseFloat(dom.delayInput.value) || 2.5;
+            const delayMs = Math.round(delaySeconds * 1000);
+            
             state.batchProcessor = new BatchProcessor({
-                concurrency: parseInt(dom.concurrencySlider.value, 10),
-                delayMs: parseInt(dom.delayInput.value, 10),
+                concurrency: 1,  // Process one URL at a time for maximum reliability
+                delayMs: delayMs,
                 timeout: TIMEOUT_MS,
                 onProgress: (progress) => {
                     if (progress.phase === 'validation') {
@@ -605,7 +605,7 @@
                             dom.validationReport.classList.remove('hidden');
                         }
                     } else if (progress.phase === 'processing') {
-                        dom.statusText.textContent = `Scraping URL (${progress.completed}/${progress.total}): ${progress.currentUrl?.substring(0, 50)}...`;
+                        dom.statusText.textContent = `Processing URL ${progress.completed + 1} of ${progress.total} (one at a time): ${progress.currentUrl?.substring(0, 50)}...`;
                     }
                 },
                 onError: (error) => {
