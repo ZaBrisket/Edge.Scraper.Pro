@@ -158,33 +158,65 @@ class SportsContentExtractor {
   performMultiPhaseExtraction(doc, siteConfig) {
     const docClone = doc.cloneNode(true);
     
-    // Phase 1: Clean document while preserving sports content
-    this.cleanDocumentForSports(docClone, siteConfig);
-    
-    // Phase 2: Extract structured sports data
-    const structuredData = this.extractStructuredSportsData(docClone, siteConfig);
-    
-    // Phase 3: Multi-pass content detection with sports-specific scoring
-    const contentResults = this.performSportsContentDetection(docClone, siteConfig);
-    
-    // Phase 4: Score and select best content
-    const scoredResults = this.scoreSportsContent(contentResults, structuredData);
-    
-    // Phase 5: Select and format final content
-    const selectedContent = this.selectBestSportsContent(scoredResults);
-    
-    return {
-      content: this.formatSportsContent(selectedContent, structuredData),
-      structuredData,
-      method: selectedContent?.source || 'fallback',
-      score: selectedContent?.score || 0,
-      debug: {
-        candidatesFound: contentResults.length,
-        structuredDataExtracted: Object.keys(structuredData).length,
-        selectedMethod: selectedContent?.source,
-        siteConfig: siteConfig.domain
+    try {
+      // Phase 1: Clean document while preserving sports content
+      this.cleanDocumentForSports(docClone, siteConfig);
+      
+      // Phase 2: Extract structured sports data
+      const structuredData = this.extractStructuredSportsData(docClone, siteConfig);
+      
+      // Phase 3: Multi-pass content detection with sports-specific scoring
+      const contentResults = this.performSportsContentDetection(docClone, siteConfig);
+      
+      // Phase 4: Score and select best content
+      const scoredResults = this.scoreSportsContent(contentResults, structuredData);
+      
+      // Phase 5: Select and format final content
+      const selectedContent = this.selectBestSportsContent(scoredResults);
+      
+      return {
+        content: this.formatSportsContent(selectedContent, structuredData),
+        structuredData,
+        method: selectedContent?.source || 'fallback',
+        score: selectedContent?.score || 0,
+        debug: {
+          candidatesFound: contentResults.length,
+          structuredDataExtracted: Object.keys(structuredData).length,
+          selectedMethod: selectedContent?.source,
+          siteConfig: siteConfig.domain
+        }
+      };
+    } finally {
+      // Critical: Clean up DOM clone to prevent memory leaks
+      this.cleanupDOMClone(docClone);
+    }
+  }
+
+  /**
+   * Clean up DOM clone to prevent memory leaks
+   */
+  cleanupDOMClone(docClone) {
+    try {
+      // Remove all child nodes to break circular references
+      while (docClone.firstChild) {
+        docClone.removeChild(docClone.firstChild);
       }
-    };
+      
+      // Clear any remaining references
+      if (docClone.textContent !== undefined) {
+        docClone.textContent = '';
+      }
+      
+      // Force garbage collection hint (if available)
+      if (typeof global !== 'undefined' && global.gc) {
+        global.gc();
+      }
+    } catch (error) {
+      // Silently handle cleanup errors to avoid breaking extraction
+      if (this.debug) {
+        console.warn('DOM cleanup warning:', error.message);
+      }
+    }
   }
 
   /**
@@ -231,21 +263,29 @@ class SportsContentExtractor {
       transactions: []
     };
 
-    // Extract player biographical information
-    structuredData.player = this.extractPlayerBiography(docClone, siteConfig);
-    
-    // Extract statistical tables
-    const statsTables = this.extractStatisticalTables(docClone, siteConfig);
-    structuredData.statistics = { ...structuredData.statistics, ...statsTables };
-    
-    // Extract achievements and awards
-    structuredData.achievements = this.extractAchievements(docClone);
-    
-    // Extract FAQ/biographical data
-    const faqData = this.extractFAQData(docClone);
-    structuredData.player = { ...structuredData.player, ...faqData };
+    try {
+      // Extract player biographical information
+      structuredData.player = this.extractPlayerBiography(docClone, siteConfig);
+      
+      // Extract statistical tables
+      const statsTables = this.extractStatisticalTables(docClone, siteConfig);
+      structuredData.statistics = { ...structuredData.statistics, ...statsTables };
+      
+      // Extract achievements and awards
+      structuredData.achievements = this.extractAchievements(docClone);
+      
+      // Extract FAQ/biographical data
+      const faqData = this.extractFAQData(docClone);
+      structuredData.player = { ...structuredData.player, ...faqData };
 
-    return structuredData;
+      return structuredData;
+    } catch (error) {
+      // Return partial data on error to prevent complete failure
+      if (this.debug) {
+        console.warn('Error in structured data extraction:', error.message);
+      }
+      return structuredData;
+    }
   }
 
   /**

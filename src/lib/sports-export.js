@@ -60,7 +60,7 @@ class SportsDataExporter {
   }
 
   /**
-   * Export enhanced CSV with sports-specific columns
+   * Export enhanced CSV with sports-specific columns (optimized)
    */
   exportEnhancedCSV(processedResults) {
     const headers = [
@@ -81,67 +81,95 @@ class SportsDataExporter {
       'title', 'author', 'published_at', 'description', 'text'
     ];
     
-    const rows = processedResults.map(result => {
+    // Pre-allocate array for better performance
+    const rows = new Array(processedResults.length);
+    
+    for (let i = 0; i < processedResults.length; i++) {
+      const result = processedResults[i];
       const player = result.sportsData?.player || {};
       const stats = result.sportsData?.statistics || {};
       const achievements = result.sportsData?.achievements || [];
       
-      return [
-        result.url,
-        result.success,
-        result.error || '',
-        // Player Information
-        player.name || '',
-        player.position || '',
-        player.jerseyNumber || '',
-        player.height || '',
-        player.weight || '',
-        player.birthDate || '',
-        player.birthPlace || '',
-        player.college || '',
-        // Draft Information
-        player.draft?.year || '',
-        player.draft?.team || '',
-        player.draft?.round || '',
-        player.draft?.pick || '',
-        // Data Quality Metrics
-        result.text?.length || 0,
-        result.extractionDebug?.selectedMethod || '',
-        result.sportsValidation?.score || 0,
-        result.hasStructuredData || false,
-        result.structuredDataQuality || 0,
-        // Achievements
-        achievements.length,
-        achievements.slice(0, 3).join('; '),
-        // Statistics Summary
-        Object.keys(stats.career || {}).length > 0,
-        stats.seasons?.length || 0,
-        Object.keys(stats.playoffs || {}).length > 0,
-        // Original Data
-        result.metadata?.title || '',
-        result.metadata?.author || '',
-        result.metadata?.published_at || '',
-        result.metadata?.description || '',
-        result.text || ''
-      ];
-    });
+      // Use array for row data instead of object destructuring
+      const row = new Array(25); // Pre-allocate with known column count
+      let colIndex = 0;
+      
+      // Basic info
+      row[colIndex++] = result.url;
+      row[colIndex++] = result.success;
+      row[colIndex++] = result.error || '';
+      
+      // Player Information
+      row[colIndex++] = player.name || '';
+      row[colIndex++] = player.position || '';
+      row[colIndex++] = player.jerseyNumber || '';
+      row[colIndex++] = player.height || '';
+      row[colIndex++] = player.weight || '';
+      row[colIndex++] = player.birthDate || '';
+      row[colIndex++] = player.birthPlace || '';
+      row[colIndex++] = player.college || '';
+      
+      // Draft Information
+      row[colIndex++] = player.draft?.year || '';
+      row[colIndex++] = player.draft?.team || '';
+      row[colIndex++] = player.draft?.round || '';
+      row[colIndex++] = player.draft?.pick || '';
+      
+      // Data Quality Metrics
+      row[colIndex++] = result.text?.length || 0;
+      row[colIndex++] = result.extractionDebug?.selectedMethod || '';
+      row[colIndex++] = result.sportsValidation?.score || 0;
+      row[colIndex++] = result.hasStructuredData || false;
+      row[colIndex++] = result.structuredDataQuality || 0;
+      
+      // Achievements (optimized join)
+      row[colIndex++] = achievements.length;
+      row[colIndex++] = achievements.length > 0 ? achievements.slice(0, 3).join('; ') : '';
+      
+      // Statistics Summary
+      row[colIndex++] = Object.keys(stats.career || {}).length > 0;
+      row[colIndex++] = stats.seasons?.length || 0;
+      row[colIndex++] = Object.keys(stats.playoffs || {}).length > 0;
+      
+      // Original Data
+      row[colIndex++] = result.metadata?.title || '';
+      row[colIndex++] = result.metadata?.author || '';
+      row[colIndex++] = result.metadata?.published_at || '';
+      row[colIndex++] = result.metadata?.description || '';
+      row[colIndex++] = result.text || '';
+      
+      rows[i] = row;
+    }
     
     return this.arrayToCSV([headers, ...rows]);
   }
 
   /**
-   * Export structured JSON with normalized player objects
+   * Export structured JSON with normalized player objects (optimized)
    */
   exportStructuredJSON(processedResults) {
+    // Pre-calculate successful extractions count
+    let successfulCount = 0;
+    for (let i = 0; i < processedResults.length; i++) {
+      if (processedResults[i].success) {
+        successfulCount++;
+      }
+    }
+    
     const structuredData = {
       exportInfo: {
         timestamp: new Date().toISOString(),
         totalPlayers: processedResults.length,
-        successfulExtractions: processedResults.filter(r => r.success).length,
+        successfulExtractions: successfulCount,
         format: 'structured-json'
       },
-      players: processedResults.map(result => this.createPlayerObject(result))
+      players: new Array(processedResults.length)
     };
+    
+    // Pre-allocate and populate players array
+    for (let i = 0; i < processedResults.length; i++) {
+      structuredData.players[i] = this.createPlayerObject(processedResults[i]);
+    }
     
     return JSON.stringify(structuredData, null, 2);
   }
@@ -525,7 +553,7 @@ class SportsDataExporter {
   }
 
   /**
-   * Convert array data to CSV format
+   * Convert array data to CSV format (optimized with array joins)
    */
   arrayToCSV(data) {
     const escapeCSV = (value) => {
@@ -536,9 +564,18 @@ class SportsDataExporter {
       return str;
     };
     
-    return data.map(row => 
-      row.map(cell => escapeCSV(cell)).join(',')
-    ).join('\n');
+    // Use array joins for better performance
+    const rows = [];
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const cells = [];
+      for (let j = 0; j < row.length; j++) {
+        cells.push(escapeCSV(row[j]));
+      }
+      rows.push(cells.join(','));
+    }
+    
+    return rows.join('\n');
   }
 
   /**
