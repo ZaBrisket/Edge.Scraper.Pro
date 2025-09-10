@@ -10,6 +10,64 @@ This project provides a comprehensive web scraping solution with specialized cap
 - **Quality Validation**: 6-point sports content validation system with debug tools
 - **Performance Optimized**: Handles 100+ player pages with detailed extraction analysis
 
+## Enhanced HTTP Client
+
+### 429 Rate Limiting Solution
+
+The enhanced HTTP client (`src/lib/http/simple-enhanced-client.js`) solves critical issues with handling HTTP 429 (Too Many Requests) responses:
+
+#### Key Features
+- **Per-host rate limiting** using token bucket algorithm
+- **429-aware retry logic** with exponential backoff and jitter
+- **Retry-After header support** for precise timing
+- **Circuit breaker hygiene** that excludes 429s from failure counts
+- **Comprehensive metrics** for observability
+
+#### Configuration
+```bash
+# PFR-specific rate limiting (conservative)
+HOST_LIMIT__www_pro_football_reference_com__RPS=0.5
+HOST_LIMIT__www_pro_football_reference_com__BURST=1
+
+# Retry configuration
+HTTP_MAX_RETRIES=3
+HTTP_BASE_BACKOFF_MS=2000
+HTTP_MAX_BACKOFF_MS=30000
+
+# Circuit breaker (excludes 429s)
+HTTP_CIRCUIT_BREAKER_THRESHOLD=5
+HTTP_CIRCUIT_BREAKER_RESET_MS=30000
+```
+
+#### Usage
+```javascript
+const { fetchWithPolicy, getMetrics } = require('./src/lib/http/simple-enhanced-client');
+
+// Automatic rate limiting and retry
+const response = await fetchWithPolicy('https://www.pro-football-reference.com/players/A/AllenJo00.htm');
+
+// Monitor metrics
+const metrics = getMetrics();
+console.log('Rate limit hits:', metrics.rateLimits.hits);
+```
+
+#### Error Handling
+```javascript
+try {
+  const response = await fetchWithPolicy(url);
+} catch (error) {
+  if (error instanceof RateLimitError) {
+    // Rate limited (non-fatal, will retry)
+    console.log('Rate limited, will retry later');
+  } else if (error instanceof NetworkError) {
+    // Network/server error (fatal)
+    console.error('Network error:', error.message);
+  }
+}
+```
+
+For detailed documentation, see [HTTP Client Enhancements](docs/HTTP_CLIENT_ENHANCEMENTS.md).
+
 ## Usage
 
 ### Basic Web Scraping
@@ -36,6 +94,7 @@ https://www.pro-football-reference.com/players/R/RiceJe00.htm
 
 ### Core Functionality
 - **Bulk Processing**: Concurrent scraping with rate limiting and error handling
+- **Enhanced HTTP Client**: Per-host rate limiting, 429-aware retries, circuit breaker hygiene
 - **Content Extraction**: Advanced algorithms for main content detection
 - **Export Options**: TXT, JSONL, CSV, Enhanced CSV, Structured JSON, Player Database
 - **Debug Tools**: Detailed extraction analysis and performance metrics

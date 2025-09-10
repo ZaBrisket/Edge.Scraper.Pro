@@ -2,11 +2,28 @@ const { z } = require('zod');
 
 const schema = z.object({
   HTTP_DEADLINE_MS: z.coerce.number().int().positive().default(10000),
-  HTTP_MAX_RETRIES: z.coerce.number().int().min(0).default(2),
+  HTTP_MAX_RETRIES: z.coerce.number().int().min(0).default(3),
   HTTP_RATE_LIMIT_PER_SEC: z.coerce.number().int().min(1).default(5),
   HTTP_MAX_CONCURRENCY: z.coerce.number().int().min(1).default(2),
   HTTP_CIRCUIT_BREAKER_THRESHOLD: z.coerce.number().int().min(1).default(5),
   HTTP_CIRCUIT_BREAKER_RESET_MS: z.coerce.number().int().positive().default(30000),
+  // Per-host rate limiting
+  HOST_LIMIT__DEFAULT__RPS: z.coerce.number().positive().default(1.0),
+  HOST_LIMIT__DEFAULT__BURST: z.coerce.number().int().min(1).default(2),
+  HOST_LIMIT__www_pro_football_reference_com__RPS: z.coerce.number().positive().default(0.5),
+  HOST_LIMIT__www_pro_football_reference_com__BURST: z.coerce.number().int().min(1).default(1),
+  // Retry configuration
+  HTTP_RETRY_BUDGET_PER_BATCH: z.coerce.number().int().min(1).default(10),
+  HTTP_BASE_BACKOFF_MS: z.coerce.number().int().positive().default(1000),
+  HTTP_MAX_BACKOFF_MS: z.coerce.number().int().positive().default(30000),
+  HTTP_JITTER_FACTOR: z.coerce.number().min(0).max(1).default(0.1),
+  // Circuit breaker half-open
+  HTTP_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS: z.coerce.number().int().min(1).default(3),
+  // Timeouts
+  HTTP_CONNECT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
+  HTTP_READ_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
+  // Inter-request delay
+  HTTP_INTER_REQUEST_DELAY_MS: z.coerce.number().int().min(0).default(100),
 });
 
 const cfg = schema.parse(process.env);
@@ -18,4 +35,27 @@ module.exports = {
   MAX_CONCURRENCY: cfg.HTTP_MAX_CONCURRENCY,
   CIRCUIT_BREAKER_THRESHOLD: cfg.HTTP_CIRCUIT_BREAKER_THRESHOLD,
   CIRCUIT_BREAKER_RESET_MS: cfg.HTTP_CIRCUIT_BREAKER_RESET_MS,
+  // Per-host rate limiting
+  HOST_LIMITS: {
+    'www.pro-football-reference.com': {
+      rps: cfg.HOST_LIMIT__www_pro_football_reference_com__RPS,
+      burst: cfg.HOST_LIMIT__www_pro_football_reference_com__BURST
+    },
+    'default': {
+      rps: cfg.HOST_LIMIT__DEFAULT__RPS,
+      burst: cfg.HOST_LIMIT__DEFAULT__BURST
+    }
+  },
+  // Retry configuration
+  RETRY_BUDGET_PER_BATCH: cfg.HTTP_RETRY_BUDGET_PER_BATCH,
+  BASE_BACKOFF_MS: cfg.HTTP_BASE_BACKOFF_MS,
+  MAX_BACKOFF_MS: cfg.HTTP_MAX_BACKOFF_MS,
+  JITTER_FACTOR: cfg.HTTP_JITTER_FACTOR,
+  // Circuit breaker half-open
+  CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS: cfg.HTTP_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS,
+  // Timeouts
+  CONNECT_TIMEOUT_MS: cfg.HTTP_CONNECT_TIMEOUT_MS,
+  READ_TIMEOUT_MS: cfg.HTTP_READ_TIMEOUT_MS,
+  // Inter-request delay
+  INTER_REQUEST_DELAY_MS: cfg.HTTP_INTER_REQUEST_DELAY_MS,
 };
