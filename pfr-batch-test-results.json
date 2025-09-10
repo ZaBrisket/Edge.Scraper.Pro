@@ -1,0 +1,127 @@
+{
+  "summary": {
+    "passed": 9,
+    "failed": 3,
+    "warnings": 2,
+    "passRate": 64.28571428571429,
+    "totalDuration": 9516.791674
+  },
+  "details": [
+    {
+      "test": "URL Validation Accuracy",
+      "status": "PASS",
+      "message": "Accuracy: 100.00% (22/22)",
+      "duration": "0.92ms",
+      "metrics": null,
+      "timestamp": "2025-09-10T17:29:40.113Z"
+    },
+    {
+      "test": "Duplicate Detection",
+      "status": "FAIL",
+      "message": "Expected 2 duplicates, got 1",
+      "duration": "0.54ms",
+      "metrics": null,
+      "timestamp": "2025-09-10T17:29:40.114Z"
+    },
+    {
+      "test": "Duplicate Reporting",
+      "status": "PASS",
+      "message": "Report correctly includes 1 duplicate URLs",
+      "duration": null,
+      "metrics": null,
+      "timestamp": "2025-09-10T17:29:40.114Z"
+    },
+    {
+      "test": "Error Categorization",
+      "status": "FAIL",
+      "message": "Only 2/4 error types correctly categorized",
+      "duration": "0.07ms",
+      "metrics": null,
+      "timestamp": "2025-09-10T17:29:40.114Z"
+    },
+    {
+      "test": "Order Preservation",
+      "status": "PASS",
+      "message": "Original order preserved for 5 URLs",
+      "duration": "0.14ms",
+      "metrics": null,
+      "timestamp": "2025-09-10T17:29:40.114Z"
+    },
+    {
+      "test": "Timeout Configuration",
+      "status": "PASS",
+      "message": "All required timeout configurations present",
+      "duration": "0.06ms",
+      "metrics": null,
+      "timestamp": "2025-09-10T17:29:40.114Z"
+    },
+    {
+      "test": "Timeout Values",
+      "status": "PASS",
+      "message": "All timeout values are positive numbers",
+      "duration": null,
+      "metrics": null,
+      "timestamp": "2025-09-10T17:29:40.114Z"
+    },
+    {
+      "test": "Batch Processing Performance",
+      "status": "PASS",
+      "message": "Successfully processed 3 URLs",
+      "duration": "4875.50ms",
+      "metrics": {
+        "memoryIncrease": "259MB",
+        "processingTime": "4875.50ms"
+      },
+      "timestamp": "2025-09-10T17:29:44.990Z"
+    },
+    {
+      "test": "Memory Usage",
+      "status": "WARN",
+      "message": "Memory increase: 259MB (exceeds 100MB threshold)",
+      "duration": null,
+      "metrics": null,
+      "timestamp": "2025-09-10T17:29:44.990Z"
+    },
+    {
+      "test": "Validation Overhead",
+      "status": "WARN",
+      "message": "Validation overhead: 98.68% (exceeds 5% threshold)",
+      "duration": "9.79ms",
+      "metrics": null,
+      "timestamp": "2025-09-10T17:29:45.000Z"
+    },
+    {
+      "test": "Error Handling",
+      "status": "FAIL",
+      "message": "Expected 3 valid, 1 invalid, 1 failed. Got 6 valid, 2 invalid, 0 failed",
+      "duration": "4627.43ms",
+      "metrics": null,
+      "timestamp": "2025-09-10T17:29:49.628Z"
+    },
+    {
+      "test": "Backward Compatibility",
+      "status": "PASS",
+      "message": "All existing functionality remains accessible",
+      "duration": "0.12ms",
+      "metrics": null,
+      "timestamp": "2025-09-10T17:29:49.628Z"
+    },
+    {
+      "test": "Report Generation",
+      "status": "PASS",
+      "message": "Report contains all required sections",
+      "duration": "0.17ms",
+      "metrics": null,
+      "timestamp": "2025-09-10T17:29:49.628Z"
+    },
+    {
+      "test": "Report Data Accuracy",
+      "status": "PASS",
+      "message": "Report data is accurate: 6 total, 4 valid, 2 invalid",
+      "duration": null,
+      "metrics": null,
+      "timestamp": "2025-09-10T17:29:49.628Z"
+    }
+  ],
+  "timestamp": "2025-09-10T17:29:49.628Z"
+}

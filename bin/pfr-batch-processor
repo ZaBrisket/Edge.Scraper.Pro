@@ -1,0 +1,366 @@
+#!/usr/bin/env node
+
+/**
+ * PFR Batch Processor CLI
+ * Command-line interface for enhanced PFR player batch processing
+ */
+
+const { Command } = require('commander');
+const fs = require('fs');
+const path = require('path');
+const readline = require('readline');
+
+// Import the batch processor
+const { PFRBatchProcessor, PROCESSING_STATES } = require('../src/lib/pfr-batch-processor');
+const { PFRUrlValidator } = require('../src/lib/pfr-validation');
+
+const program = new Command();
+
+program
+  .name('pfr-batch-processor')
+  .description('Enhanced PFR player batch processing with validation and reporting')
+  .version('1.0.0');
+
+program
+  .command('validate')
+  .description('Validate PFR URLs without processing')
+  .option('-i, --input <file>', 'Input file with URLs (one per line)')
+  .option('-u, --urls <urls>', 'Comma-separated list of URLs')
+  .option('-o, --output <file>', 'Output file for validation report')
+  .option('--no-duplicates', 'Skip duplicate detection')
+  .option('--strict', 'Enable strict validation mode')
+  .option('--format <format>', 'Output format (json, text)', 'json')
+  .action(async (options) => {
+    try {
+      let urls = [];
+      
+      // Get URLs from input
+      if (options.input) {
+        const inputPath = path.resolve(options.input);
+        if (!fs.existsSync(inputPath)) {
+          console.error(`Input file not found: ${inputPath}`);
+          process.exit(1);
+        }
+        const content = fs.readFileSync(inputPath, 'utf8');
+        urls = content.split('\n').map(url => url.trim()).filter(url => url.length > 0);
+      } else if (options.urls) {
+        urls = options.urls.split(',').map(url => url.trim());
+      } else {
+        console.error('Please provide either --input file or --urls list');
+        process.exit(1);
+      }
+      
+      if (urls.length === 0) {
+        console.error('No URLs provided');
+        process.exit(1);
+      }
+      
+      console.log(`Validating ${urls.length} URLs...`);
+      
+      // Validate URLs
+      const validator = new PFRUrlValidator();
+      const result = validator.validateBatch(urls, {
+        checkDuplicates: !options.noDuplicates,
+        generateReport: true,
+        strictMode: options.strict
+      });
+      
+      // Display results
+      console.log('\n📊 Validation Results:');
+      console.log(`Total URLs: ${result.summary.total}`);
+      console.log(`Valid URLs: ${result.summary.valid}`);
+      console.log(`Invalid URLs: ${result.summary.invalid}`);
+      console.log(`Duplicates: ${result.summary.duplicates}`);
+      console.log(`Processing Time: ${result.summary.processingTime}ms`);
+      
+      if (result.summary.invalid > 0) {
+        console.log('\n❌ Invalid URLs:');
+        result.results
+          .filter(r => !r.isValid)
+          .forEach(r => console.log(`  ${r.url} - ${r.errorMessage}`));
+      }
+      
+      if (result.summary.duplicates > 0) {
+        console.log('\n🔄 Duplicate URLs:');
+        result.results
+          .filter(r => r.errorType === 'duplicate')
+          .forEach(r => console.log(`  ${r.url}`));
+      }
+      
+      // Save report if output file specified
+      if (options.output) {
+        const outputPath = path.resolve(options.output);
+        const outputDir = path.dirname(outputPath);
+        
+        if (!fs.existsSync(outputDir)) {
+          fs.mkdirSync(outputDir, { recursive: true });
+        }
+        
+        if (options.format === 'json') {
+          fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
+        } else {
+          // Text format
+          let textReport = `PFR URL Validation Report\n`;
+          textReport += `Generated: ${new Date().toISOString()}\n\n`;
+          textReport += `Summary:\n`;
+          textReport += `  Total URLs: ${result.summary.total}\n`;
+          textReport += `  Valid URLs: ${result.summary.valid}\n`;
+          textReport += `  Invalid URLs: ${result.summary.invalid}\n`;
+          textReport += `  Duplicates: ${result.summary.duplicates}\n`;
+          textReport += `  Processing Time: ${result.summary.processingTime}ms\n\n`;
+          
+          if (result.summary.invalid > 0) {
+            textReport += `Invalid URLs:\n`;
+            result.results
+              .filter(r => !r.isValid)
+              .forEach(r => textReport += `  ${r.url} - ${r.errorMessage}\n`);
+            textReport += '\n';
+          }
+          
+          if (result.summary.duplicates > 0) {
+            textReport += `Duplicate URLs:\n`;
+            result.results
+              .filter(r => r.errorType === 'duplicate')
+              .forEach(r => textReport += `  ${r.url}\n`);
+            textReport += '\n';
+          }
+          
+          if (result.summary.valid > 0) {
+            textReport += `Valid URLs:\n`;
+            result.results
+              .filter(r => r.isValid)
+              .forEach(r => textReport += `  ${r.url}\n`);
+          }
+          
+          fs.writeFileSync(outputPath, textReport);
+        }
+        
+        console.log(`\n📄 Report saved to: ${outputPath}`);
+      }
+      
+    } catch (error) {
+      console.error('Validation failed:', error.message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('process')
+  .description('Process PFR URLs with content extraction')
+  .option('-i, --input <file>', 'Input file with URLs (one per line)')
+  .option('-u, --urls <urls>', 'Comma-separated list of URLs')
+  .option('-o, --output <file>', 'Output file for results')
+  .option('-f, --format <format>', 'Export format (enhanced-csv, structured-json, player-database)', 'enhanced-csv')
+  .option('-c, --concurrency <number>', 'Number of concurrent requests', '2')
+  .option('-d, --delay <ms>', 'Delay between batches (ms)', '1000')
+  .option('--skip-invalid', 'Skip invalid URLs during processing')
+  .option('--no-validation', 'Skip URL validation')
+  .option('--verbose', 'Verbose output')
+  .action(async (options) => {
+    try {
+      let urls = [];
+      
+      // Get URLs from input
+      if (options.input) {
+        const inputPath = path.resolve(options.input);
+        if (!fs.existsSync(inputPath)) {
+          console.error(`Input file not found: ${inputPath}`);
+          process.exit(1);
+        }
+        const content = fs.readFileSync(inputPath, 'utf8');
+        urls = content.split('\n').map(url => url.trim()).filter(url => url.length > 0);
+      } else if (options.urls) {
+        urls = options.urls.split(',').map(url => url.trim());
+      } else {
+        console.error('Please provide either --input file or --urls list');
+        process.exit(1);
+      }
+      
+      if (urls.length === 0) {
+        console.error('No URLs provided');
+        process.exit(1);
+      }
+      
+      console.log(`Processing ${urls.length} URLs...`);
+      
+      // Create processor
+      const processor = new PFRBatchProcessor({
+        concurrency: parseInt(options.concurrency),
+        delayMs: parseInt(options.delay),
+        skipInvalid: options.skipInvalid,
+        exportFormat: options.format
+      });
+      
+      // Set up progress reporting
+      processor.on('onProgress', (progress) => {
+        if (options.verbose) {
+          console.log(`Progress: ${progress.processed}/${progress.total} (${((progress.processed / progress.total) * 100).toFixed(1)}%)`);
+        }
+      });
+      
+      processor.on('onValidationComplete', (result) => {
+        console.log(`\n📊 Validation Complete:`);
+        console.log(`  Valid URLs: ${result.summary.valid}`);
+        console.log(`  Invalid URLs: ${result.summary.invalid}`);
+        console.log(`  Duplicates: ${result.summary.duplicates}`);
+      });
+      
+      // Process URLs
+      const result = await processor.processBatch(urls, {
+        skipValidation: options.noValidation
+      });
+      
+      // Display results
+      console.log(`\n✅ Processing Complete:`);
+      console.log(`  Total URLs: ${result.summary.totalUrls}`);
+      console.log(`  Processed: ${result.summary.processedUrls}`);
+      console.log(`  Successful: ${result.summary.successfulExtractions}`);
+      console.log(`  Failed: ${result.summary.failedExtractions}`);
+      console.log(`  Processing Time: ${(result.summary.totalProcessingTime / 1000).toFixed(2)}s`);
+      
+      // Save results if output file specified
+      if (options.output) {
+        const outputPath = path.resolve(options.output);
+        const outputDir = path.dirname(outputPath);
+        
+        if (!fs.existsSync(outputDir)) {
+          fs.mkdirSync(outputDir, { recursive: true });
+        }
+        
+        // Export results
+        const exportedData = processor.exportResults(options.format);
+        fs.writeFileSync(outputPath, exportedData);
+        
+        console.log(`\n📄 Results saved to: ${outputPath}`);
+      }
+      
+    } catch (error) {
+      console.error('Processing failed:', error.message);
+      if (options.verbose) {
+        console.error(error.stack);
+      }
+      process.exit(1);
+    }
+  });
+
+program
+  .command('interactive')
+  .description('Interactive mode for URL processing')
+  .option('-f, --format <format>', 'Export format', 'enhanced-csv')
+  .action(async (options) => {
+    console.log('🏈 PFR Batch Processor - Interactive Mode\n');
+    
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    
+    const question = (prompt) => new Promise(resolve => rl.question(prompt, resolve));
+    
+    try {
+      // Get URLs from user
+      console.log('Enter PFR URLs (one per line, empty line to finish):');
+      const urls = [];
+      let line;
+      
+      while ((line = await question('URL: ')) !== '') {
+        if (line.trim()) {
+          urls.push(line.trim());
+        }
+      }
+      
+      if (urls.length === 0) {
+        console.log('No URLs provided. Exiting.');
+        rl.close();
+        return;
+      }
+      
+      console.log(`\nProcessing ${urls.length} URLs...`);
+      
+      // Create processor
+      const processor = new PFRBatchProcessor({
+        exportFormat: options.format
+      });
+      
+      // Set up progress reporting
+      processor.on('onProgress', (progress) => {
+        process.stdout.write(`\rProgress: ${progress.processed}/${progress.total} (${((progress.processed / progress.total) * 100).toFixed(1)}%)`);
+      });
+      
+      processor.on('onValidationComplete', (result) => {
+        console.log(`\n\n📊 Validation Results:`);
+        console.log(`  Valid: ${result.summary.valid}`);
+        console.log(`  Invalid: ${result.summary.invalid}`);
+        console.log(`  Duplicates: ${result.summary.duplicates}`);
+      });
+      
+      // Process URLs
+      const result = await processor.processBatch(urls);
+      
+      console.log(`\n\n✅ Processing Complete:`);
+      console.log(`  Successful: ${result.summary.successfulExtractions}`);
+      console.log(`  Failed: ${result.summary.failedExtractions}`);
+      console.log(`  Time: ${(result.summary.totalProcessingTime / 1000).toFixed(2)}s`);
+      
+      // Ask if user wants to save results
+      const saveResults = await question('\nSave results to file? (y/n): ');
+      if (saveResults.toLowerCase() === 'y') {
+        const filename = await question('Filename: ');
+        if (filename) {
+          const exportedData = processor.exportResults(options.format);
+          fs.writeFileSync(filename, exportedData);
+          console.log(`Results saved to: ${filename}`);
+        }
+      }
+      
+    } catch (error) {
+      console.error('Interactive processing failed:', error.message);
+    } finally {
+      rl.close();
+    }
+  });
+
+program
+  .command('test')
+  .description('Run test suite for PFR batch processing')
+  .action(async () => {
+    try {
+      console.log('Running PFR Batch Processing Test Suite...\n');
+      
+      // Import and run the test suite
+      const { runAllTests } = require('../test-pfr-batch-processing');
+      await runAllTests();
+      
+    } catch (error) {
+      console.error('Test suite failed:', error.message);
+      process.exit(1);
+    }
+  });
+
+// Add help for common use cases
+program.on('--help', () => {
+  console.log(`
+Examples:
+  # Validate URLs from file
+  pfr-batch-processor validate -i urls.txt -o validation-report.json
+  
+  # Process URLs and export to CSV
+  pfr-batch-processor process -i urls.txt -o results.csv -f enhanced-csv
+  
+  # Interactive mode
+  pfr-batch-processor interactive
+  
+  # Run test suite
+  pfr-batch-processor test
+
+Environment Variables:
+  PFR_VALIDATION_TIMEOUT_MS    - Validation timeout (default: 5000)
+  PFR_EXTRACTION_TIMEOUT_MS    - Extraction timeout (default: 30000)
+  PFR_BATCH_DELAY_MS          - Delay between batches (default: 1000)
+  PFR_REPORT_INTERVAL_MS      - Report interval (default: 5000)
+  HTTP_MAX_CONCURRENCY        - Max concurrent requests (default: 2)
+  HTTP_MAX_RETRIES            - Max retries (default: 2)
+`);
+});
+
+program.parse();
