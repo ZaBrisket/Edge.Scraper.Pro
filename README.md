@@ -155,10 +155,23 @@ The exporter produces a JSON file with the following structure:
 - **[Contributing Guide](CONTRIBUTING.md)**: Development standards and guidelines
 
 ## HTTP Reliability Policy
-All Netlify functions delegate outbound HTTP requests to a shared client. The
-client enforces timeouts, retries with jitter, per-host concurrency limits, and
-adds an `x-correlation-id` for traceability. Configuration is driven by
-environment variables validated via `zod`; see `.env.example` for defaults.
+
+### Enhanced Rate Limiting & 429 Handling
+The HTTP client now provides comprehensive rate limiting and proper 429 response handling:
+
+- **Per-Host Rate Limiting**: Token bucket implementation with configurable RPS and burst capacity
+- **429-Aware Retries**: Respects `Retry-After` headers and uses exponential backoff with jitter
+- **Circuit Breaker Improvements**: Only opens on genuine failures (5xx/timeouts), not rate limits
+- **Comprehensive Metrics**: Track rate limits, retries, circuit states, and performance
+
+### Configuration
+All HTTP behavior is controlled via environment variables:
+- `HOST_LIMIT__www_pro_football_reference_com__RPS=0.5` - PFR rate limit
+- `HOST_LIMIT__www_pro_football_reference_com__BURST=2` - PFR burst capacity
+- `HTTP_MAX_RETRIES=3` - Maximum retry attempts
+- `HTTP_CIRCUIT_BREAKER_THRESHOLD=5` - Failures before circuit opens
+
+See [Rate Limit Runbook](docs/RATE_LIMIT_RUNBOOK.md) for operational guidance.
 
 ## Performance Metrics
 - **Extraction Speed**: < 100ms per sports page

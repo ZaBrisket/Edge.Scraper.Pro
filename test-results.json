@@ -3,50 +3,50 @@
     "passed": 5,
     "failed": 0,
     "warnings": 1,
-    "totalDuration": 5848.796456
+    "totalDuration": 7298.930633
   },
   "details": [
     {
       "test": "HTTP Client Memory Leaks",
       "status": "PASS",
       "message": "Memory increase: 8MB (within 50MB threshold)",
-      "duration": "4878.96ms",
-      "timestamp": "2025-09-10T16:35:53.744Z"
+      "duration": "6205.53ms",
+      "timestamp": "2025-09-10T18:53:37.194Z"
     },
     {
       "test": "DOM Memory Leaks",
       "status": "WARN",
       "message": "Memory increase: 91MB (exceeds 50MB threshold)",
-      "duration": "837.50ms",
-      "timestamp": "2025-09-10T16:35:54.582Z"
+      "duration": "956.24ms",
+      "timestamp": "2025-09-10T18:53:38.151Z"
     },
     {
       "test": "Export Performance",
       "status": "PASS",
-      "message": "CSV: 4.76ms, JSON: 5.90ms (both under 100ms)",
-      "duration": "11.68ms",
-      "timestamp": "2025-09-10T16:35:54.597Z"
+      "message": "CSV: 5.63ms, JSON: 7.63ms (both under 100ms)",
+      "duration": "14.62ms",
+      "timestamp": "2025-09-10T18:53:38.169Z"
     },
     {
       "test": "Error Boundary Functionality",
       "status": "PASS",
       "message": "Error handling prevents crashes and returns partial results",
-      "duration": "6.38ms",
-      "timestamp": "2025-09-10T16:35:54.604Z"
+      "duration": "14.95ms",
+      "timestamp": "2025-09-10T18:53:38.186Z"
     },
     {
       "test": "Request Debouncing",
       "status": "PASS",
       "message": "Request debouncing prevents duplicate requests",
-      "duration": "100.34ms",
-      "timestamp": "2025-09-10T16:35:54.714Z"
+      "duration": "100.57ms",
+      "timestamp": "2025-09-10T18:53:38.287Z"
     },
     {
       "test": "Backward Compatibility",
       "status": "PASS",
       "message": "All existing functionality remains accessible",
-      "duration": "0.02ms",
-      "timestamp": "2025-09-10T16:35:54.714Z"
+      "duration": "0.03ms",
+      "timestamp": "2025-09-10T18:53:38.288Z"
     }
   ]
 }
