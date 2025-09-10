@@ -20,6 +20,45 @@ const metrics = {
   deferrals: { count: 0, byHost: {} }
 };
 
+// PFR-specific recovery strategy with exponential backoff
+const HOST_RECOVERY_STRATEGIES = {
+  'www.pro-football-reference.com': {
+    initialResetTime: 60000,     // 60 seconds
+    maxResetTime: 300000,        // 5 minutes
+    backoffMultiplier: 2,
+    probeRequestPath: '/robots.txt',
+    halfOpenProbeLimit: 1        // Only allow 1 probe request in half-open state
+  },
+  'www.baseball-reference.com': {
+    initialResetTime: 60000,
+    maxResetTime: 300000,
+    backoffMultiplier: 2,
+    probeRequestPath: '/robots.txt',
+    halfOpenProbeLimit: 1
+  },
+  'www.basketball-reference.com': {
+    initialResetTime: 60000,
+    maxResetTime: 300000,
+    backoffMultiplier: 2,
+    probeRequestPath: '/robots.txt',
+    halfOpenProbeLimit: 1
+  },
+  'www.hockey-reference.com': {
+    initialResetTime: 60000,
+    maxResetTime: 300000,
+    backoffMultiplier: 2,
+    probeRequestPath: '/robots.txt',
+    halfOpenProbeLimit: 1
+  },
+  default: {
+    initialResetTime: config.CIRCUIT_BREAKER_RESET_MS || 30000,
+    maxResetTime: 120000,
+    backoffMultiplier: 1.5,
+    probeRequestPath: null,
+    halfOpenProbeLimit: config.CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS || 3
+  }
+};
+
 function getHostLimits(host) {
   return config.HOST_LIMITS[host] || config.HOST_LIMITS.default;
 }
@@ -40,14 +79,23 @@ function getLimiter(host) {
 
 function getCircuit(host) {
   if (!circuits.has(host)) {
+    const strategy = getRecoveryStrategy(host);
     circuits.set(host, {
       state: 'closed',
       failures: 0,
       openedAt: 0,
       halfOpenCalls: 0,
+      resetTime: strategy.initialResetTime,
+      consecutiveOpenings: 0,
+      lastSuccessfulRequest: Date.now(),
+      strategy: strategy
     });
   }
   return circuits.get(host);
+}
+
+function getRecoveryStrategy(host) {
+  return HOST_RECOVERY_STRATEGIES[host] || HOST_RECOVERY_STRATEGIES.default;
 }
 
 function updateMetrics(type, host, status = null, reason = null) {
@@ -104,19 +152,44 @@ async function fetchWithPolicy(input, opts = {}) {
 
   // Check circuit breaker state
   if (circuit.state === 'open') {
-    if (Date.now() - circuit.openedAt > config.CIRCUIT_BREAKER_RESET_MS) {
+    if (Date.now() - circuit.openedAt > circuit.resetTime) {
       circuit.state = 'half-open';
       circuit.halfOpenCalls = 0;
       updateMetrics('circuitChange', host);
-      logger.info({ host }, 'Circuit breaker moved to half-open state');
+      logger.info({ 
+        host, 
+        resetTime: circuit.resetTime,
+        consecutiveOpenings: circuit.consecutiveOpenings 
+      }, 'Circuit breaker moved to half-open state');
     } else {
       updateMetrics('circuitChange', host);
-      throw new CircuitOpenError(`Circuit for ${host} is open`, { host });
+      const remainingTime = Math.ceil((circuit.resetTime - (Date.now() - circuit.openedAt)) / 1000);
+      throw new CircuitOpenError(`Circuit for ${host} is open. Will retry in ${remainingTime}s`, { 
+        host,
+        remainingTime,
+        resetTime: circuit.resetTime
+      });
     }
   }
 
   if (circuit.state === 'half-open') {
-    if (circuit.halfOpenCalls >= config.CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS) {
+    const halfOpenLimit = circuit.strategy.halfOpenProbeLimit;
+    
+    // For hosts with probe paths, only allow probe requests in half-open state
+    if (circuit.strategy.probeRequestPath && !url.pathname.endsWith(circuit.strategy.probeRequestPath)) {
+      // If this isn't a probe request and we have a probe path defined, make it a probe request
+      if (circuit.halfOpenCalls === 0) {
+        // Redirect first half-open request to probe path
+        const probeUrl = new URL(circuit.strategy.probeRequestPath, url.origin);
+        logger.info({ host, probeUrl: probeUrl.toString() }, 'Redirecting to probe URL for half-open validation');
+        url = probeUrl;
+      } else {
+        // Already made probe request, circuit should be closed or open by now
+        throw new CircuitOpenError(`Circuit for ${host} is still in half-open state after probe`, { host });
+      }
+    }
+    
+    if (circuit.halfOpenCalls >= halfOpenLimit) {
       throw new CircuitOpenError(`Circuit for ${host} is half-open and call limit reached`, { host });
     }
     circuit.halfOpenCalls++;
@@ -180,22 +253,17 @@ async function fetchWithPolicy(input, opts = {}) {
       if (res.status >= 500) {
         circuit.failures++;
         if (circuit.failures >= config.CIRCUIT_BREAKER_THRESHOLD) {
-          circuit.state = 'open';
-          circuit.openedAt = Date.now();
-          updateMetrics('circuitChange', host);
-          logger.error({ host, failures: circuit.failures }, 'Circuit breaker opened');
+          openCircuitBreaker(circuit, host, logger);
         }
         throw new NetworkError(`Upstream ${res.status}`, { status: res.status });
       }
       
       // Success - reset circuit breaker
       if (circuit.state !== 'closed') {
-        circuit.state = 'closed';
-        circuit.failures = 0;
-        circuit.halfOpenCalls = 0;
-        updateMetrics('circuitChange', host);
-        logger.info({ host }, 'Circuit breaker closed');
+        closeCircuitBreaker(circuit, host, logger);
       }
+      
+      circuit.lastSuccessfulRequest = Date.now();
       
       return res;
       
@@ -203,9 +271,7 @@ async function fetchWithPolicy(input, opts = {}) {
       if (err.name === 'AbortError') {
         circuit.failures++;
         if (circuit.failures >= config.CIRCUIT_BREAKER_THRESHOLD) {
-          circuit.state = 'open';
-          circuit.openedAt = Date.now();
-          updateMetrics('circuitChange', host);
+          openCircuitBreaker(circuit, host, logger);
         }
         throw new TimeoutError('Request timed out', { timeout });
       }
@@ -214,9 +280,7 @@ async function fetchWithPolicy(input, opts = {}) {
       if (err instanceof NetworkError) {
         circuit.failures++;
         if (circuit.failures >= config.CIRCUIT_BREAKER_THRESHOLD) {
-          circuit.state = 'open';
-          circuit.openedAt = Date.now();
-          updateMetrics('circuitChange', host);
+          openCircuitBreaker(circuit, host, logger);
         }
         throw err;
       }
@@ -286,8 +350,83 @@ function resetMetrics() {
   });
 }
 
+/**
+ * Open circuit breaker with exponential backoff
+ */
+function openCircuitBreaker(circuit, host, logger) {
+  circuit.state = 'open';
+  circuit.openedAt = Date.now();
+  circuit.consecutiveOpenings++;
+  
+  // Calculate exponential backoff for reset time
+  const strategy = circuit.strategy;
+  const newResetTime = Math.min(
+    circuit.resetTime * strategy.backoffMultiplier,
+    strategy.maxResetTime
+  );
+  circuit.resetTime = newResetTime;
+  
+  updateMetrics('circuitChange', host);
+  logger.error({ 
+    host, 
+    failures: circuit.failures,
+    consecutiveOpenings: circuit.consecutiveOpenings,
+    resetTime: circuit.resetTime,
+    nextResetInSeconds: circuit.resetTime / 1000
+  }, 'Circuit breaker opened with exponential backoff');
+}
+
+/**
+ * Close circuit breaker and reset counters
+ */
+function closeCircuitBreaker(circuit, host, logger) {
+  const wasHalfOpen = circuit.state === 'half-open';
+  circuit.state = 'closed';
+  circuit.failures = 0;
+  circuit.halfOpenCalls = 0;
+  
+  // Reset exponential backoff on successful recovery
+  if (wasHalfOpen) {
+    circuit.consecutiveOpenings = 0;
+    circuit.resetTime = circuit.strategy.initialResetTime;
+  }
+  
+  updateMetrics('circuitChange', host);
+  logger.info({ 
+    host,
+    wasHalfOpen,
+    resetTimeRestored: circuit.resetTime / 1000
+  }, 'Circuit breaker closed successfully');
+}
+
+/**
+ * Get circuit state for monitoring
+ */
+function getCircuitStates() {
+  const states = {};
+  circuits.forEach((circuit, host) => {
+    states[host] = {
+      state: circuit.state,
+      failures: circuit.failures,
+      consecutiveOpenings: circuit.consecutiveOpenings,
+      resetTime: circuit.resetTime,
+      timeUntilReset: circuit.state === 'open' 
+        ? Math.max(0, circuit.resetTime - (Date.now() - circuit.openedAt))
+        : 0,
+      lastSuccessfulRequest: circuit.lastSuccessfulRequest,
+      strategy: {
+        type: circuit.strategy === HOST_RECOVERY_STRATEGIES.default ? 'default' : 'custom',
+        halfOpenProbeLimit: circuit.strategy.halfOpenProbeLimit,
+        probeRequestPath: circuit.strategy.probeRequestPath
+      }
+    };
+  });
+  return states;
+}
+
 module.exports = { 
   fetchWithPolicy, 
   getMetrics, 
-  resetMetrics
+  resetMetrics,
+  getCircuitStates
 };

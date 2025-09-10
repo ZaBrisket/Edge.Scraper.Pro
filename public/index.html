@@ -350,6 +350,40 @@
             
             <div id="validationReport" class="hidden"></div>
             <div id="errorReport" class="hidden"></div>
+            
+            <!-- Real-time Monitoring Dashboard -->
+            <div id="monitoringDashboard" class="hidden" style="margin-top: 20px; padding: 15px; background: #f0f0f0; border: 1px solid #ccc;">
+                <h3>🔍 Real-time Monitoring</h3>
+                <div id="monitoringContent">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <h4>Circuit Breakers</h4>
+                            <div id="circuitBreakerList" style="font-family: monospace; font-size: 12px;">
+                                <div style="color: #666;">No circuits active</div>
+                            </div>
+                        </div>
+                        <div>
+                            <h4>Rate Limiting</h4>
+                            <div id="rateLimitList" style="font-family: monospace; font-size: 12px;">
+                                <div style="color: #666;">No rate limit data</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ccc;">
+                        <h4>Metrics</h4>
+                        <div id="metricsDisplay" style="font-family: monospace; font-size: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                            <div>Total Requests: <span id="totalRequests">0</span></div>
+                            <div>Rate Limits Hit: <span id="rateLimitsHit">0</span></div>
+                            <div>Circuit Changes: <span id="circuitChanges">0</span></div>
+                            <div>Retries: <span id="totalRetries">0</span></div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px; text-align: center;">
+                        <button onclick="toggleMonitoringRefresh()" id="monitoringRefreshBtn">⏸️ Pause Refresh</button>
+                        <span style="margin-left: 10px; font-size: 11px; color: #666;">Auto-refresh: <span id="refreshStatus">ON</span></span>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <div class="section">
@@ -756,6 +790,12 @@
                 concurrency: 1, // Process one URL at a time for maximum reliability
                 delayMs: parseInt(dom.delayInput.value, 10),
                 timeout: TIMEOUT_MS,
+                enableCircuitMonitoring: true,
+                autoPauseOnCircuitOpen: true,
+                onCircuitStatusChange: (status) => {
+                    // Update circuit status display
+                    updateCircuitStatus(status);
+                },
                 onProgress: (progress) => {
                     if (progress.phase === 'validation') {
                         dom.statusText.textContent = `Validating ${progress.total} URLs...`;
@@ -800,6 +840,14 @@
                         dom.errorReport.innerHTML = errorHTML;
                         dom.errorReport.classList.remove('hidden');
                         state.errorReportData = result.errorReport;
+                    }
+                    
+                    // Check for retryable URLs
+                    if (result.hasRetryableUrls && result.failedUrlQueue.length > 0) {
+                        const retryCount = result.failedUrlQueue.filter(item => item.failureReason === 'circuit_open').length;
+                        if (retryCount > 0) {
+                            dom.statusText.innerHTML = `Completed with ${retryCount} URLs failed due to circuit breaker. <button onclick="retryFailedUrls()">Retry Failed URLs</button>`;
+                        }
                     }
                 }
             });
@@ -2546,6 +2594,215 @@
         // Initialize file upload handlers
         setupFileUploadHandlers();
         
+        // Circuit status display
+        function updateCircuitStatus(status) {
+            // Update floating status indicator
+            let circuitStatusDiv = document.getElementById('circuitStatus');
+            if (!circuitStatusDiv) {
+                circuitStatusDiv = document.createElement('div');
+                circuitStatusDiv.id = 'circuitStatus';
+                circuitStatusDiv.style.cssText = `
+                    position: fixed;
+                    top: 10px;
+                    right: 10px;
+                    background: rgba(0, 0, 0, 0.9);
+                    color: white;
+                    padding: 10px;
+                    border-radius: 5px;
+                    font-size: 12px;
+                    max-width: 300px;
+                    z-index: 1000;
+                    display: none;
+                `;
+                document.body.appendChild(circuitStatusDiv);
+            }
+            
+            // Format circuit status display
+            const openCircuits = status.openCircuits || [];
+            if (openCircuits.length > 0) {
+                let html = '<div style="margin-bottom: 5px;"><strong>⚠️ Circuit Breaker Status</strong></div>';
+                openCircuits.forEach(circuit => {
+                    const resetIn = Math.ceil(circuit.timeUntilReset / 1000);
+                    html += `<div style="margin: 3px 0;">• ${circuit.host}: <span style="color: ${circuit.state === 'open' ? '#ff6b6b' : '#ffd93d'};">${circuit.state}</span> (reset in ${resetIn}s)</div>`;
+                });
+                
+                // Add rate limit info if available
+                if (status.metrics) {
+                    html += `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #444;">`;
+                    html += `<div>Total requests: ${status.metrics.totalRequests}</div>`;
+                    html += `<div>Rate limits hit: ${status.metrics.totalRateLimits}</div>`;
+                    html += `</div>`;
+                }
+                
+                circuitStatusDiv.innerHTML = html;
+                circuitStatusDiv.style.display = 'block';
+            } else {
+                circuitStatusDiv.style.display = 'none';
+            }
+            
+            // Update monitoring dashboard
+            updateMonitoringDashboard(status);
+        }
+        
+        // Update monitoring dashboard
+        function updateMonitoringDashboard(status) {
+            // Show dashboard when processing
+            const dashboard = document.getElementById('monitoringDashboard');
+            if (state.batchProcessor && state.batchProcessor.state !== 'idle') {
+                dashboard.classList.remove('hidden');
+            }
+            
+            // Update circuit breakers list
+            const circuitList = document.getElementById('circuitBreakerList');
+            if (status.circuits && Object.keys(status.circuits).length > 0) {
+                let html = '';
+                Object.entries(status.circuits).forEach(([host, circuit]) => {
+                    const stateColor = circuit.state === 'closed' ? '#4caf50' : 
+                                     circuit.state === 'open' ? '#f44336' : '#ff9800';
+                    const resetInfo = circuit.state === 'open' ? 
+                        ` (resets in ${Math.ceil(circuit.timeUntilReset / 1000)}s)` : '';
+                    html += `<div style="margin: 2px 0;">
+                        <span style="color: ${stateColor};">●</span> 
+                        ${host}: ${circuit.state}${resetInfo}
+                    </div>`;
+                });
+                circuitList.innerHTML = html;
+            } else {
+                circuitList.innerHTML = '<div style="color: #666;">No circuits active</div>';
+            }
+            
+            // Update rate limits list
+            const rateLimitList = document.getElementById('rateLimitList');
+            if (status.rateLimits && Object.keys(status.rateLimits).length > 0) {
+                let html = '';
+                Object.entries(status.rateLimits).forEach(([host, limits]) => {
+                    const rateColor = limits.rateLimitRate > 20 ? '#f44336' : 
+                                    limits.rateLimitRate > 10 ? '#ff9800' : '#4caf50';
+                    html += `<div style="margin: 2px 0;">
+                        ${host}: ${limits.requests} reqs, 
+                        <span style="color: ${rateColor};">${limits.rateLimitRate}% limited</span>
+                    </div>`;
+                });
+                rateLimitList.innerHTML = html;
+            } else {
+                rateLimitList.innerHTML = '<div style="color: #666;">No rate limit data</div>';
+            }
+            
+            // Update metrics
+            if (status.metrics) {
+                document.getElementById('totalRequests').textContent = status.metrics.totalRequests || 0;
+                document.getElementById('rateLimitsHit').textContent = status.metrics.totalRateLimits || 0;
+                document.getElementById('circuitChanges').textContent = status.metrics.circuitStateChanges || 0;
+                document.getElementById('totalRetries').textContent = status.metrics.totalRetries || 0;
+            }
+        }
+        
+        // Retry failed URLs function
+        window.retryFailedUrls = async function() {
+            if (!state.batchProcessor) {
+                alert('No batch processor available');
+                return;
+            }
+            
+            const retryableUrls = state.batchProcessor.getRetryableUrls();
+            if (retryableUrls.length === 0) {
+                alert('No URLs to retry');
+                return;
+            }
+            
+            try {
+                dom.statusText.textContent = `Retrying ${retryableUrls.length} failed URLs...`;
+                
+                // Get the last used processor function
+                const processor = async (url, item) => {
+                    const html = await api.fetchUrl(url);
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const metadata = safeDOMOperation(() => extractMetadata(doc), 'Metadata Extraction');
+                    const extractionResult = safeDOMOperation(() => extractMainContentWithDebug(doc, url), 'Content Extraction');
+                    const text = extractionResult?.content || '';
+                    
+                    return {
+                        url,
+                        text,
+                        metadata: metadata || {},
+                        html: dom.includeHtmlToggle.checked ? html : null,
+                        success: true,
+                        extractionDebug: extractionResult?.debug
+                    };
+                };
+                
+                await state.batchProcessor.retryFailedUrls(processor);
+            } catch (error) {
+                console.error('Retry failed:', error);
+                dom.statusText.textContent = `Retry failed: ${error.message}`;
+            }
+        };
+        
+        // Toggle monitoring refresh
+        let monitoringRefreshEnabled = true;
+        let monitoringInterval = null;
+        
+        window.toggleMonitoringRefresh = function() {
+            monitoringRefreshEnabled = !monitoringRefreshEnabled;
+            const btn = document.getElementById('monitoringRefreshBtn');
+            const status = document.getElementById('refreshStatus');
+            
+            if (monitoringRefreshEnabled) {
+                btn.textContent = '⏸️ Pause Refresh';
+                status.textContent = 'ON';
+                startMonitoringInterval();
+            } else {
+                btn.textContent = '▶️ Resume Refresh';
+                status.textContent = 'OFF';
+                stopMonitoringInterval();
+            }
+        };
+        
+        function startMonitoringInterval() {
+            if (monitoringInterval) return;
+            
+            const fetchStatus = async () => {
+                if (!monitoringRefreshEnabled) return;
+                
+                try {
+                    const response = await fetch('/api/circuit-status');
+                    if (response.ok) {
+                        const status = await response.json();
+                        updateMonitoringDashboard(status);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch monitoring status:', error);
+                }
+            };
+            
+            // Initial fetch
+            fetchStatus();
+            
+            // Set up interval
+            monitoringInterval = setInterval(fetchStatus, 3000); // Update every 3 seconds
+        }
+        
+        function stopMonitoringInterval() {
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+                monitoringInterval = null;
+            }
+        }
+        
+        // Start monitoring when batch processing starts
+        const originalProcessBatch = state.batchProcessor ? state.batchProcessor.processBatch : null;
+        if (originalProcessBatch) {
+            state.batchProcessor.processBatch = async function(...args) {
+                startMonitoringInterval();
+                try {
+                    return await originalProcessBatch.apply(this, args);
+                } finally {
+                    // Keep monitoring for a bit after completion to show final status
+                    setTimeout(stopMonitoringInterval, 10000);
+                }
+            };
+        }
+
         // Progress tracking enhancements
         function updateProgressBar(percentage) {
             // Create progress bar if it doesn't exist
