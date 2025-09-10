@@ -171,7 +171,7 @@
                 const csvData = exportEnhancedCSV(mockScrapeResults);
                 const csvLines = csvData.split('\n');
                 if (csvLines.length >= 3 && csvLines[0].includes('player_name')) {
-                    resultsDiv.innerHTML += '<div class="test-result success">✅ Enhanced CSV export: PASS (${csvLines.length} lines)</div>';
+                    resultsDiv.innerHTML += `<div class="test-result success">✅ Enhanced CSV export: PASS (${csvLines.length} lines)</div>`;
                 } else {
                     throw new Error('CSV export failed');
                 }
@@ -180,7 +180,7 @@
                 const jsonData = exportStructuredJSON(mockScrapeResults);
                 const parsed = JSON.parse(jsonData);
                 if (parsed.exportInfo && parsed.players && parsed.players.length === 2) {
-                    resultsDiv.innerHTML += '<div class="test-result success">✅ Structured JSON export: PASS (${parsed.players.length} players)</div>';
+                    resultsDiv.innerHTML += `<div class="test-result success">✅ Structured JSON export: PASS (${parsed.players.length} players)</div>`;
                 } else {
                     throw new Error('JSON export failed');
                 }
@@ -189,7 +189,7 @@
                 const dbData = exportPlayerDatabase(mockScrapeResults);
                 const database = JSON.parse(dbData);
                 if (database.players && database.statistics && database.achievements && database.metadata) {
-                    resultsDiv.innerHTML += '<div class="test-result success">✅ Player database export: PASS (${database.players.length} players)</div>';
+                    resultsDiv.innerHTML += `<div class="test-result success">✅ Player database export: PASS (${database.players.length} players)</div>`;
                 } else {
                     throw new Error('Database export failed');
                 }
