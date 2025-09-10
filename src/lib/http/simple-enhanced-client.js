@@ -9,6 +9,15 @@ const {
 const config = require('../config');
 const createLogger = require('./logging');
 
+// PFR-specific recovery strategy
+const PFR_RECOVERY_STRATEGY = {
+  initialResetTime: 60000, // 60 seconds
+  maxResetTime: 300000,    // 5 minutes
+  backoffMultiplier: 2,
+  probeRequestPath: '/robots.txt', // Low-impact probe
+  maxResetAttempts: 5
+};
+
 // Simplified enhanced client for testing
 const limiters = new Map();
 const circuits = new Map();
@@ -45,6 +54,8 @@ function getCircuit(host) {
       failures: 0,
       openedAt: 0,
       halfOpenCalls: 0,
+      resetAttempts: 0,
+      lastProbeAt: 0,
     });
   }
   return circuits.get(host);
@@ -94,6 +105,64 @@ function calculateBackoff(attempt, retryAfter = null) {
   return baseDelay + jitter;
 }
 
+function calculateCircuitResetTime(host, resetAttempts) {
+  // Use exponential backoff for circuit reset times, especially for PFR
+  const isPFR = host === 'www.pro-football-reference.com';
+  const strategy = isPFR ? PFR_RECOVERY_STRATEGY : {
+    initialResetTime: config.CIRCUIT_BREAKER_RESET_MS,
+    maxResetTime: config.CIRCUIT_BREAKER_RESET_MS * 4,
+    backoffMultiplier: 1.5,
+    maxResetAttempts: 3
+  };
+  
+  const resetTime = Math.min(
+    strategy.initialResetTime * Math.pow(strategy.backoffMultiplier, resetAttempts),
+    strategy.maxResetTime
+  );
+  
+  return resetTime;
+}
+
+async function performProbeRequest(host, url, opts, logger) {
+  // Perform a low-impact probe request to test if the circuit should close
+  const isPFR = host === 'www.pro-football-reference.com';
+  const probeUrl = isPFR 
+    ? `https://${host}${PFR_RECOVERY_STRATEGY.probeRequestPath}`
+    : `https://${host}/`;
+  
+  try {
+    logger.info({ host, probeUrl }, 'Performing circuit probe request');
+    
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000); // Short timeout for probe
+    
+    const response = await fetch(probeUrl, {
+      method: 'HEAD', // Use HEAD to minimize impact
+      headers: {
+        'User-Agent': 'EdgeScraper/2.0 (+https://github.com/ZaBrisket/Edge.Scraper.Pro)',
+        'x-correlation-id': opts.correlationId || 'probe-request'
+      },
+      signal: controller.signal
+    });
+    
+    clearTimeout(timer);
+    
+    // Consider 2xx and 3xx as successful probes
+    const success = response.status < 400;
+    logger.info({ 
+      host, 
+      probeUrl, 
+      status: response.status, 
+      success 
+    }, 'Circuit probe completed');
+    
+    return success;
+  } catch (err) {
+    logger.warn({ host, probeUrl, error: err.message }, 'Circuit probe failed');
+    return false;
+  }
+}
+
 async function fetchWithPolicy(input, opts = {}) {
   const url = typeof input === 'string' ? new URL(input) : new URL(input.url || input.href);
   const host = url.host;
@@ -102,16 +171,52 @@ async function fetchWithPolicy(input, opts = {}) {
   const correlationId = opts.correlationId || randomUUID();
   const logger = createLogger(correlationId).child({ host, url: url.toString() });
 
-  // Check circuit breaker state
+  // Check circuit breaker state with enhanced recovery logic
   if (circuit.state === 'open') {
-    if (Date.now() - circuit.openedAt > config.CIRCUIT_BREAKER_RESET_MS) {
-      circuit.state = 'half-open';
-      circuit.halfOpenCalls = 0;
-      updateMetrics('circuitChange', host);
-      logger.info({ host }, 'Circuit breaker moved to half-open state');
+    const resetTime = calculateCircuitResetTime(host, circuit.resetAttempts);
+    const timeSinceOpen = Date.now() - circuit.openedAt;
+    
+    if (timeSinceOpen > resetTime) {
+      // Move to half-open and perform probe request
+      const isPFR = host === 'www.pro-football-reference.com';
+      const strategy = isPFR ? PFR_RECOVERY_STRATEGY : { maxResetAttempts: 3 };
+      
+      if (circuit.resetAttempts >= strategy.maxResetAttempts) {
+        logger.error({ 
+          host, 
+          resetAttempts: circuit.resetAttempts, 
+          maxAttempts: strategy.maxResetAttempts 
+        }, 'Circuit breaker maximum reset attempts exceeded');
+        throw new CircuitOpenError(`Circuit for ${host} has exceeded maximum reset attempts`, { host });
+      }
+      
+      // Perform probe request before transitioning to half-open
+      const probeSuccess = await performProbeRequest(host, url, opts, logger);
+      
+      if (probeSuccess) {
+        circuit.state = 'half-open';
+        circuit.halfOpenCalls = 0;
+        circuit.lastProbeAt = Date.now();
+        updateMetrics('circuitChange', host);
+        logger.info({ host, resetAttempts: circuit.resetAttempts }, 'Circuit breaker moved to half-open state after successful probe');
+      } else {
+        circuit.resetAttempts++;
+        circuit.openedAt = Date.now(); // Reset the timer for next attempt
+        updateMetrics('circuitChange', host);
+        logger.warn({ 
+          host, 
+          resetAttempts: circuit.resetAttempts,
+          nextResetIn: calculateCircuitResetTime(host, circuit.resetAttempts)
+        }, 'Circuit probe failed, extending open state');
+        throw new CircuitOpenError(`Circuit for ${host} probe failed, remaining open`, { host });
+      }
     } else {
+      const remainingTime = resetTime - timeSinceOpen;
       updateMetrics('circuitChange', host);
-      throw new CircuitOpenError(`Circuit for ${host} is open`, { host });
+      throw new CircuitOpenError(`Circuit for ${host} is open (${Math.ceil(remainingTime/1000)}s remaining)`, { 
+        host, 
+        remainingTimeMs: remainingTime 
+      });
     }
   }
 
@@ -193,8 +298,9 @@ async function fetchWithPolicy(input, opts = {}) {
         circuit.state = 'closed';
         circuit.failures = 0;
         circuit.halfOpenCalls = 0;
+        circuit.resetAttempts = 0; // Reset the exponential backoff counter
         updateMetrics('circuitChange', host);
-        logger.info({ host }, 'Circuit breaker closed');
+        logger.info({ host }, 'Circuit breaker closed - all counters reset');
       }
       
       return res;
@@ -261,7 +367,13 @@ function getMetrics() {
     circuits: Array.from(circuits.entries()).map(([host, circuit]) => ({
       host,
       state: circuit.state,
-      failures: circuit.failures
+      failures: circuit.failures,
+      resetAttempts: circuit.resetAttempts,
+      openedAt: circuit.openedAt,
+      lastProbeAt: circuit.lastProbeAt,
+      nextResetIn: circuit.state === 'open' 
+        ? Math.max(0, calculateCircuitResetTime(host, circuit.resetAttempts) - (Date.now() - circuit.openedAt))
+        : 0
     }))
   };
 }

@@ -370,6 +370,34 @@
             </div>
         </div>
 
+        <!-- Circuit Breaker Monitoring Dashboard -->
+        <div id="monitoringDashboard" class="section hidden">
+            <h3>🔧 System Monitoring</h3>
+            <div id="circuitStatus" style="margin-bottom: 1em;">
+                <div style="display: flex; gap: 1em; margin-bottom: 0.5em;">
+                    <div>
+                        <strong>Circuit Health:</strong>
+                        <span id="circuitHealth" style="font-weight: bold;">Unknown</span>
+                    </div>
+                    <div>
+                        <strong>Active Circuits:</strong>
+                        <span id="activeCircuits">0</span>
+                    </div>
+                    <div>
+                        <strong>Processing Status:</strong>
+                        <span id="processingStatus">Idle</span>
+                    </div>
+                </div>
+                <div id="circuitDetails" style="font-family: monospace; font-size: 0.9em; background: #f5f5f5; padding: 0.5em; border: 1px solid #ccc;">
+                    No circuit data available
+                </div>
+            </div>
+            <div style="display: flex; gap: 1em;">
+                <button id="toggleMonitoring" onclick="toggleMonitoring()">Start Monitoring</button>
+                <button id="refreshMetrics" onclick="refreshMetrics()">Refresh Now</button>
+            </div>
+        </div>
+
         <div class="section">
              <p><b>Step 3:</b> Review and export results.</p>
             <div id="statusContainer" class="hidden">
@@ -788,6 +816,16 @@
                         if (progress.completed > 0) {
                             saveProcessingState({ length: progress.total }, progress.completed);
                         }
+                    } else if (progress.phase === 'circuit_pause') {
+                        dom.statusText.textContent = progress.message || 'Processing paused - waiting for circuit recovery';
+                        console.log('Batch processing paused due to circuit breaker issues');
+                    } else if (progress.phase === 'circuit_resume') {
+                        dom.statusText.textContent = progress.message || 'Processing resumed - circuits recovered';
+                        const pauseTime = Math.round(progress.totalPauseTime / 1000);
+                        console.log(`Batch processing resumed after ${pauseTime}s pause`);
+                    } else if (progress.phase === 'retry_failed') {
+                        dom.statusText.textContent = progress.message || 'Retrying failed URLs after circuit recovery';
+                        console.log(`Retrying ${progress.retryableCount} failed URLs, skipped ${progress.skippedCount}`);
                     }
                 },
                 onError: (error) => {
@@ -801,6 +839,32 @@
                         dom.errorReport.classList.remove('hidden');
                         state.errorReportData = result.errorReport;
                     }
+                    
+                    // Hide monitoring dashboard when processing completes
+                    hideMonitoringDashboard();
+                },
+                onCircuitStatusChange: (status) => {
+                    // Update monitoring display with real-time circuit status
+                    if (monitoringState.isActive) {
+                        const mockMetrics = {
+                            circuits: status.circuits,
+                            timestamp: new Date().toISOString()
+                        };
+                        updateMonitoringDisplay(mockMetrics);
+                    }
+                    
+                    // Handle circuit-based pausing notifications
+                    if (status.isPaused) {
+                        dom.statusText.textContent = `Processing paused - waiting for circuit recovery (${status.openCircuits}/${status.totalCircuits} circuits open)`;
+                    }
+                    
+                    // Log circuit state changes for debugging
+                    console.log('Circuit status change:', {
+                        healthRatio: status.healthRatio,
+                        openCircuits: status.openCircuits,
+                        totalCircuits: status.totalCircuits,
+                        isPaused: status.isPaused
+                    });
                 }
             });
             
@@ -2794,6 +2858,172 @@
             const filename = `error_report_${new Date().toISOString().split('T')[0]}.json`;
             downloadFile(filename, JSON.stringify(exportData, null, 2));
         };
+
+        // Circuit Breaker Monitoring Functions
+        let monitoringState = {
+            isActive: false,
+            interval: null,
+            lastUpdate: null
+        };
+
+        async function refreshMetrics() {
+            try {
+                const response = await fetch('/.netlify/functions/get-metrics');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const metrics = await response.json();
+                updateMonitoringDisplay(metrics);
+                monitoringState.lastUpdate = new Date();
+                
+            } catch (error) {
+                console.warn('Failed to fetch metrics:', error);
+                updateMonitoringDisplay({
+                    circuits: [],
+                    error: error.message,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        }
+
+        function updateMonitoringDisplay(metrics) {
+            const circuitHealthEl = document.getElementById('circuitHealth');
+            const activeCircuitsEl = document.getElementById('activeCircuits');
+            const processingStatusEl = document.getElementById('processingStatus');
+            const circuitDetailsEl = document.getElementById('circuitDetails');
+
+            if (metrics.error) {
+                circuitHealthEl.textContent = 'Error';
+                circuitHealthEl.style.color = 'red';
+                activeCircuitsEl.textContent = 'N/A';
+                processingStatusEl.textContent = 'Error';
+                circuitDetailsEl.textContent = `Error: ${metrics.error}`;
+                return;
+            }
+
+            const circuits = metrics.circuits || [];
+            const openCircuits = circuits.filter(c => c.state === 'open').length;
+            const totalCircuits = circuits.length;
+            const healthRatio = totalCircuits > 0 ? (totalCircuits - openCircuits) / totalCircuits : 1;
+
+            // Update circuit health
+            if (healthRatio === 1) {
+                circuitHealthEl.textContent = 'Healthy';
+                circuitHealthEl.style.color = 'green';
+            } else if (healthRatio >= 0.8) {
+                circuitHealthEl.textContent = 'Degraded';
+                circuitHealthEl.style.color = 'orange';
+            } else {
+                circuitHealthEl.textContent = 'Critical';
+                circuitHealthEl.style.color = 'red';
+            }
+
+            activeCircuitsEl.textContent = totalCircuits;
+            
+            // Update processing status based on batch processor state
+            if (state.batchProcessor) {
+                const batchState = state.batchProcessor.state;
+                processingStatusEl.textContent = batchState.charAt(0).toUpperCase() + batchState.slice(1);
+                
+                if (batchState === 'circuit_paused') {
+                    processingStatusEl.style.color = 'orange';
+                } else if (batchState === 'processing') {
+                    processingStatusEl.style.color = 'blue';
+                } else if (batchState === 'error') {
+                    processingStatusEl.style.color = 'red';
+                } else {
+                    processingStatusEl.style.color = 'black';
+                }
+            } else {
+                processingStatusEl.textContent = 'Idle';
+                processingStatusEl.style.color = 'black';
+            }
+
+            // Update circuit details
+            if (circuits.length === 0) {
+                circuitDetailsEl.textContent = 'No active circuits';
+            } else {
+                const details = circuits.map(circuit => {
+                    const status = circuit.state === 'open' 
+                        ? `OPEN (${Math.ceil((circuit.nextResetIn || 0) / 1000)}s to retry)`
+                        : circuit.state.toUpperCase();
+                    return `${circuit.host}: ${status} (failures: ${circuit.failures})`;
+                }).join('\n');
+                
+                circuitDetailsEl.textContent = details;
+            }
+
+            // Add timestamp
+            const timestamp = new Date(metrics.timestamp || Date.now()).toLocaleTimeString();
+            const timestampEl = circuitDetailsEl.querySelector('.timestamp') || 
+                document.createElement('div');
+            timestampEl.className = 'timestamp';
+            timestampEl.style.cssText = 'font-size: 0.8em; color: #666; margin-top: 0.5em;';
+            timestampEl.textContent = `Last updated: ${timestamp}`;
+            
+            if (!circuitDetailsEl.querySelector('.timestamp')) {
+                circuitDetailsEl.appendChild(timestampEl);
+            }
+        }
+
+        function toggleMonitoring() {
+            const button = document.getElementById('toggleMonitoring');
+            const dashboard = document.getElementById('monitoringDashboard');
+            
+            if (monitoringState.isActive) {
+                // Stop monitoring
+                monitoringState.isActive = false;
+                if (monitoringState.interval) {
+                    clearInterval(monitoringState.interval);
+                    monitoringState.interval = null;
+                }
+                button.textContent = 'Start Monitoring';
+                console.log('Circuit monitoring stopped');
+            } else {
+                // Start monitoring
+                monitoringState.isActive = true;
+                button.textContent = 'Stop Monitoring';
+                
+                // Show dashboard if hidden
+                dashboard.classList.remove('hidden');
+                
+                // Initial refresh
+                refreshMetrics();
+                
+                // Set up periodic refresh
+                monitoringState.interval = setInterval(refreshMetrics, 3000); // Every 3 seconds
+                console.log('Circuit monitoring started');
+            }
+        }
+
+        // Auto-show monitoring dashboard when batch processing starts
+        function showMonitoringDashboard() {
+            const dashboard = document.getElementById('monitoringDashboard');
+            dashboard.classList.remove('hidden');
+            
+            // Auto-start monitoring if not already active
+            if (!monitoringState.isActive) {
+                toggleMonitoring();
+            }
+        }
+
+        // Hide monitoring dashboard when batch processing completes
+        function hideMonitoringDashboard() {
+            const dashboard = document.getElementById('monitoringDashboard');
+            dashboard.classList.add('hidden');
+            
+            // Stop monitoring
+            if (monitoringState.isActive) {
+                toggleMonitoring();
+            }
+        }
+
+        // Integration with batch processor - show monitoring when processing starts
+        const originalScrapeHandler = dom.scrapeBtn.onclick;
+        dom.scrapeBtn.addEventListener('click', () => {
+            showMonitoringDashboard();
+        });
     </script>
 </body>
 </html>

@@ -29,7 +29,16 @@ const BATCH_STATES = {
   PAUSED: 'paused',
   STOPPED: 'stopped',
   COMPLETED: 'completed',
-  ERROR: 'error'
+  ERROR: 'error',
+  CIRCUIT_PAUSED: 'circuit_paused'
+};
+
+// Circuit breaker monitoring configuration
+const CIRCUIT_MONITOR_CONFIG = {
+  checkIntervalMs: 2000,  // Check circuit status every 2 seconds
+  retryDelayMs: 5000,     // Wait 5 seconds before retrying after circuit opens
+  maxCircuitWaitMs: 300000, // Maximum 5 minutes waiting for circuit recovery
+  pauseThreshold: 0.8     // Pause if 80% of hosts have open circuits
 };
 
 class BatchProcessor {
@@ -61,13 +70,25 @@ class BatchProcessor {
     // Control flags
     this.controls = {
       paused: false,
-      aborted: false
+      aborted: false,
+      circuitPaused: false
+    };
+    
+    // Circuit breaker monitoring
+    this.circuitMonitor = {
+      isMonitoring: false,
+      monitorInterval: null,
+      circuitStates: new Map(),
+      failedUrls: [],
+      pausedAt: null,
+      totalPauseTime: 0
     };
     
     // Progress callback
     this.onProgress = options.onProgress || (() => {});
     this.onError = options.onError || (() => {});
     this.onComplete = options.onComplete || (() => {});
+    this.onCircuitStatusChange = options.onCircuitStatusChange || (() => {});
   }
 
   /**
@@ -105,11 +126,25 @@ class BatchProcessor {
         validationDetails: validationResult
       });
       
-      // Phase 2: Process valid URLs with memory optimization
+      // Phase 2: Start circuit monitoring and process valid URLs
       this.state = BATCH_STATES.PROCESSING;
-      const processedResults = this.options.enableMemoryOptimization && validationResult.validUrls.length > this.options.chunkSize
-        ? await this.processUrlsInChunks(validationResult.validUrls, processor)
-        : await this.processUrls(validationResult.validUrls, processor);
+      this.startCircuitMonitoring();
+      
+      let processedResults;
+      try {
+        processedResults = this.options.enableMemoryOptimization && validationResult.validUrls.length > this.options.chunkSize
+          ? await this.processUrlsInChunks(validationResult.validUrls, processor)
+          : await this.processUrls(validationResult.validUrls, processor);
+        
+        // Phase 2.5: Process any failed URLs that can be retried
+        const retryResults = await this.processFailedUrls(processor);
+        
+        // Combine main results with retry results
+        processedResults = [...processedResults, ...retryResults];
+        
+      } finally {
+        this.stopCircuitMonitoring();
+      }
       
       // Phase 3: Compile final results
       this.state = BATCH_STATES.COMPLETED;
@@ -216,6 +251,181 @@ class BatchProcessor {
         throw new Error(`Critical memory usage: ${Math.round(usedMemory / (1024 * 1024))}MB. Consider reducing batch size.`);
       }
     }
+  }
+
+  /**
+   * Start circuit breaker monitoring
+   */
+  startCircuitMonitoring() {
+    if (this.circuitMonitor.isMonitoring) return;
+    
+    this.circuitMonitor.isMonitoring = true;
+    this.circuitMonitor.monitorInterval = setInterval(async () => {
+      await this.checkCircuitStates();
+    }, CIRCUIT_MONITOR_CONFIG.checkIntervalMs);
+    
+    console.log('Circuit breaker monitoring started');
+  }
+
+  /**
+   * Stop circuit breaker monitoring
+   */
+  stopCircuitMonitoring() {
+    if (!this.circuitMonitor.isMonitoring) return;
+    
+    this.circuitMonitor.isMonitoring = false;
+    if (this.circuitMonitor.monitorInterval) {
+      clearInterval(this.circuitMonitor.monitorInterval);
+      this.circuitMonitor.monitorInterval = null;
+    }
+    
+    console.log('Circuit breaker monitoring stopped');
+  }
+
+  /**
+   * Check circuit breaker states and manage batch pausing
+   */
+  async checkCircuitStates() {
+    try {
+      // Fetch current circuit metrics from the HTTP client
+      const response = await fetch('/.netlify/functions/get-metrics');
+      const metrics = await response.json();
+      
+      if (metrics.circuits && Array.isArray(metrics.circuits)) {
+        const circuitStates = new Map();
+        let openCircuits = 0;
+        let totalCircuits = metrics.circuits.length;
+        
+        metrics.circuits.forEach(circuit => {
+          circuitStates.set(circuit.host, {
+            state: circuit.state,
+            failures: circuit.failures,
+            nextResetIn: circuit.nextResetIn || 0,
+            resetAttempts: circuit.resetAttempts || 0
+          });
+          
+          if (circuit.state === 'open') {
+            openCircuits++;
+          }
+        });
+        
+        this.circuitMonitor.circuitStates = circuitStates;
+        
+        // Calculate circuit health ratio
+        const circuitHealthRatio = totalCircuits > 0 ? (totalCircuits - openCircuits) / totalCircuits : 1;
+        
+        // Determine if we should pause processing
+        const shouldPause = circuitHealthRatio < (1 - CIRCUIT_MONITOR_CONFIG.pauseThreshold);
+        
+        if (shouldPause && !this.controls.circuitPaused) {
+          await this.pauseForCircuitRecovery();
+        } else if (!shouldPause && this.controls.circuitPaused) {
+          await this.resumeFromCircuitPause();
+        }
+        
+        // Notify UI of circuit status changes
+        this.onCircuitStatusChange({
+          circuits: Array.from(circuitStates.entries()).map(([host, state]) => ({
+            host,
+            ...state
+          })),
+          openCircuits,
+          totalCircuits,
+          healthRatio: circuitHealthRatio,
+          isPaused: this.controls.circuitPaused
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to check circuit states:', error.message);
+    }
+  }
+
+  /**
+   * Pause batch processing due to circuit breaker issues
+   */
+  async pauseForCircuitRecovery() {
+    if (this.controls.circuitPaused) return;
+    
+    this.controls.circuitPaused = true;
+    this.circuitMonitor.pausedAt = Date.now();
+    this.state = BATCH_STATES.CIRCUIT_PAUSED;
+    
+    console.warn('Batch processing paused due to circuit breaker issues');
+    
+    this.onProgress({
+      phase: 'circuit_pause',
+      message: 'Processing paused - waiting for circuit recovery',
+      circuitStates: Array.from(this.circuitMonitor.circuitStates.entries())
+    });
+  }
+
+  /**
+   * Resume batch processing after circuit recovery
+   */
+  async resumeFromCircuitPause() {
+    if (!this.controls.circuitPaused) return;
+    
+    this.controls.circuitPaused = false;
+    
+    if (this.circuitMonitor.pausedAt) {
+      const pauseDuration = Date.now() - this.circuitMonitor.pausedAt;
+      this.circuitMonitor.totalPauseTime += pauseDuration;
+      this.circuitMonitor.pausedAt = null;
+    }
+    
+    this.state = BATCH_STATES.PROCESSING;
+    
+    console.log('Batch processing resumed after circuit recovery');
+    
+    this.onProgress({
+      phase: 'circuit_resume',
+      message: 'Processing resumed - circuits recovered',
+      totalPauseTime: this.circuitMonitor.totalPauseTime
+    });
+  }
+
+  /**
+   * Add failed URL to retry queue
+   */
+  addFailedUrlForRetry(urlItem, error) {
+    // Only add URLs that failed due to circuit breaker issues
+    if (error.message && error.message.includes('Circuit')) {
+      this.circuitMonitor.failedUrls.push({
+        ...urlItem,
+        failedAt: Date.now(),
+        error: error.message,
+        retryCount: (urlItem.retryCount || 0) + 1
+      });
+    }
+  }
+
+  /**
+   * Process failed URLs after circuit recovery
+   */
+  async processFailedUrls(processor) {
+    if (this.circuitMonitor.failedUrls.length === 0) return [];
+    
+    console.log(`Retrying ${this.circuitMonitor.failedUrls.length} failed URLs after circuit recovery`);
+    
+    const failedUrls = [...this.circuitMonitor.failedUrls];
+    this.circuitMonitor.failedUrls = [];
+    
+    // Filter out URLs that have exceeded retry limit
+    const retryableUrls = failedUrls.filter(url => (url.retryCount || 0) < 3);
+    
+    if (retryableUrls.length === 0) {
+      console.log('No retryable URLs remaining');
+      return [];
+    }
+    
+    this.onProgress({
+      phase: 'retry_failed',
+      message: `Retrying ${retryableUrls.length} failed URLs`,
+      retryableCount: retryableUrls.length,
+      skippedCount: failedUrls.length - retryableUrls.length
+    });
+    
+    return await this.processUrls(retryableUrls, processor);
   }
 
   /**
@@ -387,8 +597,8 @@ class BatchProcessor {
       for (let i = 0; i < validUrls.length && !this.controls.aborted; i++) {
         const item = validUrls[i];
         
-        // Check pause state
-        while (this.controls.paused && !this.controls.aborted) {
+        // Check pause state (both manual and circuit-based)
+        while ((this.controls.paused || this.controls.circuitPaused) && !this.controls.aborted) {
           await this.delay(200);
         }
         
@@ -424,6 +634,9 @@ class BatchProcessor {
             errorDetails: errorInfo,
             timestamp: new Date().toISOString()
           };
+          
+          // Add to retry queue if it's a circuit breaker error
+          this.addFailedUrlForRetry(item, error);
           
           this.recordError(item.url, errorInfo);
         }
@@ -494,6 +707,9 @@ class BatchProcessor {
             errorDetails: errorInfo,
             timestamp: new Date().toISOString()
           };
+          
+          // Add to retry queue if it's a circuit breaker error
+          this.addFailedUrlForRetry(item, error);
           
           this.recordError(item.url, errorInfo);
         }
@@ -919,7 +1135,19 @@ class BatchProcessor {
     this.endTime = null;
     this.controls = {
       paused: false,
-      aborted: false
+      aborted: false,
+      circuitPaused: false
+    };
+    
+    // Reset circuit monitoring state
+    this.stopCircuitMonitoring();
+    this.circuitMonitor = {
+      isMonitoring: false,
+      monitorInterval: null,
+      circuitStates: new Map(),
+      failedUrls: [],
+      pausedAt: null,
+      totalPauseTime: 0
     };
   }
 
