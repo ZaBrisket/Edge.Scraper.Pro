@@ -204,7 +204,7 @@
         </div>
         
         <div class="section">
-            <p><b>Step 2:</b> Configure scrape settings and run.</p>
+            <p><b>Step 2:</b> Runs 1 URL at a time with auto-delay for reliability.</p>
             <div style="display: flex; align-items: center; gap: 1em; margin-bottom: 1em;">
                 <label for="concurrency">Concurrency:</label>
                 <input id="concurrency" type="range" min="1" max="10" value="5" style="flex-grow: 1;" />
@@ -284,6 +284,12 @@
             validationReport: document.getElementById('validationReport'),
             errorReport: document.getElementById('errorReport'),
         };
+        
+        // Force sequential scraping with auto-delay UI
+        dom.concurrencySlider.value = '1';
+        dom.concurrencyValue.textContent = '1';
+        dom.concurrencySlider.disabled = true;
+        dom.delayInput.disabled = true;
         
         // Initialize PFR validator and batch processor
         const pfrValidator = new PFRValidator();
@@ -390,6 +396,28 @@
                 }, 'API Fetch URL');
             }
         };
+
+        // Compute adaptive settings for reliability: single concurrency with conservative delay
+        function computeAdaptiveSettings(urls) {
+            const hosts = new Set();
+            for (const u of urls) {
+                try {
+                    const h = new URL(u).hostname.toLowerCase();
+                    hosts.add(h);
+                } catch {}
+            }
+            const strictDomains = [
+                'pro-football-reference.com',
+                'basketball-reference.com',
+                'baseball-reference.com',
+                'hockey-reference.com',
+                'sports-reference.com'
+            ];
+            const hasStrict = Array.from(hosts).some(h => strictDomains.some(d => h.includes(d)));
+            const baseDelay = hasStrict ? 2000 : 1000; // 0.5 RPS for PFR family, 1 RPS otherwise
+            const jitter = Math.floor(Math.random() * Math.floor(baseDelay * 0.1)); // up to 10% jitter
+            return { concurrency: 1, delayMs: baseDelay + jitter };
+        }
 
         const validate = {
             url: (str) => {
@@ -591,10 +619,16 @@
             const rawUrls = dom.urlList.value.trim().split('\n').filter(Boolean);
             if (rawUrls.length === 0) throw new Error('Please paste at least one valid URL.');
             
-            // Initialize batch processor with current settings
+            // Compute adaptive reliable settings (sequential with conservative delay)
+            const adaptive = computeAdaptiveSettings(rawUrls);
+            dom.concurrencySlider.value = '1';
+            dom.concurrencyValue.textContent = '1';
+            dom.delayInput.value = String(adaptive.delayMs);
+
+            // Initialize batch processor with enforced reliable settings
             state.batchProcessor = new BatchProcessor({
-                concurrency: parseInt(dom.concurrencySlider.value, 10),
-                delayMs: parseInt(dom.delayInput.value, 10),
+                concurrency: 1,
+                delayMs: adaptive.delayMs,
                 timeout: TIMEOUT_MS,
                 onProgress: (progress) => {
                     if (progress.phase === 'validation') {
