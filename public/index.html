@@ -10,6 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Web Scraper</title>
     <script src="pfr-validator.js"></script>
+    <script src="batch-processor.js"></script>
     <style>
         /* Brutalist, Early-Web UI Theme */
         body { 
@@ -137,6 +138,57 @@
         .validation-report li {
             margin: 0.25em 0;
         }
+        
+        /* Error Report Styles */
+        .error-report {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 1em;
+            margin-top: 1em;
+        }
+        
+        .error-summary {
+            padding: 0.5em;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            margin-bottom: 1em;
+        }
+        
+        .error-recommendations {
+            margin-bottom: 1em;
+        }
+        
+        .recommendation {
+            padding: 0.5em;
+            margin: 0.5em 0;
+            border: 1px solid #ccc;
+        }
+        
+        .error-high {
+            background-color: #fee;
+            border-color: #f99;
+        }
+        
+        .error-medium {
+            background-color: #fff9e6;
+            border-color: #ffcc66;
+        }
+        
+        .error-pattern-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .error-pattern-table th,
+        .error-pattern-table td {
+            border: 1px solid #ddd;
+            padding: 0.5em;
+            text-align: left;
+        }
+        
+        .error-pattern-table th {
+            background-color: #f5f5f5;
+        }
     </style>
 </head>
 <body>
@@ -148,6 +200,7 @@
             <p><b>Instructions:</b> Paste a list of URLs (one per line) to scrape all text from each page.</p>
             <textarea id="urlList" placeholder="https://example.com/page1&#10;https://example.com/page2"></textarea>
             <div id="validationReport" class="hidden"></div>
+            <div id="errorReport" class="hidden"></div>
         </div>
         
         <div class="section">
@@ -229,14 +282,20 @@
             debugModeToggle: document.getElementById('debugModeToggle'),
             sportsOnlyToggle: document.getElementById('sportsOnlyToggle'),
             validationReport: document.getElementById('validationReport'),
+            errorReport: document.getElementById('errorReport'),
         };
         
-        // Initialize PFR validator
+        // Initialize PFR validator and batch processor
         const pfrValidator = new PFRValidator();
+        
+        // Get timeout from environment or use default
+        const TIMEOUT_MS = parseInt(window.HTTP_DEADLINE_MS || '10000', 10);
 
         let state = {
             scrapeResults: [],
-            runControls: { paused: false, aborted: false }
+            runControls: { paused: false, aborted: false },
+            batchProcessor: null,
+            errorReportData: null
         };
 
         const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -479,18 +538,27 @@
         
         dom.concurrencySlider.addEventListener('input', () => dom.concurrencyValue.textContent = dom.concurrencySlider.value);
         dom.pauseBtn.addEventListener('click', () => {
+            if (state.batchProcessor) {
+                state.batchProcessor.pause();
+            }
             state.runControls.paused = true;
             dom.pauseBtn.classList.add('hidden');
             dom.resumeBtn.classList.remove('hidden');
             dom.statusText.textContent = 'Scraping paused...';
         });
         dom.resumeBtn.addEventListener('click', () => {
+            if (state.batchProcessor) {
+                state.batchProcessor.resume();
+            }
             state.runControls.paused = false;
             dom.resumeBtn.classList.add('hidden');
             dom.pauseBtn.classList.remove('hidden');
         });
         dom.stopBtn.addEventListener('click', () => {
             safeDOMOperation(() => {
+                if (state.batchProcessor) {
+                    state.batchProcessor.stop();
+                }
                 state.runControls.aborted = true;
                 dom.statusText.textContent = 'Scraping stopped by user.';
                 
@@ -523,52 +591,103 @@
             const rawUrls = dom.urlList.value.trim().split('\n').filter(Boolean);
             if (rawUrls.length === 0) throw new Error('Please paste at least one valid URL.');
             
-            // Validate URLs first
-            const validationResult = pfrValidator.validateBatch(rawUrls);
+            // Initialize batch processor with current settings
+            state.batchProcessor = new BatchProcessor({
+                concurrency: parseInt(dom.concurrencySlider.value, 10),
+                delayMs: parseInt(dom.delayInput.value, 10),
+                timeout: TIMEOUT_MS,
+                onProgress: (progress) => {
+                    if (progress.phase === 'validation') {
+                        // Show validation report
+                        if (progress.invalid > 0 || progress.duplicates > 0) {
+                            const reportHTML = pfrValidator.generateHTMLReport(progress.validationDetails);
+                            dom.validationReport.innerHTML = reportHTML;
+                            dom.validationReport.classList.remove('hidden');
+                        }
+                    } else if (progress.phase === 'processing') {
+                        dom.statusText.textContent = `Scraping URL (${progress.completed}/${progress.total}): ${progress.currentUrl?.substring(0, 50)}...`;
+                    }
+                },
+                onError: (error) => {
+                    console.error('Batch processing error:', error);
+                },
+                onComplete: (result) => {
+                    // Display error report if there were failures
+                    if (result.errorReport.totalErrors > 0) {
+                        const errorHTML = state.batchProcessor.generateHTMLErrorReport(result.errorReport);
+                        dom.errorReport.innerHTML = errorHTML;
+                        dom.errorReport.classList.remove('hidden');
+                        state.errorReportData = result.errorReport;
+                    }
+                }
+            });
             
-            // Show validation report if there are any issues
-            if (validationResult.summary.invalidCount > 0 || validationResult.summary.duplicateCount > 0) {
-                const reportHTML = pfrValidator.generateHTMLReport(validationResult);
-                dom.validationReport.innerHTML = reportHTML;
-                dom.validationReport.classList.remove('hidden');
+            // Use PFR validator for sports URLs, regular validator for others
+            const validator = rawUrls.some(url => isSportsURL(url)) ? pfrValidator : null;
+            
+            try {
+                const result = await state.batchProcessor.processBatch(rawUrls, async (url, item) => {
+                    // Process URL using existing logic
+                    const html = await api.fetchUrl(url);
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const metadata = safeDOMOperation(() => extractMetadata(doc), 'Metadata Extraction');
+                    const extractionResult = safeDOMOperation(() => extractMainContentWithDebug(doc, url), 'Content Extraction');
+                    const text = extractionResult?.content || '';
+                    
+                    return {
+                        url,
+                        text,
+                        metadata: metadata || {},
+                        html: dom.includeHtmlToggle.checked ? html : null,
+                        success: true,
+                        extractionDebug: extractionResult?.debug
+                    };
+                });
                 
-                // If all URLs are invalid, stop processing
-                if (validationResult.summary.validCount === 0) {
-                    throw new Error('No valid URLs to process. Please check the validation report above.');
+                // Store results in original format for compatibility
+                state.scrapeResults = result.results.map(r => ({
+                    index: r.index,
+                    url: r.url,
+                    text: r.result?.text || '',
+                    metadata: r.result?.metadata || {},
+                    html: r.result?.html || null,
+                    success: r.success,
+                    error: r.error,
+                    errorDetails: r.errorDetails,
+                    extractionDebug: r.result?.extractionDebug
+                }));
+                
+                // Render results
+                renderResults();
+                
+                if (!state.runControls.aborted) {
+                    dom.statusText.textContent = result.summary.overview;
                 }
                 
-                // Show confirmation dialog for partial processing
-                const proceed = confirm(
-                    `Found ${validationResult.summary.invalidCount} invalid URL(s) and ${validationResult.summary.duplicateCount} duplicate(s).\n\n` +
-                    `Do you want to proceed with ${validationResult.summary.validCount} valid URL(s)?`
-                );
-                
-                if (!proceed) {
-                    throw new Error('Scraping cancelled by user.');
+            } catch (error) {
+                if (error.message.includes('No valid URLs')) {
+                    // Show validation report for all invalid URLs
+                    const validationResult = state.batchProcessor.validateAndDeduplicate(rawUrls);
+                    const reportHTML = pfrValidator.generateHTMLReport({
+                        total: validationResult.total,
+                        valid: validationResult.validUrls,
+                        invalid: validationResult.invalidUrls.reduce((acc, item) => {
+                            const category = item.category || 'malformed';
+                            if (!acc[category]) acc[category] = [];
+                            acc[category].push(item);
+                            return acc;
+                        }, {}),
+                        duplicates: validationResult.duplicates,
+                        summary: validationResult.summary
+                    });
+                    dom.validationReport.innerHTML = reportHTML;
+                    dom.validationReport.classList.remove('hidden');
                 }
-            } else {
-                // Hide validation report if no issues
-                dom.validationReport.classList.add('hidden');
+                throw error;
             }
-            
-            // Process only valid URLs in original order
-            const urls = validationResult.valid
-                .sort((a, b) => a.index - b.index)
-                .map(result => cleanUrl(result.normalized));
-            
-            await processUrlsInParallel(urls, 'Scraping URL');
         }
 
-        async function processUrlsInParallel(urls, statusPrefix) {
-            let completed = 0;
-            const maxConcurrency = parseInt(dom.concurrencySlider.value, 10);
-            const perRequestDelay = parseInt(dom.delayInput.value, 10);
-            // No deduplication here - already handled by validator
-            const urlQueue = urls.map((url, index) => ({ index, url }));
-            const totalUrls = urlQueue.length;
-            state.scrapeResults = new Array(totalUrls);
-
-            const renderResults = () => {
+        const renderResults = () => {
                 let results = state.scrapeResults.filter(Boolean).sort((a, b) => a.index - b.index);
                 
                 // Filter for sports URLs only if enabled
@@ -631,73 +750,6 @@
                     return output;
                 }).join('');
             };
-
-            async function worker() {
-                while (urlQueue.length > 0 && !state.runControls.aborted) {
-                    await cooperativelyYield();
-                    if (state.runControls.aborted) break;
-                    
-                    const { index, url } = urlQueue.shift();
-                    await safeAsyncOperation(async () => {
-                        try {
-                            safeDOMOperation(() => {
-                                dom.statusText.textContent = `${statusPrefix} (${completed + 1}/${totalUrls}): ${url.substring(0, 50)}...`;
-                            }, 'Status Update');
-                            
-                            const html = await api.fetchUrl(url);
-                            const doc = new DOMParser().parseFromString(html, 'text/html');
-                            const metadata = safeDOMOperation(() => extractMetadata(doc), 'Metadata Extraction');
-                            const extractionResult = safeDOMOperation(() => extractMainContentWithDebug(doc, url), 'Content Extraction');
-                            const text = extractionResult?.content || '';
-                            
-                            // Log extraction details for debugging
-                            if (DEBUG) {
-                                console.log(`[Content Extraction] ${url}:`, {
-                                    selectedMethod: extractionResult?.method,
-                                    contentLength: text.length,
-                                    score: extractionResult?.score,
-                                    candidatesFound: extractionResult?.candidatesCount
-                                });
-                            }
-                            
-                            state.scrapeResults[index] = { 
-                                index, url, text, metadata: metadata || {}, 
-                                html: dom.includeHtmlToggle.checked ? html : null, 
-                                success: true,
-                                extractionDebug: extractionResult?.debug
-                            };
-                        } catch (error) {
-                            errorBoundary.handleError(error, `Worker Processing ${url}`);
-                            const errorDetails = {
-                                message: error.message || error.toString(),
-                                status: error.status,
-                                stack: error.stack
-                            };
-                            state.scrapeResults[index] = {
-                                index,
-                                url,
-                                text: '',
-                                metadata: {},
-                                success: false,
-                                error: errorDetails.message,
-                                errorDetails,
-                                html: null
-                            };
-                        } finally {
-                            completed++;
-                            safeDOMOperation(() => renderResults(), 'Results Rendering');
-                        }
-                        await delay(perRequestDelay);
-                    }, `Worker Processing ${url}`);
-                }
-            }
-            
-            const workers = Array(Math.min(maxConcurrency, totalUrls)).fill(null).map(worker);
-            dom.resultsContainer.style.display = 'block';
-            await Promise.all(workers);
-
-            if (!state.runControls.aborted) dom.statusText.textContent = `Scrape complete! Processed ${completed} URLs.`;
-        }
 
         function extractMetadata(doc) {
             const get = (selector, attr = 'content') => doc.querySelector(selector)?.getAttribute(attr) || '';
@@ -1861,8 +1913,18 @@
         // Clear validation report when URL list changes
         dom.urlList.addEventListener('input', () => {
             dom.validationReport.classList.add('hidden');
+            dom.errorReport.classList.add('hidden');
             pfrValidator.clearCache();
         });
+        
+        // Export error report function
+        window.exportErrorReport = () => {
+            if (!state.errorReportData) return;
+            
+            const exportData = state.errorReportData.exportData;
+            const filename = `error_report_${new Date().toISOString().split('T')[0]}.json`;
+            downloadFile(filename, JSON.stringify(exportData, null, 2));
+        };
     </script>
 </body>
 </html>
