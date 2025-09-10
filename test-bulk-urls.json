@@ -1,0 +1,19 @@
+{
+  "urls": [
+    "https://www.pro-football-reference.com/players/M/MahoPa00.htm",
+    "https://www.pro-football-reference.com/players/B/BradTo00.htm",
+    "https://www.pro-football-reference.com/players/R/RiceJe00.htm",
+    "https://www.pro-football-reference.com/players/G/GronkRo00.htm",
+    "https://www.pro-football-reference.com/players/B/BradyTo00.htm",
+    "https://www.pro-football-reference.com/players/M/MannPe00.htm",
+    "https://www.pro-football-reference.com/players/W/WilsRu00.htm",
+    "https://www.pro-football-reference.com/players/R/RodgAa00.htm",
+    "https://www.pro-football-reference.com/players/B/BreesDr00.htm",
+    "https://www.pro-football-reference.com/players/P/PeytMa00.htm"
+  ],
+  "metadata": {
+    "source": "NFL Player URLs Test",
+    "date": "2024-01-01",
+    "description": "Sample NFL player URLs for testing bulk upload functionality"
+  }
+}
