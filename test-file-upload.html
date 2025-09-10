@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .file-upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 2em;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s ease, background-color 0.3s ease;
+        }
+        .file-upload-area:hover,
+        .file-upload-area.dragover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        .upload-content {
+            pointer-events: none;
+        }
+        .upload-icon {
+            font-size: 2em;
+            margin-bottom: 0.5em;
+        }
+        .file-info {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 0.5em;
+        }
+        .file-preview {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 1em;
+            margin-top: 1em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-details {
+            display: flex;
+            align-items: center;
+            gap: 1em;
+        }
+        .file-name {
+            font-weight: bold;
+        }
+        .file-size {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .url-count {
+            font-weight: bold;
+            color: #28a745;
+        }
+        #removeFileBtn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.25em 0.5em;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        #removeFileBtn:hover {
+            background-color: #c82333;
+        }
+        .file-processing {
+            text-align: center;
+            padding: 1em;
+            margin-top: 1em;
+        }
+        .spinner {
+            border: 4px solid #ccc;
+            border-radius: 50%;
+            border-top: 4px solid #000;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2em auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none; }
+        .url-list {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 1em;
+            margin-top: 1em;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 0.5em;
+            border-radius: 4px;
+            margin-top: 1em;
+        }
+    </style>
+</head>
+<body>
+    <h1>File Upload Test</h1>
+    <p>Test the file upload functionality with TXT and JSON files.</p>
+
+    <div class="test-section">
+        <h2>File Upload Test</h2>
+        <div class="file-upload-area" id="uploadArea">
+            <div class="upload-content">
+                <div class="upload-icon">📁</div>
+                <p>Drag and drop your TXT or JSON file here</p>
+                <p>or <button type="button" id="fileSelectBtn">browse files</button></p>
+                <p class="file-info">Supports up to 1500 URLs, max 5MB</p>
+            </div>
+        </div>
+        <input type="file" id="fileInputElement" accept=".txt,.json" style="display: none;">
+        <div class="file-preview" id="filePreview" style="display: none;">
+            <div class="file-details">
+                <span class="file-name"></span>
+                <span class="file-size"></span>
+                <button type="button" id="removeFileBtn">Remove</button>
+            </div>
+            <div class="url-count" id="urlCount"></div>
+        </div>
+        <div class="file-processing" id="fileProcessing" style="display: none;">
+            <div class="spinner"></div>
+            <p>Processing file...</p>
+        </div>
+        <div id="errorMessage" class="error hidden"></div>
+        <div class="url-list" id="urlList" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Simplified FileUploadHandler for testing
+        class FileUploadHandler {
+            constructor() {
+                this.maxFileSize = 5 * 1024 * 1024; // 5MB
+                this.maxUrls = 1500;
+                this.supportedExtensions = ['.txt', '.json'];
+                
+                this.initializeElements();
+                this.bindEvents();
+            }
+
+            initializeElements() {
+                this.uploadArea = document.getElementById('uploadArea');
+                this.fileInput = document.getElementById('fileInputElement');
+                this.fileSelectBtn = document.getElementById('fileSelectBtn');
+                this.filePreview = document.getElementById('filePreview');
+                this.fileName = document.querySelector('.file-name');
+                this.fileSize = document.querySelector('.file-size');
+                this.urlCount = document.getElementById('urlCount');
+                this.removeFileBtn = document.getElementById('removeFileBtn');
+                this.fileProcessing = document.getElementById('fileProcessing');
+                this.errorMessage = document.getElementById('errorMessage');
+                this.urlList = document.getElementById('urlList');
+            }
+
+            bindEvents() {
+                this.uploadArea.addEventListener('click', () => this.fileInput.click());
+                this.fileSelectBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.fileInput.click();
+                });
+                this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e.target.files[0]));
+                this.removeFileBtn.addEventListener('click', () => this.clearFile());
+
+                this.uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.add('dragover');
+                });
+                this.uploadArea.addEventListener('dragleave', () => {
+                    this.uploadArea.classList.remove('dragover');
+                });
+                this.uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.remove('dragover');
+                    const file = e.dataTransfer.files[0];
+                    if (file) this.handleFileSelect(file);
+                });
+            }
+
+            handleFileSelect(file) {
+                if (!file) return;
+
+                const validation = this.validateFile(file);
+                if (!validation.valid) {
+                    this.showError(validation.error);
+                    return;
+                }
+
+                this.showFilePreview(file);
+                this.parseFile(file);
+            }
+
+            validateFile(file) {
+                if (file.size > this.maxFileSize) {
+                    return {
+                        valid: false,
+                        error: `File too large. Maximum size is ${this.maxFileSize / 1024 / 1024}MB`
+                    };
+                }
+
+                const extension = '.' + file.name.split('.').pop().toLowerCase();
+                if (!this.supportedExtensions.includes(extension)) {
+                    return {
+                        valid: false,
+                        error: 'Unsupported file type. Please upload a TXT or JSON file.'
+                    };
+                }
+
+                return { valid: true };
+            }
+
+            showFilePreview(file) {
+                this.fileName.textContent = file.name;
+                this.fileSize.textContent = this.formatFileSize(file.size);
+                this.filePreview.style.display = 'flex';
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            showProcessing() {
+                this.fileProcessing.style.display = 'block';
+            }
+
+            hideProcessing() {
+                this.fileProcessing.style.display = 'none';
+            }
+
+            async parseFile(file) {
+                this.showProcessing();
+                try {
+                    const content = await this.readFileContent(file);
+                    const urls = this.extractUrls(content, file.name);
+                    
+                    if (urls.length === 0) {
+                        throw new Error('No valid URLs found in file');
+                    }
+
+                    if (urls.length > this.maxUrls) {
+                        throw new Error(`Too many URLs. Maximum ${this.maxUrls} allowed. Found ${urls.length}.`);
+                    }
+
+                    this.urlCount.textContent = `${urls.length} URLs found`;
+                    this.extractedUrls = urls;
+                    
+                    this.showUrlList(urls);
+                    
+                } catch (error) {
+                    this.handleError(error, 'parseFile');
+                } finally {
+                    this.hideProcessing();
+                }
+            }
+
+            readFileContent(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    
+                    reader.onload = (e) => {
+                        try {
+                            const content = e.target.result;
+                            resolve(content);
+                        } catch (error) {
+                            reject(new Error('Failed to process file content'));
+                        }
+                    };
+                    
+                    reader.onerror = () => {
+                        reject(new Error('Failed to read file'));
+                    };
+                    
+                    reader.onabort = () => {
+                        reject(new Error('File reading was aborted'));
+                    };
+                    
+                    reader.readAsText(file, 'UTF-8');
+                });
+            }
+
+            extractUrls(content, filename) {
+                const extension = '.' + filename.split('.').pop().toLowerCase();
+                
+                if (extension === '.txt') {
+                    return this.extractUrlsFromTxt(content);
+                } else if (extension === '.json') {
+                    return this.extractUrlsFromJson(content);
+                }
+                
+                return [];
+            }
+
+            extractUrlsFromTxt(content) {
+                return content
+                    .split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line.length > 0)
+                    .filter(line => this.isValidUrl(line));
+            }
+
+            extractUrlsFromJson(content) {
+                try {
+                    const data = JSON.parse(content);
+                    let urls = [];
+
+                    if (Array.isArray(data)) {
+                        urls = data.filter(item => typeof item === 'string' && this.isValidUrl(item));
+                    } else if (data.urls && Array.isArray(data.urls)) {
+                        urls = data.urls.filter(url => typeof url === 'string' && this.isValidUrl(url));
+                    } else if (Array.isArray(data) && data.every(item => typeof item === 'object' && item.url)) {
+                        urls = data
+                            .map(item => item.url)
+                            .filter(url => typeof url === 'string' && this.isValidUrl(url));
+                    }
+
+                    return urls;
+                } catch (error) {
+                    throw new Error('Invalid JSON format');
+                }
+            }
+
+            isValidUrl(string) {
+                try {
+                    const url = new URL(string);
+                    return ['http:', 'https:'].includes(url.protocol);
+                } catch {
+                    return false;
+                }
+            }
+
+            showUrlList(urls) {
+                this.urlList.innerHTML = urls.map(url => `<div>${url}</div>`).join('');
+                this.urlList.style.display = 'block';
+            }
+
+            handleError(error, context) {
+                console.error(`File upload error in ${context}:`, error);
+                
+                let message = 'An error occurred while processing the file';
+                
+                if (error.message.includes('File too large')) {
+                    message = 'File is too large. Maximum size is 5MB.';
+                } else if (error.message.includes('Unsupported file type')) {
+                    message = 'Unsupported file type. Please upload a TXT or JSON file.';
+                } else if (error.message.includes('Invalid JSON')) {
+                    message = 'Invalid JSON format. Please check your file.';
+                } else if (error.message.includes('No valid URLs')) {
+                    message = 'No valid URLs found in the file.';
+                } else if (error.message.includes('Too many URLs')) {
+                    message = `Too many URLs. Maximum ${this.maxUrls} allowed.`;
+                }
+                
+                this.showError(message);
+                this.clearFile();
+            }
+
+            showError(message) {
+                this.errorMessage.textContent = message;
+                this.errorMessage.classList.remove('hidden');
+                setTimeout(() => {
+                    this.errorMessage.classList.add('hidden');
+                }, 5000);
+            }
+
+            clearFile() {
+                this.filePreview.style.display = 'none';
+                this.fileInput.value = '';
+                this.extractedUrls = null;
+                this.urlList.style.display = 'none';
+                this.hideProcessing();
+                this.errorMessage.classList.add('hidden');
+            }
+        }
+
+        // Initialize file upload handler
+        const fileUploadHandler = new FileUploadHandler();
+    </script>
+</body>
+</html>

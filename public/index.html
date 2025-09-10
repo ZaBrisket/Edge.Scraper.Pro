@@ -189,6 +189,105 @@
         .error-pattern-table th {
             background-color: #f5f5f5;
         }
+        
+        /* File Upload Styles */
+        .input-method-toggle {
+            display: flex;
+            gap: 1em;
+            margin-bottom: 1em;
+        }
+
+        .input-method-toggle label {
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            cursor: pointer;
+        }
+
+        .file-upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 2em;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s ease, background-color 0.3s ease;
+        }
+
+        .file-upload-area:hover,
+        .file-upload-area.dragover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+
+        .upload-content {
+            pointer-events: none;
+        }
+
+        .upload-icon {
+            font-size: 2em;
+            margin-bottom: 0.5em;
+        }
+
+        .file-info {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 0.5em;
+        }
+
+        .file-preview {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 1em;
+            margin-top: 1em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-details {
+            display: flex;
+            align-items: center;
+            gap: 1em;
+        }
+
+        .file-name {
+            font-weight: bold;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .url-count {
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        #removeFileBtn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.25em 0.5em;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        #removeFileBtn:hover {
+            background-color: #c82333;
+        }
+
+        .file-processing {
+            text-align: center;
+            padding: 1em;
+            margin-top: 1em;
+        }
+
+        .file-processing .spinner {
+            margin: 0 auto 0.5em auto;
+        }
     </style>
 </head>
 <body>
@@ -197,8 +296,50 @@
         <p>A tool to scrape websites in bulk. Built for function over form.</p>
 
         <div id="bulkInputs" class="section">
-            <p><b>Instructions:</b> Paste a list of URLs (one per line) to scrape all text from each page.</p>
-            <textarea id="urlList" placeholder="https://example.com/page1&#10;https://example.com/page2"></textarea>
+            <p><b>Instructions:</b> Choose input method and provide URLs for scraping.</p>
+            
+            <!-- Input Method Toggle -->
+            <div class="input-method-toggle" style="margin-bottom: 1em;">
+                <label>
+                    <input type="radio" name="inputMethod" value="textarea" checked>
+                    Paste URLs (one per line)
+                </label>
+                <label>
+                    <input type="radio" name="inputMethod" value="file">
+                    Upload File (TXT/JSON, up to 1500 URLs)
+                </label>
+            </div>
+
+            <!-- Textarea Input (existing) -->
+            <div id="textareaInput">
+                <textarea id="urlList" placeholder="https://example.com/page1&#10;https://example.com/page2"></textarea>
+            </div>
+
+            <!-- File Upload Input (new) -->
+            <div id="fileInput" style="display: none;">
+                <div class="file-upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <div class="upload-icon">📁</div>
+                        <p>Drag and drop your TXT or JSON file here</p>
+                        <p>or <button type="button" id="fileSelectBtn">browse files</button></p>
+                        <p class="file-info">Supports up to 1500 URLs, max 5MB</p>
+                    </div>
+                </div>
+                <input type="file" id="fileInputElement" accept=".txt,.json" style="display: none;">
+                <div class="file-preview" id="filePreview" style="display: none;">
+                    <div class="file-details">
+                        <span class="file-name"></span>
+                        <span class="file-size"></span>
+                        <button type="button" id="removeFileBtn">Remove</button>
+                    </div>
+                    <div class="url-count" id="urlCount"></div>
+                </div>
+                <div class="file-processing" id="fileProcessing" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Processing file...</p>
+                </div>
+            </div>
+
             <div id="validationReport" class="hidden"></div>
             <div id="errorReport" class="hidden"></div>
         </div>
@@ -282,10 +423,349 @@
             sportsOnlyToggle: document.getElementById('sportsOnlyToggle'),
             validationReport: document.getElementById('validationReport'),
             errorReport: document.getElementById('errorReport'),
+            // Add new file upload elements
+            fileInput: document.getElementById('fileInput'),
+            textareaInput: document.getElementById('textareaInput')
         };
         
         // Initialize PFR validator and batch processor
         const pfrValidator = new PFRValidator();
+        
+        // File Upload Functionality
+        class FileUploadHandler {
+            constructor() {
+                this.maxFileSize = 5 * 1024 * 1024; // 5MB
+                this.maxUrls = 1500;
+                this.supportedTypes = ['text/plain', 'application/json'];
+                this.supportedExtensions = ['.txt', '.json'];
+                
+                this.initializeElements();
+                this.bindEvents();
+            }
+
+            initializeElements() {
+                this.uploadArea = document.getElementById('uploadArea');
+                this.fileInput = document.getElementById('fileInputElement');
+                this.fileSelectBtn = document.getElementById('fileSelectBtn');
+                this.filePreview = document.getElementById('filePreview');
+                this.fileName = document.querySelector('.file-name');
+                this.fileSize = document.querySelector('.file-size');
+                this.urlCount = document.getElementById('urlCount');
+                this.removeFileBtn = document.getElementById('removeFileBtn');
+                this.inputMethodRadios = document.querySelectorAll('input[name="inputMethod"]');
+                this.textareaInput = document.getElementById('textareaInput');
+                this.fileInputDiv = document.getElementById('fileInput');
+                this.fileProcessing = document.getElementById('fileProcessing');
+            }
+
+            bindEvents() {
+                // Input method toggle
+                this.inputMethodRadios.forEach(radio => {
+                    radio.addEventListener('change', (e) => {
+                        if (e.target.value === 'file') {
+                            this.textareaInput.style.display = 'none';
+                            this.fileInputDiv.style.display = 'block';
+                        } else {
+                            this.textareaInput.style.display = 'block';
+                            this.fileInputDiv.style.display = 'none';
+                            this.clearFile();
+                        }
+                    });
+                });
+
+                // File upload events
+                this.uploadArea.addEventListener('click', () => this.fileInput.click());
+                this.fileSelectBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.fileInput.click();
+                });
+                this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e.target.files[0]));
+                this.removeFileBtn.addEventListener('click', () => this.clearFile());
+
+                // Drag and drop events
+                this.uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.add('dragover');
+                });
+                this.uploadArea.addEventListener('dragleave', () => {
+                    this.uploadArea.classList.remove('dragover');
+                });
+                this.uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.remove('dragover');
+                    const file = e.dataTransfer.files[0];
+                    if (file) this.handleFileSelect(file);
+                });
+            }
+
+            handleFileSelect(file) {
+                if (!file) return;
+
+                // Validate file
+                const validation = this.validateFile(file);
+                if (!validation.valid) {
+                    showError(validation.error);
+                    return;
+                }
+
+                // Show file preview
+                this.showFilePreview(file);
+                
+                // Parse file and extract URLs
+                this.parseFile(file);
+            }
+
+            validateFile(file) {
+                // Check file size
+                if (file.size > this.maxFileSize) {
+                    return {
+                        valid: false,
+                        error: `File too large. Maximum size is ${this.maxFileSize / 1024 / 1024}MB`
+                    };
+                }
+
+                // Check file type
+                const extension = '.' + file.name.split('.').pop().toLowerCase();
+                if (!this.supportedExtensions.includes(extension)) {
+                    return {
+                        valid: false,
+                        error: 'Unsupported file type. Please upload a TXT or JSON file.'
+                    };
+                }
+
+                return { valid: true };
+            }
+
+            showFilePreview(file) {
+                this.fileName.textContent = file.name;
+                this.fileSize.textContent = this.formatFileSize(file.size);
+                this.filePreview.style.display = 'flex';
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            showProcessing() {
+                this.fileProcessing.style.display = 'block';
+            }
+
+            hideProcessing() {
+                this.fileProcessing.style.display = 'none';
+            }
+
+            async parseFile(file) {
+                const startTime = performance.now();
+                this.showProcessing();
+                
+                try {
+                    const content = await this.readFileContent(file);
+                    
+                    // For large files, process in chunks to prevent UI blocking
+                    const urls = await this.extractUrlsChunked(content, file.name);
+                    
+                    if (urls.length === 0) {
+                        throw new Error('No valid URLs found in file');
+                    }
+
+                    if (urls.length > this.maxUrls) {
+                        throw new Error(`Too many URLs. Maximum ${this.maxUrls} allowed. Found ${urls.length}.`);
+                    }
+
+                    const processingTime = performance.now() - startTime;
+                    this.urlCount.textContent = `${urls.length} URLs found (${processingTime.toFixed(0)}ms)`;
+                    this.extractedUrls = urls;
+                    
+                    // Update the textarea with extracted URLs for processing
+                    dom.urlList.value = urls.join('\n');
+                    
+                    // Log performance metrics for large files
+                    if (urls.length > 100) {
+                        console.log(`File processing performance: ${urls.length} URLs processed in ${processingTime.toFixed(0)}ms (${(urls.length / (processingTime / 1000)).toFixed(0)} URLs/sec)`);
+                    }
+                    
+                } catch (error) {
+                    this.handleError(error, 'parseFile');
+                } finally {
+                    this.hideProcessing();
+                }
+            }
+
+            async extractUrlsChunked(content, filename) {
+                const extension = '.' + filename.split('.').pop().toLowerCase();
+                
+                if (extension === '.txt') {
+                    return this.extractUrlsFromTxtChunked(content);
+                } else if (extension === '.json') {
+                    return this.extractUrlsFromJson(content);
+                }
+                
+                return [];
+            }
+
+            async extractUrlsFromTxtChunked(content) {
+                const lines = content.split('\n');
+                const urls = [];
+                const chunkSize = 100; // Process 100 lines at a time
+                
+                for (let i = 0; i < lines.length; i += chunkSize) {
+                    const chunk = lines.slice(i, i + chunkSize);
+                    const chunkUrls = chunk
+                        .map(line => line.trim())
+                        .filter(line => line.length > 0)
+                        .filter(line => this.isValidUrl(line));
+                    
+                    urls.push(...chunkUrls);
+                    
+                    // Update progress for large files
+                    if (lines.length > 500) {
+                        const progress = Math.min(100, Math.round((i / lines.length) * 100));
+                        this.updateProcessingProgress(progress);
+                        
+                        // Yield control to prevent UI blocking
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                }
+                
+                return urls;
+            }
+
+            updateProcessingProgress(percentage) {
+                const processingElement = document.getElementById('fileProcessing');
+                const progressText = processingElement.querySelector('p');
+                if (progressText) {
+                    progressText.textContent = `Processing file... ${percentage}%`;
+                }
+            }
+
+            readFileContent(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    
+                    reader.onload = (e) => {
+                        try {
+                            const content = e.target.result;
+                            resolve(content);
+                        } catch (error) {
+                            reject(new Error('Failed to process file content'));
+                        }
+                    };
+                    
+                    reader.onerror = () => {
+                        reject(new Error('Failed to read file'));
+                    };
+                    
+                    reader.onabort = () => {
+                        reject(new Error('File reading was aborted'));
+                    };
+                    
+                    // Read as text with UTF-8 encoding
+                    reader.readAsText(file, 'UTF-8');
+                });
+            }
+
+            extractUrls(content, filename) {
+                const extension = '.' + filename.split('.').pop().toLowerCase();
+                
+                if (extension === '.txt') {
+                    return this.extractUrlsFromTxt(content);
+                } else if (extension === '.json') {
+                    return this.extractUrlsFromJson(content);
+                }
+                
+                return [];
+            }
+
+            extractUrlsFromTxt(content) {
+                return content
+                    .split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line.length > 0)
+                    .filter(line => this.isValidUrl(line));
+            }
+
+            extractUrlsFromJson(content) {
+                try {
+                    const data = JSON.parse(content);
+                    let urls = [];
+
+                    if (Array.isArray(data)) {
+                        // Check if it's an array of strings or objects
+                        if (data.length > 0 && data.every(item => typeof item === 'object' && item.url)) {
+                            // Array of objects with URL property
+                            urls = data
+                                .map(item => item.url)
+                                .filter(url => typeof url === 'string' && this.isValidUrl(url));
+                        } else {
+                            // Simple array format (strings)
+                            urls = data.filter(item => typeof item === 'string' && this.isValidUrl(item));
+                        }
+                    } else if (data.urls && Array.isArray(data.urls)) {
+                        // Object with URLs property
+                        urls = data.urls.filter(url => typeof url === 'string' && this.isValidUrl(url));
+                    }
+
+                    return urls;
+                } catch (error) {
+                    throw new Error('Invalid JSON format');
+                }
+            }
+
+            isValidUrl(string) {
+                try {
+                    const url = new URL(string);
+                    return ['http:', 'https:'].includes(url.protocol);
+                } catch {
+                    return false;
+                }
+            }
+
+            handleError(error, context) {
+                console.error(`File upload error in ${context}:`, error);
+                
+                let message = 'An error occurred while processing the file';
+                
+                if (error.message.includes('File too large')) {
+                    message = 'File is too large. Maximum size is 5MB.';
+                } else if (error.message.includes('Unsupported file type')) {
+                    message = 'Unsupported file type. Please upload a TXT or JSON file.';
+                } else if (error.message.includes('Invalid JSON')) {
+                    message = 'Invalid JSON format. Please check your file.';
+                } else if (error.message.includes('No valid URLs')) {
+                    message = 'No valid URLs found in the file.';
+                } else if (error.message.includes('Too many URLs')) {
+                    message = `Too many URLs. Maximum ${this.maxUrls} allowed.`;
+                }
+                
+                showError(message);
+                this.clearFile();
+            }
+
+            clearFile() {
+                this.filePreview.style.display = 'none';
+                this.fileInput.value = '';
+                
+                // Clear memory references
+                if (this.extractedUrls) {
+                    this.extractedUrls = null;
+                }
+                
+                dom.urlList.value = '';
+                this.hideProcessing();
+                
+                // Force garbage collection if available
+                if (window.gc) {
+                    window.gc();
+                }
+            }
+        }
+
+        // Initialize file upload handler
+        const fileUploadHandler = new FileUploadHandler();
         
         // Get timeout from environment or use default (increased for single URL processing)
         const TIMEOUT_MS = parseInt(window.HTTP_DEADLINE_MS || '15000', 10);
@@ -1916,6 +2396,11 @@
             dom.validationReport.classList.add('hidden');
             dom.errorReport.classList.add('hidden');
             pfrValidator.clearCache();
+            
+            // Clear file preview if textarea is being used
+            if (document.querySelector('input[name="inputMethod"]:checked').value === 'textarea') {
+                fileUploadHandler.clearFile();
+            }
         });
         
         // Export error report function

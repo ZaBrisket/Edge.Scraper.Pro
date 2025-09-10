@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Upload Test Suite</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background-color: #f8f9fa;
+        }
+        .test-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            background: #f8f9fa;
+        }
+        .test-results {
+            background: #e9ecef;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .status.info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Bulk Upload Test Suite</h1>
+        <p>This page tests the bulk URL upload functionality with various file formats and edge cases.</p>
+
+        <div class="test-section">
+            <h2>Test Controls</h2>
+            <button id="runTestsBtn" onclick="runTests()">Run All Tests</button>
+            <button id="clearResultsBtn" onclick="clearResults()">Clear Results</button>
+            <div id="testStatus" class="status info" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test Results</h2>
+            <div id="testResults" class="test-results">Click "Run All Tests" to see results...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test Files Available</h2>
+            <p>The following test files are available for manual testing:</p>
+            <ul>
+                <li><code>test-bulk-urls.txt</code> - TXT file with 10 URLs</li>
+                <li><code>test-bulk-urls.json</code> - JSON object with URLs property</li>
+                <li><code>test-json-formats.json</code> - JSON object with URLs property</li>
+                <li><code>test-json-array.json</code> - JSON array format</li>
+                <li><code>test-json-objects.json</code> - JSON array of objects</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="test-bulk-upload.js"></script>
+    <script>
+        let testResults = [];
+
+        function runTests() {
+            const runBtn = document.getElementById('runTestsBtn');
+            const status = document.getElementById('testStatus');
+            const results = document.getElementById('testResults');
+            
+            runBtn.disabled = true;
+            status.style.display = 'block';
+            status.className = 'status info';
+            status.textContent = 'Running tests...';
+            
+            // Clear previous results
+            results.textContent = '';
+            testResults = [];
+
+            // Capture console output
+            const originalLog = console.log;
+            const originalError = console.error;
+            
+            console.log = function(...args) {
+                testResults.push(args.join(' '));
+                originalLog.apply(console, args);
+            };
+            
+            console.error = function(...args) {
+                testResults.push('ERROR: ' + args.join(' '));
+                originalError.apply(console, args);
+            };
+
+            // Run tests
+            window.runBulkUploadTests().then(() => {
+                // Restore console
+                console.log = originalLog;
+                console.error = originalError;
+                
+                // Display results
+                results.textContent = testResults.join('\n');
+                
+                // Update status
+                const successCount = testResults.filter(line => line.includes('✅ PASSED')).length;
+                const failCount = testResults.filter(line => line.includes('❌ FAILED')).length;
+                
+                if (failCount === 0) {
+                    status.className = 'status success';
+                    status.textContent = `All tests passed! (${successCount} tests)`;
+                } else {
+                    status.className = 'status error';
+                    status.textContent = `${successCount} passed, ${failCount} failed`;
+                }
+                
+                runBtn.disabled = false;
+            }).catch(error => {
+                console.error = originalError;
+                console.error('Test execution failed:', error);
+                
+                status.className = 'status error';
+                status.textContent = 'Test execution failed: ' + error.message;
+                runBtn.disabled = false;
+            });
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').textContent = 'Click "Run All Tests" to see results...';
+            document.getElementById('testStatus').style.display = 'none';
+            testResults = [];
+        }
+
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            console.log('Bulk upload test suite loaded. Click "Run All Tests" to begin.');
+        });
+    </script>
+</body>
+</html>
