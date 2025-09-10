@@ -189,6 +189,124 @@
         .error-pattern-table th {
             background-color: #f5f5f5;
         }
+        
+        /* File Upload Styles */
+        .file-upload-section {
+            margin-bottom: 1em;
+        }
+        
+        .file-upload-section h3 {
+            margin-top: 0;
+            margin-bottom: 0.5em;
+            font-weight: bold;
+        }
+        
+        .upload-area {
+            border: 2px dashed #ccc;
+            padding: 2em;
+            text-align: center;
+            transition: border-color 0.3s, background-color 0.3s;
+            margin-bottom: 1em;
+        }
+        
+        .upload-area.dragover {
+            border-color: #000;
+            background-color: #f9f9f9;
+        }
+        
+        .upload-prompt p {
+            margin: 0.5em 0;
+        }
+        
+        .file-info {
+            font-size: 0.9em;
+            color: #666;
+            font-weight: normal;
+        }
+        
+        .file-examples {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 1em;
+            text-align: left;
+            background-color: #f5f5f5;
+            padding: 0.5em;
+            border: 1px solid #ddd;
+        }
+        
+        #browseBtn {
+            background: none;
+            border: none;
+            color: #0000ff;
+            text-decoration: underline;
+            cursor: pointer;
+            padding: 0;
+            font: inherit;
+        }
+        
+        #browseBtn:hover {
+            color: #800080;
+        }
+        
+        .file-preview {
+            background-color: #f5f5f5;
+            padding: 1em;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        
+        .file-preview h4 {
+            margin-top: 0;
+            margin-bottom: 0.5em;
+        }
+        
+        #fileDetails {
+            margin-bottom: 1em;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 0.5em;
+        }
+        
+        .file-actions button {
+            padding: 0.5em 1em;
+        }
+        
+        .manual-input-section {
+            margin-top: 1em;
+        }
+        
+        .manual-input-section h3 {
+            margin-top: 0;
+            margin-bottom: 0.5em;
+            font-weight: bold;
+        }
+        
+        /* File processing status styles */
+        .file-processing {
+            background-color: #fff9e6;
+            border: 1px solid #ffcc66;
+            padding: 0.5em;
+            margin: 0.5em 0;
+            text-align: center;
+        }
+        
+        .file-success {
+            background-color: #f0f8ff;
+            border: 1px solid #b0d4f1;
+            padding: 0.5em;
+            margin: 0.5em 0;
+        }
+        
+        .file-error {
+            background-color: #fee;
+            border: 1px solid #f99;
+            padding: 0.5em;
+            margin: 0.5em 0;
+        }
     </style>
 </head>
 <body>
@@ -197,8 +315,39 @@
         <p>A tool to scrape websites in bulk. Built for function over form.</p>
 
         <div id="bulkInputs" class="section">
-            <p><b>Instructions:</b> Paste a list of URLs (one per line) to scrape all text from each page.</p>
-            <textarea id="urlList" placeholder="https://example.com/page1&#10;https://example.com/page2"></textarea>
+            <p><b>Step 1:</b> Add URLs to scrape by typing or uploading a file.</p>
+            
+            <!-- File Upload Section -->
+            <div class="file-upload-section">
+                <h3>Upload URL File</h3>
+                <div class="upload-area" id="uploadArea">
+                    <input type="file" id="fileInput" accept=".txt,.json" style="display: none;">
+                    <div class="upload-prompt" id="uploadPrompt">
+                        <p><strong>Drag and drop a TXT or JSON file here, or <button id="browseBtn" type="button">Browse Files</button></strong></p>
+                        <p class="file-info">Supports up to 1500 URLs • TXT (one per line) • JSON (array format)</p>
+                        <p class="file-examples">
+                            <strong>TXT format:</strong> One URL per line, # for comments<br>
+                            <strong>JSON format:</strong> Array of URLs or {"urls": [...]} object
+                        </p>
+                    </div>
+                    <div id="filePreview" class="hidden">
+                        <h4>File Preview:</h4>
+                        <div id="fileDetails"></div>
+                        <div class="file-actions">
+                            <button id="processFileBtn" type="button">Process URLs</button>
+                            <button id="clearFileBtn" type="button">Clear File</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Manual Input Section -->
+            <div class="manual-input-section">
+                <h3>Or Enter URLs Manually</h3>
+                <p><b>Instructions:</b> Paste a list of URLs (one per line) to scrape all text from each page.</p>
+                <textarea id="urlList" placeholder="https://example.com/page1&#10;https://example.com/page2"></textarea>
+            </div>
+            
             <div id="validationReport" class="hidden"></div>
             <div id="errorReport" class="hidden"></div>
         </div>
@@ -282,6 +431,15 @@
             sportsOnlyToggle: document.getElementById('sportsOnlyToggle'),
             validationReport: document.getElementById('validationReport'),
             errorReport: document.getElementById('errorReport'),
+            // File upload elements
+            uploadArea: document.getElementById('uploadArea'),
+            fileInput: document.getElementById('fileInput'),
+            browseBtn: document.getElementById('browseBtn'),
+            uploadPrompt: document.getElementById('uploadPrompt'),
+            filePreview: document.getElementById('filePreview'),
+            fileDetails: document.getElementById('fileDetails'),
+            processFileBtn: document.getElementById('processFileBtn'),
+            clearFileBtn: document.getElementById('clearFileBtn'),
         };
         
         // Initialize PFR validator and batch processor
@@ -526,11 +684,15 @@
                     await runBulkScrape();
                 } catch (error) {
                     if (!state.runControls.aborted) {
+                        // Use enhanced error handling for large batches
+                        handleLargeBatchError(error, 'Bulk Scraping');
                         errorBoundary.handleError(error, 'Bulk Scraping');
                     }
                 } finally {
                     dom.statusContainer.classList.add('hidden');
                     updateRunButtons(false);
+                    hideProgressBar();
+                    clearProcessingState();
                 }
             }, 'Scrape Button Click');
         });
@@ -596,6 +758,7 @@
                 timeout: TIMEOUT_MS,
                 onProgress: (progress) => {
                     if (progress.phase === 'validation') {
+                        dom.statusText.textContent = `Validating ${progress.total} URLs...`;
                         // Show validation report
                         if (progress.invalid > 0 || progress.duplicates > 0) {
                             const reportHTML = pfrValidator.generateHTMLReport(progress.validationDetails);
@@ -603,7 +766,28 @@
                             dom.validationReport.classList.remove('hidden');
                         }
                     } else if (progress.phase === 'processing') {
-                        dom.statusText.textContent = `Scraping URL (${progress.completed}/${progress.total}): ${progress.currentUrl?.substring(0, 50)}...`;
+                        // Enhanced progress display for chunked processing
+                        let statusText = `Scraping URLs (${progress.completed}/${progress.total}) - ${progress.percentage}%`;
+                        
+                        // Add chunk information if available
+                        if (progress.currentChunk && progress.totalChunks) {
+                            statusText += ` | Chunk ${progress.currentChunk}/${progress.totalChunks}`;
+                        }
+                        
+                        // Add current URL if available
+                        if (progress.currentUrl) {
+                            statusText += `\nCurrent: ${progress.currentUrl.substring(0, 60)}...`;
+                        }
+                        
+                        dom.statusText.textContent = statusText;
+                        
+                        // Update progress indicator if we have a progress bar
+                        updateProgressBar(progress.percentage);
+                        
+                        // Save processing state for resume capability
+                        if (progress.completed > 0) {
+                            saveProcessingState({ length: progress.total }, progress.completed);
+                        }
                     }
                 },
                 onError: (error) => {
@@ -1910,6 +2094,690 @@
                 setTimeout(() => { dom.copyBtn.textContent = 'Copy'; }, 2000);
             } catch (err) { showError('Failed to copy text.'); }
         });
+        
+        // URL File Processing Engine
+        class URLFileProcessor {
+            constructor() {
+                this.maxUrls = 1500;
+                this.maxFileSize = 5 * 1024 * 1024; // 5MB
+                this.supportedTypes = ['text/plain', 'application/json', '.txt', '.json'];
+            }
+            
+            async processFile(file) {
+                try {
+                    // Validate file
+                    const validation = this.validateFile(file);
+                    if (!validation.isValid) {
+                        throw new Error(validation.error);
+                    }
+                    
+                    // Read file content
+                    const content = await this.readFileContent(file);
+                    
+                    // Parse based on file type
+                    const parseResult = this.parseFileContent(content, file.name);
+                    
+                    // Validate URLs
+                    const validationResult = this.validateUrls(parseResult.urls);
+                    
+                    return {
+                        success: true,
+                        fileName: file.name,
+                        fileSize: file.size,
+                        totalLines: parseResult.totalLines,
+                        urls: validationResult.validUrls,
+                        invalidUrls: validationResult.invalidUrls,
+                        duplicates: validationResult.duplicates,
+                        comments: parseResult.comments,
+                        warnings: parseResult.warnings,
+                        errors: validationResult.errors
+                    };
+                } catch (error) {
+                    return {
+                        success: false,
+                        error: error.message,
+                        fileName: file.name,
+                        fileSize: file.size
+                    };
+                }
+            }
+            
+            validateFile(file) {
+                if (!file) {
+                    return { isValid: false, error: 'No file selected' };
+                }
+                
+                if (file.size > this.maxFileSize) {
+                    return { 
+                        isValid: false, 
+                        error: `File too large. Maximum size is ${this.maxFileSize / (1024 * 1024)}MB` 
+                    };
+                }
+                
+                if (file.size === 0) {
+                    return { isValid: false, error: 'File is empty' };
+                }
+                
+                const extension = file.name.toLowerCase().split('.').pop();
+                const isValidType = this.supportedTypes.includes(file.type) || 
+                                  this.supportedTypes.includes('.' + extension);
+                
+                if (!isValidType) {
+                    return { 
+                        isValid: false, 
+                        error: 'Unsupported file type. Please use .txt or .json files' 
+                    };
+                }
+                
+                return { isValid: true };
+            }
+            
+            readFileContent(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsText(file);
+                });
+            }
+            
+            parseFileContent(content, fileName) {
+                const extension = fileName.toLowerCase().split('.').pop();
+                
+                if (extension === 'json') {
+                    return this.parseJsonContent(content);
+                } else {
+                    return this.parseTxtContent(content);
+                }
+            }
+            
+            parseTxtContent(content) {
+                const lines = content.split(/\r?\n/);
+                const urls = [];
+                const comments = [];
+                const warnings = [];
+                let totalLines = lines.length;
+                
+                lines.forEach((line, index) => {
+                    const trimmedLine = line.trim();
+                    
+                    // Skip empty lines
+                    if (!trimmedLine) return;
+                    
+                    // Handle comments (lines starting with #)
+                    if (trimmedLine.startsWith('#')) {
+                        comments.push(trimmedLine.substring(1).trim());
+                        return;
+                    }
+                    
+                    // Check if line looks like a URL
+                    if (this.looksLikeUrl(trimmedLine)) {
+                        urls.push(trimmedLine);
+                    } else {
+                        warnings.push(`Line ${index + 1}: "${trimmedLine}" doesn't appear to be a valid URL`);
+                    }
+                });
+                
+                return { urls, comments, warnings, totalLines };
+            }
+            
+            parseJsonContent(content) {
+                try {
+                    const data = JSON.parse(content);
+                    const urls = [];
+                    const warnings = [];
+                    
+                    if (Array.isArray(data)) {
+                        // Simple array format: ["url1", "url2", ...]
+                        data.forEach((item, index) => {
+                            if (typeof item === 'string' && this.looksLikeUrl(item)) {
+                                urls.push(item);
+                            } else {
+                                warnings.push(`Array item ${index + 1}: "${item}" is not a valid URL`);
+                            }
+                        });
+                    } else if (data && typeof data === 'object') {
+                        // Object format: {"urls": [...]} or similar
+                        const possibleKeys = ['urls', 'url', 'links', 'list', 'data'];
+                        let foundUrls = false;
+                        
+                        for (const key of possibleKeys) {
+                            if (data[key] && Array.isArray(data[key])) {
+                                data[key].forEach((item, index) => {
+                                    if (typeof item === 'string' && this.looksLikeUrl(item)) {
+                                        urls.push(item);
+                                    } else {
+                                        warnings.push(`${key}[${index}]: "${item}" is not a valid URL`);
+                                    }
+                                });
+                                foundUrls = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!foundUrls) {
+                            throw new Error('No URL array found. Expected format: {"urls": [...]} or simple array');
+                        }
+                    } else {
+                        throw new Error('Invalid JSON format. Expected array of URLs or object with URLs array');
+                    }
+                    
+                    return { urls, comments: [], warnings, totalLines: urls.length };
+                } catch (error) {
+                    if (error instanceof SyntaxError) {
+                        throw new Error('Invalid JSON format: ' + error.message);
+                    }
+                    throw error;
+                }
+            }
+            
+            looksLikeUrl(str) {
+                if (typeof str !== 'string' || str.length < 10) return false;
+                
+                // Basic URL pattern check
+                const urlPattern = /^https?:\/\/[^\s]+\.[^\s]+/i;
+                return urlPattern.test(str.trim());
+            }
+            
+            validateUrls(urls) {
+                const validUrls = [];
+                const invalidUrls = [];
+                const duplicates = [];
+                const errors = [];
+                const seen = new Set();
+                
+                if (urls.length > this.maxUrls) {
+                    errors.push(`Too many URLs: ${urls.length}. Maximum allowed: ${this.maxUrls}`);
+                    urls = urls.slice(0, this.maxUrls);
+                }
+                
+                urls.forEach((url, index) => {
+                    try {
+                        const cleanedUrl = cleanUrl(url);
+                        const normalizedUrl = cleanedUrl.toLowerCase();
+                        
+                        if (seen.has(normalizedUrl)) {
+                            duplicates.push({ url: cleanedUrl, line: index + 1 });
+                        } else {
+                            seen.add(normalizedUrl);
+                            // Use existing validation logic
+                            const validatedUrl = validate.url(cleanedUrl);
+                            validUrls.push(validatedUrl);
+                        }
+                    } catch (error) {
+                        invalidUrls.push({ 
+                            url: url, 
+                            line: index + 1, 
+                            error: error.message 
+                        });
+                    }
+                });
+                
+                return { validUrls, invalidUrls, duplicates, errors };
+            }
+            
+            generatePreviewText(result) {
+                if (!result.success) {
+                    return `Error: ${result.error}`;
+                }
+                
+                let preview = `File: ${result.fileName} (${(result.fileSize / 1024).toFixed(1)} KB)\n`;
+                preview += `Total lines: ${result.totalLines}\n`;
+                preview += `Valid URLs: ${result.urls.length}\n`;
+                
+                if (result.invalidUrls.length > 0) {
+                    preview += `Invalid URLs: ${result.invalidUrls.length}\n`;
+                }
+                
+                if (result.duplicates.length > 0) {
+                    preview += `Duplicates found: ${result.duplicates.length}\n`;
+                }
+                
+                if (result.comments.length > 0) {
+                    preview += `Comments: ${result.comments.length}\n`;
+                }
+                
+                if (result.warnings.length > 0) {
+                    preview += `Warnings: ${result.warnings.length}\n`;
+                }
+                
+                if (result.errors.length > 0) {
+                    preview += `Errors: ${result.errors.length}\n`;
+                }
+                
+                // Show first few URLs as preview
+                if (result.urls.length > 0) {
+                    preview += `\nFirst URLs:\n`;
+                    result.urls.slice(0, 5).forEach((url, index) => {
+                        preview += `${index + 1}. ${url}\n`;
+                    });
+                    
+                    if (result.urls.length > 5) {
+                        preview += `... and ${result.urls.length - 5} more\n`;
+                    }
+                }
+                
+                return preview;
+            }
+        }
+        
+        // Initialize file processor
+        const fileProcessor = new URLFileProcessor();
+        let currentFileResult = null;
+        
+        // File Upload Event Handlers
+        function setupFileUploadHandlers() {
+            // Drag and drop handlers
+            dom.uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dom.uploadArea.classList.add('dragover');
+            });
+            
+            dom.uploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                if (!dom.uploadArea.contains(e.relatedTarget)) {
+                    dom.uploadArea.classList.remove('dragover');
+                }
+            });
+            
+            dom.uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dom.uploadArea.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFileSelect(files[0]);
+                }
+            });
+            
+            // Browse button handler
+            dom.browseBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                dom.fileInput.click();
+            });
+            
+            // File input handler
+            dom.fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileSelect(e.target.files[0]);
+                }
+            });
+            
+            // Process file button
+            dom.processFileBtn.addEventListener('click', () => {
+                if (currentFileResult && currentFileResult.success) {
+                    processFileUrls(currentFileResult);
+                }
+            });
+            
+            // Clear file button
+            dom.clearFileBtn.addEventListener('click', () => {
+                clearFileUpload();
+            });
+        }
+        
+        async function handleFileSelect(file) {
+            try {
+                // Show processing state
+                showFileProcessing('Reading and parsing file...');
+                
+                // Process the file
+                const result = await fileProcessor.processFile(file);
+                currentFileResult = result;
+                
+                if (result.success) {
+                    showFilePreview(result);
+                } else {
+                    showFileError(result.error);
+                }
+            } catch (error) {
+                console.error('File processing error:', error);
+                showFileError('Failed to process file: ' + error.message);
+            }
+        }
+        
+        function showFileProcessing(message) {
+            dom.uploadPrompt.classList.add('hidden');
+            dom.filePreview.classList.remove('hidden');
+            dom.fileDetails.innerHTML = `<div class="file-processing">${message}</div>`;
+        }
+        
+        function showFilePreview(result) {
+            dom.uploadPrompt.classList.add('hidden');
+            dom.filePreview.classList.remove('hidden');
+            
+            const previewText = fileProcessor.generatePreviewText(result);
+            dom.fileDetails.innerHTML = `<div class="file-success"><pre>${previewText}</pre></div>`;
+            
+            // Show warnings or errors if any
+            if (result.warnings.length > 0 || result.invalidUrls.length > 0 || result.duplicates.length > 0) {
+                let warningText = '';
+                
+                if (result.invalidUrls.length > 0) {
+                    warningText += `\n<strong>Invalid URLs:</strong>\n`;
+                    result.invalidUrls.slice(0, 5).forEach(item => {
+                        warningText += `Line ${item.line}: ${item.url} (${item.error})\n`;
+                    });
+                    if (result.invalidUrls.length > 5) {
+                        warningText += `... and ${result.invalidUrls.length - 5} more\n`;
+                    }
+                }
+                
+                if (result.duplicates.length > 0) {
+                    warningText += `\n<strong>Duplicate URLs:</strong>\n`;
+                    result.duplicates.slice(0, 5).forEach(item => {
+                        warningText += `Line ${item.line}: ${item.url}\n`;
+                    });
+                    if (result.duplicates.length > 5) {
+                        warningText += `... and ${result.duplicates.length - 5} more\n`;
+                    }
+                }
+                
+                if (result.warnings.length > 0) {
+                    warningText += `\n<strong>Warnings:</strong>\n`;
+                    result.warnings.slice(0, 5).forEach(warning => {
+                        warningText += `${warning}\n`;
+                    });
+                    if (result.warnings.length > 5) {
+                        warningText += `... and ${result.warnings.length - 5} more\n`;
+                    }
+                }
+                
+                dom.fileDetails.innerHTML += `<div class="file-error"><pre>${warningText}</pre></div>`;
+            }
+        }
+        
+        function showFileError(error) {
+            dom.uploadPrompt.classList.add('hidden');
+            dom.filePreview.classList.remove('hidden');
+            dom.fileDetails.innerHTML = `<div class="file-error"><strong>Error:</strong> ${error}</div>`;
+        }
+        
+        function processFileUrls(result) {
+            if (!result.success || result.urls.length === 0) {
+                showError('No valid URLs to process');
+                return;
+            }
+            
+            // Populate the URL list textarea
+            dom.urlList.value = result.urls.join('\n');
+            
+            // Clear file upload area
+            clearFileUpload();
+            
+            // Show success message
+            const message = `Successfully loaded ${result.urls.length} URLs from ${result.fileName}`;
+            dom.urlList.style.backgroundColor = '#f0f8ff';
+            dom.urlList.style.border = '2px solid #b0d4f1';
+            
+            // Reset styling after a few seconds
+            setTimeout(() => {
+                dom.urlList.style.backgroundColor = '';
+                dom.urlList.style.border = '';
+            }, 3000);
+            
+            // Trigger validation if we have sports URLs
+            const hasSportsUrls = result.urls.some(url => isSportsURL(url));
+            if (hasSportsUrls) {
+                // The existing validation will be triggered by the input event
+                dom.urlList.dispatchEvent(new Event('input'));
+            }
+            
+            // Scroll to the URL list
+            dom.urlList.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            console.log('File processing complete:', {
+                fileName: result.fileName,
+                totalUrls: result.urls.length,
+                invalidUrls: result.invalidUrls.length,
+                duplicates: result.duplicates.length,
+                hasSportsUrls
+            });
+        }
+        
+        function clearFileUpload() {
+            dom.fileInput.value = '';
+            dom.uploadPrompt.classList.remove('hidden');
+            dom.filePreview.classList.add('hidden');
+            dom.fileDetails.innerHTML = '';
+            currentFileResult = null;
+        }
+        
+        // Initialize file upload handlers
+        setupFileUploadHandlers();
+        
+        // Progress tracking enhancements
+        function updateProgressBar(percentage) {
+            // Create progress bar if it doesn't exist
+            let progressBar = document.getElementById('progressBar');
+            if (!progressBar) {
+                progressBar = document.createElement('div');
+                progressBar.id = 'progressBar';
+                progressBar.style.cssText = `
+                    width: 100%;
+                    height: 8px;
+                    background-color: #f0f0f0;
+                    border: 1px solid #ccc;
+                    margin: 0.5em 0;
+                    position: relative;
+                    overflow: hidden;
+                `;
+                
+                const progressFill = document.createElement('div');
+                progressFill.id = 'progressFill';
+                progressFill.style.cssText = `
+                    height: 100%;
+                    background-color: #4CAF50;
+                    width: 0%;
+                    transition: width 0.3s ease;
+                `;
+                
+                progressBar.appendChild(progressFill);
+                
+                // Insert after status text
+                dom.statusText.parentNode.insertBefore(progressBar, dom.statusText.nextSibling);
+            }
+            
+            // Update progress fill
+            const progressFill = document.getElementById('progressFill');
+            if (progressFill) {
+                progressFill.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
+            }
+        }
+        
+        function hideProgressBar() {
+            const progressBar = document.getElementById('progressBar');
+            if (progressBar) {
+                progressBar.remove();
+            }
+        }
+        
+        // Enhanced error handling for large batches
+        function handleLargeBatchError(error, context) {
+            console.error(`Large batch error in ${context}:`, error);
+            
+            // Specific error messages for common large batch issues
+            let userMessage = error.message;
+            
+            if (error.message.includes('memory')) {
+                userMessage = 'Memory limit reached. Try reducing the number of URLs or processing in smaller batches.';
+            } else if (error.message.includes('timeout')) {
+                userMessage = 'Processing timeout. The batch is too large or network is slow. Try reducing batch size.';
+            } else if (error.message.includes('exceeds maximum')) {
+                userMessage = 'Too many URLs. Maximum allowed is 1500 URLs per batch.';
+            } else if (error.message.includes('No valid URLs')) {
+                userMessage = 'No valid URLs found after validation. Check your file format and URL validity.';
+            }
+            
+            showError(userMessage);
+            
+            // Log detailed error for debugging
+            console.error('Detailed error info:', {
+                message: error.message,
+                stack: error.stack,
+                context: context,
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+        // Resume capability for interrupted processing
+        let processingState = {
+            isProcessing: false,
+            currentBatch: null,
+            processedCount: 0,
+            startTime: null
+        };
+        
+        function saveProcessingState(batch, count) {
+            processingState = {
+                isProcessing: true,
+                currentBatch: batch,
+                processedCount: count,
+                startTime: processingState.startTime || new Date()
+            };
+            
+            // Save to localStorage for persistence across page reloads
+            try {
+                localStorage.setItem('edgeScraper_processingState', JSON.stringify({
+                    timestamp: new Date().toISOString(),
+                    processedCount: count,
+                    totalUrls: batch.length
+                }));
+            } catch (e) {
+                console.warn('Could not save processing state to localStorage:', e);
+            }
+        }
+        
+        function clearProcessingState() {
+            processingState = {
+                isProcessing: false,
+                currentBatch: null,
+                processedCount: 0,
+                startTime: null
+            };
+            
+            try {
+                localStorage.removeItem('edgeScraper_processingState');
+            } catch (e) {
+                console.warn('Could not clear processing state from localStorage:', e);
+            }
+        }
+        
+        function checkForInterruptedSession() {
+            try {
+                const savedState = localStorage.getItem('edgeScraper_processingState');
+                if (savedState) {
+                    const state = JSON.parse(savedState);
+                    const timeDiff = new Date() - new Date(state.timestamp);
+                    
+                    // If less than 1 hour ago, show resume option
+                    if (timeDiff < 60 * 60 * 1000) {
+                        const message = `Found interrupted session from ${new Date(state.timestamp).toLocaleTimeString()}. ` +
+                                      `Processed ${state.processedCount}/${state.totalUrls} URLs. ` +
+                                      `Would you like to resume processing?`;
+                        
+                        if (confirm(message)) {
+                            // User can manually re-upload file to resume
+                            showError('Please re-upload your URL file to resume processing.');
+                        }
+                    }
+                    
+                    // Clear old state
+                    localStorage.removeItem('edgeScraper_processingState');
+                }
+            } catch (e) {
+                console.warn('Could not check for interrupted session:', e);
+            }
+        }
+        
+        // Check for interrupted session on page load
+        setTimeout(checkForInterruptedSession, 1000);
+        
+        // File format validation enhancements
+        function validateFileContent(file, content) {
+            const validation = {
+                isValid: true,
+                warnings: [],
+                errors: [],
+                suggestions: []
+            };
+            
+            const extension = file.name.toLowerCase().split('.').pop();
+            
+            if (extension === 'txt') {
+                // TXT file validation
+                const lines = content.split(/\r?\n/);
+                let urlCount = 0;
+                let commentCount = 0;
+                let emptyLines = 0;
+                
+                lines.forEach((line, index) => {
+                    const trimmed = line.trim();
+                    if (!trimmed) {
+                        emptyLines++;
+                    } else if (trimmed.startsWith('#')) {
+                        commentCount++;
+                    } else if (trimmed.startsWith('http')) {
+                        urlCount++;
+                    } else {
+                        validation.warnings.push(`Line ${index + 1}: "${trimmed}" doesn't appear to be a URL or comment`);
+                    }
+                });
+                
+                if (urlCount === 0) {
+                    validation.errors.push('No URLs found in TXT file');
+                    validation.isValid = false;
+                }
+                
+                if (urlCount > 1500) {
+                    validation.errors.push(`Too many URLs: ${urlCount}. Maximum allowed is 1500`);
+                    validation.isValid = false;
+                }
+                
+                validation.suggestions.push(`Found ${urlCount} URLs, ${commentCount} comments, ${emptyLines} empty lines`);
+                
+            } else if (extension === 'json') {
+                // JSON file validation
+                try {
+                    const data = JSON.parse(content);
+                    let urlCount = 0;
+                    
+                    if (Array.isArray(data)) {
+                        urlCount = data.filter(item => typeof item === 'string' && item.startsWith('http')).length;
+                    } else if (data && typeof data === 'object') {
+                        const possibleKeys = ['urls', 'url', 'links', 'list', 'data'];
+                        for (const key of possibleKeys) {
+                            if (data[key] && Array.isArray(data[key])) {
+                                urlCount = data[key].filter(item => typeof item === 'string' && item.startsWith('http')).length;
+                                break;
+                            }
+                        }
+                        
+                        if (urlCount === 0) {
+                            validation.suggestions.push('Expected JSON format: ["url1", "url2"] or {"urls": ["url1", "url2"]}');
+                        }
+                    }
+                    
+                    if (urlCount === 0) {
+                        validation.errors.push('No valid URLs found in JSON file');
+                        validation.isValid = false;
+                    }
+                    
+                    if (urlCount > 1500) {
+                        validation.errors.push(`Too many URLs: ${urlCount}. Maximum allowed is 1500`);
+                        validation.isValid = false;
+                    }
+                    
+                    validation.suggestions.push(`Found ${urlCount} URLs in JSON format`);
+                    
+                } catch (error) {
+                    validation.errors.push(`Invalid JSON format: ${error.message}`);
+                    validation.isValid = false;
+                }
+            }
+            
+            return validation;
+        }
         
         // Clear validation report when URL list changes
         dom.urlList.addEventListener('input', () => {
