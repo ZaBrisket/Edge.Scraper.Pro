@@ -8,6 +8,7 @@ const { URL } = require('url');
 const net = require('net');
 const { fetchWithPolicy } = require('../../src/lib/http/client');
 const { getCorrelationId } = require('../../src/lib/http/correlation');
+const config = require('../../src/lib/config');
 
 // Cache for resolved hostnames
 const hostCache = new Map();
@@ -16,7 +17,7 @@ const CACHE_TTL_MS = 5000;
 const UA = 'EdgeScraper/1.0 (+https://github.com/ZaBrisket/Edge.Scraper.Pro)';
 const MAX_REDIRECTS = 3;
 const MAX_BYTES = 2.5 * 1024 * 1024; // 2.5 MB
-const TIMEOUT_MS = 15000;
+const TIMEOUT_MS = config.DEFAULT_TIMEOUT_MS; // Use environment-driven timeout
 const ALLOWED_PORTS = new Set([80, 443, null, undefined, '']); // default http/https
 
 const CORS_HEADERS = {
@@ -121,7 +122,7 @@ async function safeFetchWithRedirects(inputUrl, correlationId) {
         throw new Error('DNS rebinding detected');
       }
     }
-    const res = await fetchResolved(current, firstIP, { redirect: 'manual', headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml,*/*' }, correlationId });
+    const res = await fetchResolved(current, firstIP, { redirect: 'manual', headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml,*/*' }, correlationId, timeout: TIMEOUT_MS });
     if ([301, 302, 303, 307, 308].includes(res.status)) {
       const loc = res.headers.get('location');
       if (!loc) throw new Error(`Redirect without Location header`);
@@ -205,7 +206,7 @@ async function robotsAllows(theUrl, correlationId) {
   try {
     const url = new URL(theUrl);
     const robotsUrl = new URL('/robots.txt', url.origin).href;
-    const res = await fetchWithPolicy(robotsUrl, { headers: { 'User-Agent': UA }, correlationId });
+    const res = await fetchWithPolicy(robotsUrl, { headers: { 'User-Agent': UA }, correlationId, timeout: TIMEOUT_MS });
     const text = await res.text();
     log(`[${correlationId}] robots [${res.status}] ${robotsUrl}:`, text.substring(0, 200));
     if (!res.ok) return true; // no robots or inaccessible: allow
