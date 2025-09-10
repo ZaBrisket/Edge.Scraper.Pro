@@ -17,16 +17,23 @@ const VALID_SPORTS_DOMAINS = [
 ];
 
 // Player URL patterns by sport
+// PFR slugs allow these variants after the 4-letter last-name stem:
+//  - Two letters from first name (case-insensitive, can both be uppercase e.g., "JK" or "DA")
+//  - Single letter followed by a dot (e.g., "C.", "T.") for initials-based first names
+// Examples: MahoPa00, DobbJK00, SwifDA00, SpilC.00, YeldT.00
 const PLAYER_URL_PATTERNS = {
-  'pro-football-reference.com': /^\/players\/[A-Z]\/[A-Za-z]{4}[A-Z][a-z]\d{2}\.htm$/,
+  'pro-football-reference.com': /^\/players\/[A-Z]\/([A-Za-z]{4}(?:[A-Za-z]{2}|[A-Za-z]\.)\d{2})\.htm$/,
   'basketball-reference.com': /^\/players\/[a-z]\/[a-z]+\d{2}\.html$/,
   'baseball-reference.com': /^\/players\/[a-z]\/[a-z]+\d{2}\.shtml$/,
   'hockey-reference.com': /^\/players\/[a-z]\/[a-z]+\d{2}\.html$/
 };
 
-// PFR player slug format: 4 letters from last name + 2 letters from first name + 2 digit disambiguator
-// Example: /players/M/MahoPa00.htm (Patrick Mahomes)
-const PFR_PLAYER_SLUG_REGEX = /^[A-Za-z]{4}[A-Z][a-z]\d{2}$/;
+// PFR player slug format (normalized):
+//  - 4 letters from last name
+//  - Either 2 letters from first name (any case) OR 1 letter + '.'
+//  - 2 digit disambiguator
+// Examples: MahoPa00, DobbJK00, SwifDA00, SpilC.00
+const PFR_PLAYER_SLUG_REGEX = /^[A-Za-z]{4}(?:[A-Za-z]{2}|[A-Za-z]\.)\d{2}$/;
 
 // Categories for invalid URLs
 const VALIDATION_CATEGORIES = {
@@ -108,7 +115,7 @@ class PFRValidator {
 
       // Extract and validate player slug for PFR
       if (hostname === 'pro-football-reference.com') {
-        const slugMatch = url.pathname.match(/\/players\/[A-Z]\/([A-Za-z]{4}[A-Z][a-z]\d{2})\.htm$/);
+        const slugMatch = url.pathname.match(/\/players\/[A-Z]\/([A-Za-z]{4}(?:[A-Za-z]{2}|[A-Za-z]\.)\d{2})\.htm$/);
         if (slugMatch) {
           const slug = slugMatch[1];
           if (!PFR_PLAYER_SLUG_REGEX.test(slug)) {

@@ -1,0 +1,7 @@
+=== PFR URL Validation Report ===
+Total URLs: 501
+Valid URLs: 501
+Invalid URLs: 0
+Duplicate URLs: 0
+
+Elapsed: 5ms (avg 0.010 ms/url)
