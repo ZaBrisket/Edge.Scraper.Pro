@@ -3,6 +3,10 @@ class HttpError extends Error {
     super(message);
     this.code = code;
     this.meta = meta;
+    // Propagate status when provided for easier mapping
+    if (meta && typeof meta.status !== 'undefined') {
+      this.status = meta.status;
+    }
   }
 }
 

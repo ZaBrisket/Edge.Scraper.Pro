@@ -11,7 +11,7 @@ process.env.HTTP_RATE_LIMIT_PER_SEC = '5';
 process.env.HTTP_MAX_CONCURRENCY = '1';
 
 const { fetchWithPolicy } = require('../src/lib/http/client');
-const { TimeoutError, CircuitOpenError, NetworkError } = require('../src/lib/http/errors');
+const { TimeoutError, CircuitOpenError, NetworkError, RateLimitError } = require('../src/lib/http/errors');
 
 test('retries on 500 and succeeds', async (t) => {
   let count = 0;
@@ -47,4 +47,24 @@ test('opens circuit after failures', async () => {
   await assert.rejects(() => fetchWithPolicy(`http://127.0.0.1:${port}/`), NetworkError);
   await assert.rejects(() => fetchWithPolicy(`http://127.0.0.1:${port}/`), CircuitOpenError);
   server.close();
+});
+
+test('handles 429 with Retry-After header and does not open circuit', async (t) => {
+  let count = 0;
+  const server = http.createServer((req, res) => {
+    count++;
+    if (count === 1) {
+      res.setHeader('Retry-After', '1');
+      res.writeHead(429);
+      res.end('rate limited');
+    } else {
+      res.writeHead(200);
+      res.end('ok');
+    }
+  });
+  await new Promise((resolve) => server.listen(0, resolve));
+  t.after(() => server.close());
+  const port = server.address().port;
+  const res = await fetchWithPolicy(`http://127.0.0.1:${port}/`, { retries: 2 });
+  assert.strictEqual(res.status, 200);
 });

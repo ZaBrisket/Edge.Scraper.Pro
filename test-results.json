@@ -3,50 +3,50 @@
     "passed": 5,
     "failed": 0,
     "warnings": 1,
-    "totalDuration": 5848.796456
+    "totalDuration": 5871.050772
   },
   "details": [
     {
       "test": "HTTP Client Memory Leaks",
       "status": "PASS",
       "message": "Memory increase: 8MB (within 50MB threshold)",
-      "duration": "4878.96ms",
-      "timestamp": "2025-09-10T16:35:53.744Z"
+      "duration": "4806.55ms",
+      "timestamp": "2025-09-10T18:56:29.410Z"
     },
     {
       "test": "DOM Memory Leaks",
       "status": "WARN",
-      "message": "Memory increase: 91MB (exceeds 50MB threshold)",
-      "duration": "837.50ms",
-      "timestamp": "2025-09-10T16:35:54.582Z"
+      "message": "Memory increase: 76MB (exceeds 50MB threshold)",
+      "duration": "937.92ms",
+      "timestamp": "2025-09-10T18:56:30.349Z"
     },
     {
       "test": "Export Performance",
       "status": "PASS",
-      "message": "CSV: 4.76ms, JSON: 5.90ms (both under 100ms)",
-      "duration": "11.68ms",
-      "timestamp": "2025-09-10T16:35:54.597Z"
+      "message": "CSV: 7.06ms, JSON: 6.29ms (both under 100ms)",
+      "duration": "14.50ms",
+      "timestamp": "2025-09-10T18:56:30.366Z"
     },
     {
       "test": "Error Boundary Functionality",
       "status": "PASS",
       "message": "Error handling prevents crashes and returns partial results",
-      "duration": "6.38ms",
-      "timestamp": "2025-09-10T16:35:54.604Z"
+      "duration": "6.48ms",
+      "timestamp": "2025-09-10T18:56:30.374Z"
     },
     {
       "test": "Request Debouncing",
       "status": "PASS",
       "message": "Request debouncing prevents duplicate requests",
-      "duration": "100.34ms",
-      "timestamp": "2025-09-10T16:35:54.714Z"
+      "duration": "99.92ms",
+      "timestamp": "2025-09-10T18:56:30.474Z"
     },
     {
       "test": "Backward Compatibility",
       "status": "PASS",
       "message": "All existing functionality remains accessible",
       "duration": "0.02ms",
-      "timestamp": "2025-09-10T16:35:54.714Z"
+      "timestamp": "2025-09-10T18:56:30.474Z"
     }
   ]
 }

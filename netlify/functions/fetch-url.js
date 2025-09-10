@@ -94,6 +94,11 @@ exports.handler = async (event) => {
   } catch (err) {
     const code = err.code || 'INTERNAL';
     const message = err.message || 'Unknown error';
+    // Map 429 deferrals correctly, never as 500
+    if (code === 'RATE_LIMIT' || err.status === 429) {
+      const retryAfterMs = (err.meta && err.meta.retryAfter) || null;
+      return json(429, { error: { code: 'RATE_LIMIT', message: '429 rate limit', retryAfterMs } }, correlationId);
+    }
     return json(500, { error: { code, message } }, correlationId);
   }
 };

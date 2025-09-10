@@ -160,6 +160,32 @@ client enforces timeouts, retries with jitter, per-host concurrency limits, and
 adds an `x-correlation-id` for traceability. Configuration is driven by
 environment variables validated via `zod`; see `.env.example` for defaults.
 
+### Rate Limiting, 429 Handling, and Circuit Breaker
+- Per-host token bucket/leaky bucket limits are configured via env:
+  - `HOST_LIMIT__DEFAULT__RPS`, `HOST_LIMIT__DEFAULT__BURST`, `HOST_LIMIT__DEFAULT__CONCURRENCY`
+  - `HOST_LIMIT__www.pro-football-reference.com__RPS`, `__BURST`, `__CONCURRENCY`
+- HTTP 429 is treated as a deferrable condition, not a fatal error:
+  - Honors `Retry-After` header when present
+  - Falls back to exponential backoff with full jitter
+  - 429s do not count toward circuit-breaker failure thresholds
+- Circuit breaker uses half-open probing to recover safely; opens only on 5xx/network/timeouts beyond budget.
+- Metrics emitted:
+  - `http.requests{host,status_class}`
+  - `rate_limit.hit{host}`
+  - `429.deferred{host}`
+  - `retry.scheduled{host,reason}`
+  - `circuit.state{host,state}` (open/half_open/close)
+
+### Tuning PFR Defaults
+Recommended safe defaults:
+```
+HOST_LIMIT__www.pro-football-reference.com__RPS=0.8
+HOST_LIMIT__www.pro-football-reference.com__BURST=2
+HOST_LIMIT__www.pro-football-reference.com__CONCURRENCY=1
+HTTP_USER_AGENT=EdgeScraper/1.0 (+https://github.com/ZaBrisket/Edge.Scraper.Pro)
+```
+
+
 ## Performance Metrics
 - **Extraction Speed**: < 100ms per sports page
 - **Content Accuracy**: ≥ 85% for player information
