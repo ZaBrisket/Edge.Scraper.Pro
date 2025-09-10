@@ -12,6 +12,60 @@ const createLogger = require('./logging');
 const limiters = new Map();
 const circuits = new Map();
 
+// TTL cleanup for memory management
+const LIMITER_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const CIRCUIT_TTL_MS = 15 * 60 * 1000; // 15 minutes
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Track creation times for TTL cleanup
+const limiterTimestamps = new Map();
+const circuitTimestamps = new Map();
+
+// Start cleanup interval
+let cleanupInterval = setInterval(cleanupExpiredEntries, CLEANUP_INTERVAL_MS);
+
+function cleanupExpiredEntries() {
+  const now = Date.now();
+  
+  // Clean up expired limiters
+  for (const [host, timestamp] of limiterTimestamps.entries()) {
+    if (now - timestamp > LIMITER_TTL_MS) {
+      const limiter = limiters.get(host);
+      if (limiter) {
+        // Stop the limiter before removing
+        limiter.stop({ dropWaitingJobs: true });
+        limiters.delete(host);
+        limiterTimestamps.delete(host);
+        console.log(`Cleaned up expired limiter for host: ${host}`);
+      }
+    }
+  }
+  
+  // Clean up expired circuits
+  for (const [host, timestamp] of circuitTimestamps.entries()) {
+    if (now - timestamp > CIRCUIT_TTL_MS) {
+      circuits.delete(host);
+      circuitTimestamps.delete(host);
+      console.log(`Cleaned up expired circuit for host: ${host}`);
+    }
+  }
+}
+
+// Graceful shutdown cleanup
+process.on('SIGINT', () => {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+  }
+  // Clean up all limiters
+  for (const [host, limiter] of limiters.entries()) {
+    limiter.stop({ dropWaitingJobs: true });
+  }
+  limiters.clear();
+  circuits.clear();
+  limiterTimestamps.clear();
+  circuitTimestamps.clear();
+});
+
 function getLimiter(host) {
   if (!limiters.has(host)) {
     const limiter = new Bottleneck({
@@ -21,6 +75,10 @@ function getLimiter(host) {
       reservoirRefreshInterval: 1000,
     });
     limiters.set(host, limiter);
+    limiterTimestamps.set(host, Date.now());
+  } else {
+    // Update timestamp on access to extend TTL
+    limiterTimestamps.set(host, Date.now());
   }
   return limiters.get(host);
 }
@@ -32,6 +90,10 @@ function getCircuit(host) {
       failures: 0,
       openedAt: 0,
     });
+    circuitTimestamps.set(host, Date.now());
+  } else {
+    // Update timestamp on access to extend TTL
+    circuitTimestamps.set(host, Date.now());
   }
   return circuits.get(host);
 }

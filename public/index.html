@@ -194,31 +194,81 @@
             constructor(message) { super(message); this.name = 'ValidationError'; }
         }
 
+        // Request debouncing system
+        class RequestDebouncer {
+            constructor() {
+                this.pendingRequests = new Map();
+                this.debounceDelay = 300; // 300ms debounce
+            }
+
+            async debouncedFetch(url, options = {}) {
+                const key = `${url}_${JSON.stringify(options)}`;
+                
+                // Cancel existing request for same URL
+                if (this.pendingRequests.has(key)) {
+                    const existingController = this.pendingRequests.get(key);
+                    existingController.abort();
+                }
+
+                // Create new abort controller
+                const controller = new AbortController();
+                this.pendingRequests.set(key, controller);
+
+                try {
+                    const response = await fetch(url, {
+                        ...options,
+                        signal: controller.signal
+                    });
+                    
+                    // Remove from pending requests on success
+                    this.pendingRequests.delete(key);
+                    return response;
+                } catch (error) {
+                    // Remove from pending requests on error
+                    this.pendingRequests.delete(key);
+                    throw error;
+                }
+            }
+
+            cancelAll() {
+                for (const [key, controller] of this.pendingRequests.entries()) {
+                    controller.abort();
+                }
+                this.pendingRequests.clear();
+            }
+        }
+
+        const requestDebouncer = new RequestDebouncer();
+
         const api = {
             async fetchUrl(url) {
-                const response = await fetch(`/api/fetch-url?url=${encodeURIComponent(url)}`);
-                const responseText = await response.text();
-                const correlationId = response.headers.get('x-correlation-id');
-                log(correlationId ? `[${correlationId}]` : '', `[fetchUrl] [${response.status}] ${url}:`, responseText.substring(0, 200));
-                if (!response.ok) {
-                    let error;
+                return await safeAsyncOperation(async () => {
+                    const response = await requestDebouncer.debouncedFetch(`/api/fetch-url?url=${encodeURIComponent(url)}`);
+                    const responseText = await response.text();
+                    const correlationId = response.headers.get('x-correlation-id');
+                    log(correlationId ? `[${correlationId}]` : '', `[fetchUrl] [${response.status}] ${url}:`, responseText.substring(0, 200));
+                    
+                    if (!response.ok) {
+                        let error;
+                        try {
+                            const parsed = JSON.parse(responseText);
+                            error = parsed.error || parsed;
+                        } catch {
+                            error = { message: responseText, status: response.status };
+                        }
+                        const errorMessage = typeof error === 'object'
+                            ? (error.message || error.code || JSON.stringify(error))
+                            : String(error);
+                        throw new NetworkError(`[${response.status}] ${errorMessage}`, response.status);
+                    }
+                    
                     try {
                         const parsed = JSON.parse(responseText);
-                        error = parsed.error || parsed;
+                        return parsed.data?.html || parsed.html || '';
                     } catch {
-                        error = { message: responseText, status: response.status };
+                        throw new ParseError('Failed to parse fetch-url response', response.status);
                     }
-                    const errorMessage = typeof error === 'object'
-                        ? (error.message || error.code || JSON.stringify(error))
-                        : String(error);
-                    throw new NetworkError(`[${response.status}] ${errorMessage}`, response.status);
-                }
-                try {
-                    const parsed = JSON.parse(responseText);
-                    return parsed.data?.html || parsed.html || '';
-                } catch {
-                    throw new ParseError('Failed to parse fetch-url response', response.status);
-                }
+                }, 'API Fetch URL');
             }
         };
 
@@ -235,6 +285,89 @@
         };
 
         const showError = message => { dom.errorMessage.textContent = message; dom.errorBox.classList.remove('hidden'); };
+
+        // Comprehensive error boundary system
+        class ErrorBoundary {
+            constructor() {
+                this.errorCount = 0;
+                this.maxErrors = 10;
+                this.errorHistory = [];
+            }
+
+            handleError(error, context = 'Unknown') {
+                this.errorCount++;
+                const errorInfo = {
+                    message: error.message || 'Unknown error',
+                    stack: error.stack || 'No stack trace',
+                    context,
+                    timestamp: new Date().toISOString(),
+                    errorCount: this.errorCount
+                };
+                
+                this.errorHistory.push(errorInfo);
+                
+                // Keep only last 50 errors
+                if (this.errorHistory.length > 50) {
+                    this.errorHistory = this.errorHistory.slice(-50);
+                }
+                
+                console.error(`[ErrorBoundary] ${context}:`, errorInfo);
+                
+                // Show user-friendly error message
+                if (this.errorCount <= this.maxErrors) {
+                    showError(`Error in ${context}: ${errorInfo.message}`);
+                } else {
+                    showError('Multiple errors occurred. Please refresh the page.');
+                }
+                
+                return errorInfo;
+            }
+
+            reset() {
+                this.errorCount = 0;
+                this.errorHistory = [];
+            }
+
+            getErrorSummary() {
+                return {
+                    totalErrors: this.errorCount,
+                    recentErrors: this.errorHistory.slice(-5),
+                    isHealthy: this.errorCount < this.maxErrors
+                };
+            }
+        }
+
+        const errorBoundary = new ErrorBoundary();
+
+        // Global error handlers
+        window.addEventListener('error', (event) => {
+            errorBoundary.handleError(event.error, 'Global Error Handler');
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            errorBoundary.handleError(event.reason, 'Unhandled Promise Rejection');
+            event.preventDefault(); // Prevent console error
+        });
+
+        // Safe DOM operations wrapper
+        function safeDOMOperation(operation, context = 'DOM Operation') {
+            try {
+                return operation();
+            } catch (error) {
+                errorBoundary.handleError(error, context);
+                return null;
+            }
+        }
+
+        // Safe async operation wrapper
+        async function safeAsyncOperation(operation, context = 'Async Operation') {
+            try {
+                return await operation();
+            } catch (error) {
+                errorBoundary.handleError(error, context);
+                throw error; // Re-throw for caller handling
+            }
+        }
 
         async function verifyBackend() {
             try {
@@ -258,26 +391,30 @@
         };
 
         dom.scrapeBtn.addEventListener('click', async () => {
-            dom.errorBox.classList.add('hidden');
-            dom.resultsContainer.style.display = 'none';
-            dom.statusContainer.classList.remove('hidden');
-            updateRunButtons(true);
-            
-            state.runControls = { paused: false, aborted: false };
-            state.scrapeResults = [];
-            dom.resultsCode.textContent = '';
+            await safeAsyncOperation(async () => {
+                dom.errorBox.classList.add('hidden');
+                dom.resultsContainer.style.display = 'none';
+                dom.statusContainer.classList.remove('hidden');
+                updateRunButtons(true);
+                
+                // Reset error boundary for new scraping session
+                errorBoundary.reset();
+                
+                state.runControls = { paused: false, aborted: false };
+                state.scrapeResults = [];
+                dom.resultsCode.textContent = '';
 
-            try {
-                await runBulkScrape();
-            } catch (error) {
-                if (!state.runControls.aborted) {
-                    console.error('Scraping Error:', error);
-                    showError(error.message);
+                try {
+                    await runBulkScrape();
+                } catch (error) {
+                    if (!state.runControls.aborted) {
+                        errorBoundary.handleError(error, 'Bulk Scraping');
+                    }
+                } finally {
+                    dom.statusContainer.classList.add('hidden');
+                    updateRunButtons(false);
                 }
-            } finally {
-                dom.statusContainer.classList.add('hidden');
-                updateRunButtons(false);
-            }
+            }, 'Scrape Button Click');
         });
         
         dom.concurrencySlider.addEventListener('input', () => dom.concurrencyValue.textContent = dom.concurrencySlider.value);
@@ -293,8 +430,16 @@
             dom.pauseBtn.classList.remove('hidden');
         });
         dom.stopBtn.addEventListener('click', () => {
-            state.runControls.aborted = true;
-            dom.statusText.textContent = 'Scraping stopped by user.';
+            safeDOMOperation(() => {
+                state.runControls.aborted = true;
+                dom.statusText.textContent = 'Scraping stopped by user.';
+                
+                // Cancel all pending requests
+                requestDebouncer.cancelAll();
+                
+                // Reset error boundary
+                errorBoundary.reset();
+            }, 'Stop Button Click');
         });
 
         const cooperativelyYield = async () => {
@@ -396,52 +541,57 @@
                     if (state.runControls.aborted) break;
                     
                     const { index, url } = urlQueue.shift();
-                    try {
-                        dom.statusText.textContent = `${statusPrefix} (${completed + 1}/${totalUrls}): ${url.substring(0, 50)}...`;
-                        const html = await api.fetchUrl(url);
-                        const doc = new DOMParser().parseFromString(html, 'text/html');
-                        const metadata = extractMetadata(doc);
-                        const extractionResult = extractMainContentWithDebug(doc, url);
-                        const text = extractionResult.content;
-                        
-                        // Log extraction details for debugging
-                        if (DEBUG) {
-                            console.log(`[Content Extraction] ${url}:`, {
-                                selectedMethod: extractionResult.method,
-                                contentLength: text.length,
-                                score: extractionResult.score,
-                                candidatesFound: extractionResult.candidatesCount
-                            });
+                    await safeAsyncOperation(async () => {
+                        try {
+                            safeDOMOperation(() => {
+                                dom.statusText.textContent = `${statusPrefix} (${completed + 1}/${totalUrls}): ${url.substring(0, 50)}...`;
+                            }, 'Status Update');
+                            
+                            const html = await api.fetchUrl(url);
+                            const doc = new DOMParser().parseFromString(html, 'text/html');
+                            const metadata = safeDOMOperation(() => extractMetadata(doc), 'Metadata Extraction');
+                            const extractionResult = safeDOMOperation(() => extractMainContentWithDebug(doc, url), 'Content Extraction');
+                            const text = extractionResult?.content || '';
+                            
+                            // Log extraction details for debugging
+                            if (DEBUG) {
+                                console.log(`[Content Extraction] ${url}:`, {
+                                    selectedMethod: extractionResult?.method,
+                                    contentLength: text.length,
+                                    score: extractionResult?.score,
+                                    candidatesFound: extractionResult?.candidatesCount
+                                });
+                            }
+                            
+                            state.scrapeResults[index] = { 
+                                index, url, text, metadata: metadata || {}, 
+                                html: dom.includeHtmlToggle.checked ? html : null, 
+                                success: true,
+                                extractionDebug: extractionResult?.debug
+                            };
+                        } catch (error) {
+                            errorBoundary.handleError(error, `Worker Processing ${url}`);
+                            const errorDetails = {
+                                message: error.message || error.toString(),
+                                status: error.status,
+                                stack: error.stack
+                            };
+                            state.scrapeResults[index] = {
+                                index,
+                                url,
+                                text: '',
+                                metadata: {},
+                                success: false,
+                                error: errorDetails.message,
+                                errorDetails,
+                                html: null
+                            };
+                        } finally {
+                            completed++;
+                            safeDOMOperation(() => renderResults(), 'Results Rendering');
                         }
-                        
-                        state.scrapeResults[index] = { 
-                            index, url, text, metadata, 
-                            html: dom.includeHtmlToggle.checked ? html : null, 
-                            success: true,
-                            extractionDebug: extractionResult.debug
-                        };
-                    } catch (error) {
-                        console.error(`Failed to scrape ${url}:`, error);
-                        const errorDetails = {
-                            message: error.message || error.toString(),
-                            status: error.status,
-                            stack: error.stack
-                        };
-                        state.scrapeResults[index] = {
-                            index,
-                            url,
-                            text: '',
-                            metadata: {},
-                            success: false,
-                            error: errorDetails.message,
-                            errorDetails,
-                            html: null
-                        };
-                    } finally {
-                        completed++;
-                        renderResults();
-                    }
-                    await delay(perRequestDelay);
+                        await delay(perRequestDelay);
+                    }, `Worker Processing ${url}`);
                 }
             }
             
