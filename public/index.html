@@ -695,6 +695,9 @@
                     results = results.filter(r => isSportsURL(r.url));
                 }
                 
+                // Show the results container
+                dom.resultsContainer.style.display = 'block';
+                
                 dom.resultsCode.textContent = results.map(r => {
                     let output = `\n\n--- Content from ${r.url} ---\n\n`;
                     
