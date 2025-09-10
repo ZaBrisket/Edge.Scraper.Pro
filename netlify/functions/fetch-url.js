@@ -8,7 +8,6 @@ const { URL } = require('url');
 const net = require('net');
 const { fetchWithPolicy } = require('../../src/lib/http/client');
 const { getCorrelationId } = require('../../src/lib/http/correlation');
-const config = require('../../src/lib/config');
 
 // Cache for resolved hostnames
 const hostCache = new Map();
@@ -17,7 +16,8 @@ const CACHE_TTL_MS = 5000;
 const UA = 'EdgeScraper/1.0 (+https://github.com/ZaBrisket/Edge.Scraper.Pro)';
 const MAX_REDIRECTS = 3;
 const MAX_BYTES = 2.5 * 1024 * 1024; // 2.5 MB
-const TIMEOUT_MS = config.DEFAULT_TIMEOUT_MS; // Use environment-driven timeout
+// Use environment-driven timeout with fallback to 10 seconds
+const TIMEOUT_MS = parseInt(process.env.HTTP_DEADLINE_MS || '10000', 10);
 const ALLOWED_PORTS = new Set([80, 443, null, undefined, '']); // default http/https
 
 const CORS_HEADERS = {

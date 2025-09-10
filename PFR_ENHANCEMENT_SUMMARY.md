@@ -24,7 +24,8 @@ This enhancement adds safer, cleaner PFR player batch processing with enhanced v
 ### 3. Timeout Unification
 
 - **Removed Hardcoded Timeout**: `netlify/functions/fetch-url.js` now uses environment-driven configuration
-- **Centralized Configuration**: All HTTP timeouts use `HTTP_DEADLINE_MS` from environment
+- **Direct Environment Read**: Netlify function reads `HTTP_DEADLINE_MS` directly from `process.env` with fallback to 10000ms
+- **No External Dependencies**: Avoids runtime errors by not importing the config module from src
 - **Consistent Behavior**: Timeout policy applied consistently across all network operations
 
 ### 4. Validation Report UI
@@ -54,9 +55,10 @@ This enhancement adds safer, cleaner PFR player batch processing with enhanced v
    - Added event listener to clear validation on URL list change
 
 2. **`netlify/functions/fetch-url.js`**:
-   - Imported config module
-   - Changed `TIMEOUT_MS` from hardcoded 15000 to `config.DEFAULT_TIMEOUT_MS`
+   - Changed `TIMEOUT_MS` from hardcoded 15000 to read from `process.env.HTTP_DEADLINE_MS`
+   - Added fallback to 10000ms if environment variable not set
    - Added timeout parameter to `fetchWithPolicy` calls
+   - Fixed: Removed config module import to prevent runtime errors in Netlify environment
 
 3. **`README.md`**:
    - Added new features to documentation
