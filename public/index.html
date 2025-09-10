@@ -694,16 +694,14 @@
                     let urls = [];
 
                     if (Array.isArray(data)) {
-                        // Check if it's an array of strings or objects
-                        if (data.length > 0 && data.every(item => typeof item === 'object' && item.url)) {
-                            // Array of objects with URL property
-                            urls = data
-                                .map(item => item.url)
-                                .filter(url => typeof url === 'string' && this.isValidUrl(url));
-                        } else {
-                            // Simple array format (strings)
-                            urls = data.filter(item => typeof item === 'string' && this.isValidUrl(item));
-                        }
+                        // Handle mixed arrays by extracting URLs from both strings and objects
+                        const stringUrls = data.filter(item => typeof item === 'string' && this.isValidUrl(item));
+                        const objectUrls = data
+                            .filter(item => item && typeof item === 'object' && item.url)
+                            .map(item => item.url)
+                            .filter(url => typeof url === 'string' && this.isValidUrl(url));
+                        
+                        urls = [...stringUrls, ...objectUrls];
                     } else if (data.urls && Array.isArray(data.urls)) {
                         // Object with URLs property
                         urls = data.urls.filter(url => typeof url === 'string' && this.isValidUrl(url));
