@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload Test - Edge.Scraper.Pro</title>
+    <script src="file-upload.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2em;
+        }
+        
+        .file-drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 4px;
+            padding: 2em;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: #f9f9f9;
+            margin: 1em 0;
+        }
+        
+        .file-drop-zone:hover {
+            border-color: #999;
+            background-color: #f0f0f0;
+        }
+        
+        .file-drop-zone.drag-over {
+            border-color: #4CAF50;
+            background-color: #e8f5e9;
+        }
+        
+        .results {
+            margin-top: 2em;
+            padding: 1em;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .error {
+            color: red;
+            margin-top: 1em;
+        }
+        
+        .success {
+            color: green;
+            margin-top: 1em;
+        }
+        
+        .file-info {
+            margin-top: 1em;
+            padding: 1em;
+            background-color: #e8f5e9;
+            border: 1px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <h1>File Upload Test</h1>
+    <p>Test the file upload functionality for Edge.Scraper.Pro</p>
+    
+    <div id="fileDropZone" class="file-drop-zone">
+        <p>📁 Drop test file here or click to browse<br>
+        <small>Accepts .txt and .json files (max 1,500 URLs)</small></p>
+    </div>
+    <input type="file" id="fileInput" accept=".txt,.json" style="display: none;" />
+    
+    <div id="status"></div>
+    <div id="fileInfo" class="file-info" style="display: none;">
+        <h3>File Information</h3>
+        <p>Name: <span id="fileName"></span></p>
+        <p>Size: <span id="fileSize"></span></p>
+        <p>URLs found: <span id="urlCount"></span></p>
+    </div>
+    
+    <div id="results" class="results" style="display: none;">
+        <h3>Extracted URLs:</h3>
+        <div id="urlList"></div>
+    </div>
+    
+    <script>
+        // Initialize file upload handler
+        const fileUploadHandler = new FileUploadHandler({
+            maxFileSize: 5 * 1024 * 1024, // 5MB
+            maxUrls: 1500,
+            onProgress: (progress) => {
+                const status = document.getElementById('status');
+                status.className = '';
+                if (progress.phase === 'reading') {
+                    status.textContent = `Reading file: ${progress.fileName}`;
+                } else if (progress.phase === 'parsing') {
+                    status.textContent = `Parsing URLs from ${progress.fileName}...`;
+                }
+            },
+            onError: (error) => {
+                const status = document.getElementById('status');
+                status.className = 'error';
+                status.textContent = `Error: ${error.message}`;
+                
+                // Hide results on error
+                document.getElementById('fileInfo').style.display = 'none';
+                document.getElementById('results').style.display = 'none';
+            },
+            onComplete: (result) => {
+                const status = document.getElementById('status');
+                status.className = 'success';
+                status.textContent = `Successfully loaded ${result.urlCount} URLs from ${result.fileName}`;
+                
+                // Update file info
+                document.getElementById('fileName').textContent = result.fileName;
+                document.getElementById('fileSize').textContent = `${(result.fileSize / 1024).toFixed(2)} KB`;
+                document.getElementById('urlCount').textContent = result.urlCount;
+                document.getElementById('fileInfo').style.display = 'block';
+                
+                // Display URLs
+                document.getElementById('urlList').textContent = result.urls.join('\n');
+                document.getElementById('results').style.display = 'block';
+            }
+        });
+        
+        // Initialize UI
+        fileUploadHandler.initializeUI(
+            document.getElementById('fileDropZone'),
+            document.getElementById('fileInput')
+        );
+    </script>
+    
+    <hr style="margin-top: 3em;">
+    <h2>Test Files</h2>
+    <p>Use these test files to verify the upload functionality:</p>
+    <ul>
+        <li><a href="../test-urls.txt">test-urls.txt</a> - TXT format with comments</li>
+        <li><a href="../test-urls-simple.json">test-urls-simple.json</a> - Simple JSON array</li>
+        <li><a href="../test-urls-objects.json">test-urls-objects.json</a> - JSON objects with metadata</li>
+        <li><a href="../test-urls-nested.json">test-urls-nested.json</a> - Nested JSON structure</li>
+        <li><a href="../test-urls-large.json">test-urls-large.json</a> - 100+ URLs for capacity testing</li>
+    </ul>
+</body>
+</html>

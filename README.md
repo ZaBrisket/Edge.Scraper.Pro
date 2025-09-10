@@ -72,6 +72,7 @@ For detailed documentation, see [HTTP Client Enhancements](docs/HTTP_CLIENT_ENHA
 
 ### Basic Web Scraping
 - **UI:** Open the deployed site, paste one URL per line, and click **Scrape**
+- **File Upload:** Drag and drop or browse to upload .txt or .json files containing URLs (up to 1,500 URLs)
 - **Programmatic:** Call `/.netlify/functions/fetch-url?url=<https URL>` to fetch HTML
 
 ### Enhanced Sports Scraping
@@ -90,10 +91,53 @@ https://www.pro-football-reference.com/players/B/BradTo00.htm
 https://www.pro-football-reference.com/players/R/RiceJe00.htm
 ```
 
+### File Upload Feature
+The scraper now supports uploading files containing URLs for bulk processing:
+
+#### Supported File Formats
+
+**TXT Files** (`.txt`)
+- One URL per line
+- Comments supported (lines starting with `#`)
+- Empty lines are ignored
+- Example:
+  ```
+  https://example.com/page1
+  https://example.com/page2
+  # This is a comment
+  https://example.com/page3
+  ```
+
+**JSON Files** (`.json`)
+- Simple array format:
+  ```json
+  ["url1", "url2", "url3"]
+  ```
+- Object array format:
+  ```json
+  [
+    {"url": "url1", "name": "Page 1"},
+    {"url": "url2", "name": "Page 2"}
+  ]
+  ```
+- Nested format:
+  ```json
+  {
+    "urls": ["url1", "url2", "url3"]
+  }
+  ```
+
+#### Upload Limits
+- Maximum file size: 5MB
+- Maximum URLs per file: 1,500
+- Drag and drop supported
+- Option to merge with manually entered URLs
+
 ## Features
 
 ### Core Functionality
 - **Bulk Processing**: Concurrent scraping with rate limiting and error handling
+- **File Upload Support**: Upload .txt or .json files containing up to 1,500 URLs
 - **Enhanced HTTP Client**: Per-host rate limiting, 429-aware retries, circuit breaker hygiene
 - **Content Extraction**: Advanced algorithms for main content detection
 - **Export Options**: TXT, JSONL, CSV, Enhanced CSV, Structured JSON, Player Database
