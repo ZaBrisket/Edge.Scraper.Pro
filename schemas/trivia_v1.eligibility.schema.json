@@ -1,0 +1,25 @@
+{
+  "$id": "trivia_v1.eligibility.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["player_id", "rookie_year", "seasons_with_G_ge_1", "eligible_flag"],
+  "properties": {
+    "player_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "rookie_year": {
+      "type": "integer",
+      "minimum": 1997,
+      "maximum": 2024
+    },
+    "seasons_with_G_ge_1": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "eligible_flag": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

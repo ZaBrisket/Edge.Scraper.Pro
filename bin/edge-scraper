@@ -1,0 +1,80 @@
+#!/usr/bin/env node
+
+const { Command } = require('commander');
+const path = require('path');
+
+// Import the trivia exporter (will need to compile TypeScript first)
+const { exportTriviaDataset } = require('../dist/exporters/trivia_v1/index');
+
+const program = new Command();
+
+program
+  .name('edge-scraper')
+  .description('Edge.Scraper.Pro CLI tools')
+  .version('2.0.0');
+
+program
+  .command('export')
+  .description('Export data in various formats')
+  .option('--mode <mode>', 'export mode', 'trivia_v1')
+  .option('--input <path>', 'input file path', 'fixtures/raw/sports_structured_data.json')
+  .option('--out <path>', 'output file path', 'build/dataset.trivia_v1.json')
+  .option('--season-min <year>', 'minimum season year', '1997')
+  .option('--season-max <year>', 'maximum season year', '2024')
+  .option('--positions <positions>', 'comma-separated list of positions', 'QB,RB,WR,TE')
+  .option('--require-G-min <games>', 'minimum games played', '1')
+  .option('--drop-summary-rows', 'drop summary/aggregate rows', false)
+  .option('--pretty', 'pretty print JSON output', false)
+  .option('--strict', 'strict mode (fail on any error)', false)
+  .option('--verbose', 'verbose output', false)
+  .option('--no-validate', 'skip validation', false)
+  .action(async (options) => {
+    try {
+      if (options.mode !== 'trivia_v1') {
+        console.error(`Unsupported export mode: ${options.mode}`);
+        process.exit(1);
+      }
+
+      // Parse options
+      const exportOptions = {
+        seasonMin: parseInt(options.seasonMin),
+        seasonMax: parseInt(options.seasonMax),
+        positions: options.positions.split(',').map(p => p.trim()),
+        requireGMin: parseInt(options.requireGMin),
+        dropSummaryRows: options.dropSummaryRows,
+        pretty: options.pretty,
+        strict: options.strict,
+        verbose: options.verbose,
+        validate: !options.noValidate
+      };
+
+      if (options.verbose) {
+        console.log('Export options:', exportOptions);
+      }
+
+      // Resolve paths
+      const inputPath = path.resolve(options.input);
+      const outputPath = path.resolve(options.out);
+
+      // Ensure output directory exists
+      const outputDir = path.dirname(outputPath);
+      const fs = require('fs');
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+
+      // Run export
+      await exportTriviaDataset(inputPath, outputPath, exportOptions);
+
+      console.log(`Successfully exported ${options.mode} dataset to ${outputPath}`);
+
+    } catch (error) {
+      console.error('Export failed:', error.message);
+      if (options.verbose) {
+        console.error(error.stack);
+      }
+      process.exit(1);
+    }
+  });
+
+program.parse();
