@@ -94,6 +94,15 @@ exports.handler = async (event) => {
   } catch (err) {
     const code = err.code || 'INTERNAL';
     const message = err.message || 'Unknown error';
+    if (code === 'RATE_LIMIT') {
+      const retryAfterMs = err.meta && err.meta.retryAfterMs;
+      const body = { code, message: '429 rate limit', nextRetryMs: retryAfterMs };
+      const headers = retryAfterMs ? { 'Retry-After': String(Math.ceil(retryAfterMs / 1000)) } : {};
+      return { statusCode: 429, headers: { ...CORS_HEADERS, ...headers, 'x-correlation-id': correlationId, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: false, error: body }) };
+    }
+    if (code === 'CIRCUIT_OPEN') {
+      return json(503, { error: { code, message: 'circuit open' } }, correlationId);
+    }
     return json(500, { error: { code, message } }, correlationId);
   }
 };

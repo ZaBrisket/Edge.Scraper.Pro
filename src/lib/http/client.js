@@ -8,6 +8,7 @@ const {
 } = require('./errors');
 const config = require('../config');
 const createLogger = require('./logging');
+const metrics = require('./metrics');
 
 const limiters = new Map();
 const circuits = new Map();
@@ -68,14 +69,17 @@ process.on('SIGINT', () => {
 
 function getLimiter(host) {
   if (!limiters.has(host)) {
+    const { rps, burst, concurrency } = config.getHostLimits(host);
     const limiter = new Bottleneck({
-      maxConcurrent: config.MAX_CONCURRENCY,
-      reservoir: config.RATE_LIMIT_PER_SEC,
-      reservoirRefreshAmount: config.RATE_LIMIT_PER_SEC,
+      maxConcurrent: concurrency,
+      reservoir: Math.max(Math.ceil(burst), Math.ceil(rps)),
+      reservoirRefreshAmount: Math.ceil(rps),
       reservoirRefreshInterval: 1000,
+      trackDoneStatus: true,
     });
     limiters.set(host, limiter);
     limiterTimestamps.set(host, Date.now());
+    metrics.setGauge('rate_limit.config', { host, rps, burst, concurrency }, 1);
   } else {
     // Update timestamp on access to extend TTL
     limiterTimestamps.set(host, Date.now());
@@ -105,11 +109,14 @@ async function fetchWithPolicy(input, opts = {}) {
   const circuit = getCircuit(host);
   const correlationId = opts.correlationId || randomUUID();
   const logger = createLogger(correlationId).child({ host, url: url.toString() });
+  metrics.incCounter('http.requests', { host, phase: 'start' }, 1);
 
   if (circuit.state === 'open') {
     if (Date.now() - circuit.openedAt > config.CIRCUIT_BREAKER_RESET_MS) {
       circuit.state = 'half-open';
+      metrics.incCounter('circuit.state', { host, state: 'half_open' }, 1);
     } else {
+      metrics.incCounter('circuit.state', { host, state: 'open_block' }, 1);
       throw new CircuitOpenError(`Circuit for ${host} is open`, { host });
     }
   }
@@ -125,7 +132,10 @@ async function fetchWithPolicy(input, opts = {}) {
       logger.info({ attempt }, 'outbound request');
       const res = await fetch(url.toString(), { ...opts, headers, signal: controller.signal });
       if (res.status === 429) {
-        throw new RateLimitError('Upstream 429', { status: res.status });
+        const retryAfter = res.headers.get('retry-after');
+        const retryAfterMs = parseRetryAfterMs(retryAfter);
+        metrics.incCounter('rate_limit.hit', { host }, 1);
+        throw new RateLimitError('Upstream 429', { status: res.status, retryAfterMs });
       }
       if (res.status >= 500) {
         throw new NetworkError(`Upstream ${res.status}`, { status: res.status });
@@ -133,6 +143,8 @@ async function fetchWithPolicy(input, opts = {}) {
       // Success
       circuit.failures = 0;
       circuit.state = 'closed';
+      metrics.incCounter('circuit.state', { host, state: 'close' }, 1);
+      metrics.incCounter('http.requests', { host, status_class: `${Math.floor(res.status/100)}xx` }, 1);
       return res;
     } catch (err) {
       if (err.name === 'AbortError') {
@@ -140,14 +152,21 @@ async function fetchWithPolicy(input, opts = {}) {
         if (circuit.failures >= config.CIRCUIT_BREAKER_THRESHOLD) {
           circuit.state = 'open';
           circuit.openedAt = Date.now();
+          metrics.incCounter('circuit.state', { host, state: 'open' }, 1);
         }
         throw new TimeoutError('Request timed out', { timeout });
       }
-      if (err instanceof RateLimitError || err instanceof NetworkError) {
+      if (err instanceof RateLimitError) {
+        // Do NOT count 429s toward circuit failures
+        metrics.incCounter('http.requests', { host, status_class: '4xx', status: 429 }, 1);
+        throw err;
+      }
+      if (err instanceof NetworkError) {
         circuit.failures++;
         if (circuit.failures >= config.CIRCUIT_BREAKER_THRESHOLD) {
           circuit.state = 'open';
           circuit.openedAt = Date.now();
+          metrics.incCounter('circuit.state', { host, state: 'open' }, 1);
         }
         throw err;
       }
@@ -162,19 +181,39 @@ async function fetchWithPolicy(input, opts = {}) {
     try {
       return await limiter.schedule(() => attemptFetch(attempt + 1));
     } catch (err) {
-      if (
-        err instanceof CircuitOpenError ||
-        err instanceof TimeoutError ||
-        attempt >= maxRetries
-      ) {
+      if (err instanceof CircuitOpenError || err instanceof TimeoutError) {
+        throw err;
+      }
+      if (attempt >= maxRetries) {
         throw err;
       }
       attempt++;
-      const backoff = Math.min(100 * 2 ** attempt, 1000);
-      const jitter = Math.floor(Math.random() * 100);
-      await new Promise((r) => setTimeout(r, backoff + jitter));
+      let delayMs;
+      if (err instanceof RateLimitError) {
+        const base = err.meta && typeof err.meta.retryAfterMs === 'number' ? err.meta.retryAfterMs : undefined;
+        const expo = Math.min(1000 * 2 ** (attempt - 1), 15000);
+        const jitter = Math.floor(Math.random() * 500);
+        delayMs = (base || expo) + jitter;
+        metrics.incCounter('429.deferred', { host }, 1);
+        metrics.incCounter('retry.scheduled', { host, reason: '429' }, 1);
+      } else {
+        const expo = Math.min(300 * 2 ** (attempt - 1), 5000);
+        const jitter = Math.floor(Math.random() * 200);
+        delayMs = expo + jitter;
+        metrics.incCounter('retry.scheduled', { host, reason: '5xx_or_network' }, 1);
+      }
+      await new Promise((r) => setTimeout(r, delayMs));
     }
   }
+}
+
+function parseRetryAfterMs(header) {
+  if (!header) return undefined;
+  const asNum = Number(header);
+  if (!Number.isNaN(asNum)) return Math.max(0, asNum * 1000);
+  const date = Date.parse(header);
+  if (!Number.isNaN(date)) return Math.max(0, date - Date.now());
+  return undefined;
 }
 
 module.exports = { fetchWithPolicy };
