@@ -1,0 +1,4365 @@
+{
+  "urlValidation": {
+    "totalUrls": 501,
+    "validUrls": 492,
+    "invalidUrls": 9,
+    "duplicateUrls": 0,
+    "validationTime": 6,
+    "validationRate": 98.20359281437125,
+    "details": {
+      "total": 501,
+      "valid": [
+        {
+          "url": "https://www.pro-football-reference.com/players/T/TomlLa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/TomlLa00.htm",
+          "index": 0
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FaulMa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FaulMa00.htm",
+          "index": 1
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HolmPr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HolmPr00.htm",
+          "index": 2
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AlexSh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AlexSh00.htm",
+          "index": 3
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DaviTe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DaviTe00.htm",
+          "index": 4
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/McCaCh01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/McCaCh01.htm",
+          "index": 5
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SmitEm00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SmitEm00.htm",
+          "index": 6
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JohnCh04.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JohnCh04.htm",
+          "index": 7
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GreeAh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GreeAh00.htm",
+          "index": 8
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/TaylJo02.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/TaylJo02.htm",
+          "index": 9
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JameEd00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JameEd00.htm",
+          "index": 10
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JohnLa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JohnLa00.htm",
+          "index": 11
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DickEr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DickEr00.htm",
+          "index": 12
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JohnDa08.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JohnDa08.htm",
+          "index": 13
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FostAr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FostAr00.htm",
+          "index": 14
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JackSt00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JackSt00.htm",
+          "index": 15
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BarkSa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BarkSa00.htm",
+          "index": 16
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GurlTo01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GurlTo01.htm",
+          "index": 17
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HenrDe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HenrDe00.htm",
+          "index": 18
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SandBa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SandBa00.htm",
+          "index": 19
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WillRi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WillRi00.htm",
+          "index": 20
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AlleMa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AlleMa00.htm",
+          "index": 21
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GibbJa01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GibbJa01.htm",
+          "index": 22
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AndeJa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AndeJa00.htm",
+          "index": 23
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CharJa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CharJa00.htm",
+          "index": 24
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PeteAd01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PeteAd01.htm",
+          "index": 25
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BarbTi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BarbTi00.htm",
+          "index": 26
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/L/LewiJa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/L/LewiJa00.htm",
+          "index": 27
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RiceRa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RiceRa00.htm",
+          "index": 28
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WildJa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WildJa00.htm",
+          "index": 29
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/K/KamaAl00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/K/KamaAl00.htm",
+          "index": 30
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MurrDe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MurrDe00.htm",
+          "index": 31
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CookDa01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CookDa01.htm",
+          "index": 32
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/E/ElliEz00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/E/ElliEz00.htm",
+          "index": 33
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CraiRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CraiRo00.htm",
+          "index": 34
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BellLe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BellLe00.htm",
+          "index": 35
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WillDe02.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WillDe02.htm",
+          "index": 36
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GeorEd00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GeorEd00.htm",
+          "index": 37
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HillDa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HillDa00.htm",
+          "index": 38
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PortCl00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PortCl00.htm",
+          "index": 39
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RobiBi01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RobiBi01.htm",
+          "index": 40
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/McCoLe01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/McCoLe01.htm",
+          "index": 41
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CampEa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CampEa00.htm",
+          "index": 42
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WestBr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WestBr00.htm",
+          "index": 43
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MartCu00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MartCu00.htm",
+          "index": 44
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AndrWi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AndrWi00.htm",
+          "index": 45
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/ThomTh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/ThomTh00.htm",
+          "index": 46
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AlleTe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AlleTe00.htm",
+          "index": 47
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RiggJo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RiggJo00.htm",
+          "index": 48
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SimsBi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SimsBi00.htm",
+          "index": 49
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JacoJo01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JacoJo01.htm",
+          "index": 50
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MorrJo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MorrJo00.htm",
+          "index": 51
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PaytWa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PaytWa00.htm",
+          "index": 52
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/E/EkelAu00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/E/EkelAu00.htm",
+          "index": 53
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/TurnMi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/TurnMi00.htm",
+          "index": 54
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DrewMa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DrewMa00.htm",
+          "index": 55
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JoneAa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JoneAa00.htm",
+          "index": 56
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/L/LyncMa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/L/LyncMa00.htm",
+          "index": 57
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/McAlDe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/McAlDe00.htm",
+          "index": 58
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FortMa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FortMa00.htm",
+          "index": 59
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MartDo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MartDo00.htm",
+          "index": 60
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/TaylFr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/TaylFr00.htm",
+          "index": 61
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GoreFr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GoreFr00.htm",
+          "index": 62
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HearGa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HearGa00.htm",
+          "index": 63
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FostBa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FostBa00.htm",
+          "index": 64
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MuncCh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MuncCh00.htm",
+          "index": 65
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RiggGe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RiggGe00.htm",
+          "index": 66
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/ParkWi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/ParkWi00.htm",
+          "index": 67
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GarnCh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GarnCh00.htm",
+          "index": 68
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AndeNe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AndeNe00.htm",
+          "index": 69
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DaviDo01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DaviDo01.htm",
+          "index": 70
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WarnCu00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WarnCu00.htm",
+          "index": 71
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/ChubNi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/ChubNi00.htm",
+          "index": 72
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DaviSt00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DaviSt00.htm",
+          "index": 73
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WattRi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WattRi00.htm",
+          "index": 74
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/L/LeveDo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/L/LeveDo00.htm",
+          "index": 75
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AndeMi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AndeMi00.htm",
+          "index": 76
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WarrCh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WarrCh00.htm",
+          "index": 77
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MontWi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MontWi00.htm",
+          "index": 78
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MixoJo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MixoJo00.htm",
+          "index": 79
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DillCo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DillCo00.htm",
+          "index": 80
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RogeGe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RogeGe00.htm",
+          "index": 81
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SmitRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SmitRo00.htm",
+          "index": 82
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FreeDe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FreeDe00.htm",
+          "index": 83
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MostRa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MostRa00.htm",
+          "index": 84
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HuntKa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HuntKa00.htm",
+          "index": 85
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/TyleWe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/TyleWe00.htm",
+          "index": 86
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MorrAl00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MorrAl00.htm",
+          "index": 87
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HenrTr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HenrTr00.htm",
+          "index": 88
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JoneTh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JoneTh00.htm",
+          "index": 89
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WillKy02.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WillKy02.htm",
+          "index": 90
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WalkHe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WalkHe00.htm",
+          "index": 91
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MoreKn00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MoreKn00.htm",
+          "index": 92
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AddaJo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AddaJo00.htm",
+          "index": 93
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BellGr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BellGr00.htm",
+          "index": 94
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CookJa01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CookJa01.htm",
+          "index": 95
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HillPe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HillPe00.htm",
+          "index": 96
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WhitLo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WhitLo00.htm",
+          "index": 97
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JohnPe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JohnPe00.htm",
+          "index": 98
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/L/LacyEd00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/L/LacyEd00.htm",
+          "index": 99
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GordMe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GordMe00.htm",
+          "index": 100
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BrooJa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BrooJa00.htm",
+          "index": 101
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DorsTo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DorsTo00.htm",
+          "index": 102
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JohnRu00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JohnRu00.htm",
+          "index": 103
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HarrNa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HarrNa00.htm",
+          "index": 104
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BlouLe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BlouLe00.htm",
+          "index": 105
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/ConnJa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/ConnJa00.htm",
+          "index": 106
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JordLa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JordLa00.htm",
+          "index": 107
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/E/EtieTr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/E/EtieTr00.htm",
+          "index": 108
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SmitLa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SmitLa00.htm",
+          "index": 109
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MeanNa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MeanNa00.htm",
+          "index": 110
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CribJo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CribJo00.htm",
+          "index": 111
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AchaDe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AchaDe00.htm",
+          "index": 112
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SlatSt00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SlatSt00.htm",
+          "index": 113
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BettJe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BettJe00.htm",
+          "index": 114
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/McFaDa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/McFaDa00.htm",
+          "index": 115
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/I/IngrMa01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/I/IngrMa01.htm",
+          "index": 116
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BrowTe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BrowTe00.htm",
+          "index": 117
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HampRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HampRo00.htm",
+          "index": 118
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AndeOt00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AndeOt00.htm",
+          "index": 119
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MendRa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MendRa00.htm",
+          "index": 120
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/L/LoviDe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/L/LoviDe00.htm",
+          "index": 121
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/E/EdwaRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/E/EdwaRo00.htm",
+          "index": 122
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HallBr03.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HallBr03.htm",
+          "index": 123
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WillJa06.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WillJa06.htm",
+          "index": 124
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BennEd00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BennEd00.htm",
+          "index": 125
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/O/OkoyCh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/O/OkoyCh00.htm",
+          "index": 126
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/StewJa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/StewJa00.htm",
+          "index": 127
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MontDa01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MontDa01.htm",
+          "index": 129
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PollTo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PollTo00.htm",
+          "index": 130
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/K/KaufNa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/K/KaufNa00.htm",
+          "index": 131
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GranRy00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GranRy00.htm",
+          "index": 132
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WoodIc00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WoodIc00.htm",
+          "index": 133
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DunnWa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DunnWa00.htm",
+          "index": 134
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WhitCh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WhitCh00.htm",
+          "index": 135
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AbduKa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AbduKa00.htm",
+          "index": 136
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/StalDu00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/StalDu00.htm",
+          "index": 137
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MitcSt00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MitcSt00.htm",
+          "index": 138
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SmitAn00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SmitAn00.htm",
+          "index": 139
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SettJo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SettJo00.htm",
+          "index": 140
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WhitRa01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WhitRa01.htm",
+          "index": 141
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/McGaWi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/McGaWi00.htm",
+          "index": 142
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RichTr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RichTr00.htm",
+          "index": 143
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/ForsJu00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/ForsJu00.htm",
+          "index": 144
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PruiMi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PruiMi00.htm",
+          "index": 145
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RobiJa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RobiJa00.htm",
+          "index": 146
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WillHa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WillHa00.htm",
+          "index": 147
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JameCr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JameCr00.htm",
+          "index": 148
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/ByneEa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/ByneEa00.htm",
+          "index": 149
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HowaJo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HowaJo00.htm",
+          "index": 150
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BrowCh10.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BrowCh10.htm",
+          "index": 151
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JacoBr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JacoBr00.htm",
+          "index": 152
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RidlSt00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RidlSt00.htm",
+          "index": 153
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HubbCh01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HubbCh01.htm",
+          "index": 154
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BarbMa01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BarbMa01.htm",
+          "index": 155
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/I/IrviBu00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/I/IrviBu00.htm",
+          "index": 156
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/McNeFr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/McNeFr00.htm",
+          "index": 157
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SandMi01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SandMi01.htm",
+          "index": 158
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MackKe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MackKe00.htm",
+          "index": 159
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RhetEr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RhetEr00.htm",
+          "index": 160
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CarsCh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CarsCh00.htm",
+          "index": 161
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HampLo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HampLo00.htm",
+          "index": 162
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WillJo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WillJo00.htm",
+          "index": 163
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BennMi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BennMi00.htm",
+          "index": 164
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FourLe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FourLe00.htm",
+          "index": 165
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DickCu00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DickCu00.htm",
+          "index": 166
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JameLi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JameLi00.htm",
+          "index": 167
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BradAh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BradAh00.htm",
+          "index": 168
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GaryCl00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GaryCl00.htm",
+          "index": 169
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HarrDa06.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HarrDa06.htm",
+          "index": 170
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HeywCr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HeywCr00.htm",
+          "index": 171
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SproDa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SproDa00.htm",
+          "index": 172
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JackEa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JackEa00.htm",
+          "index": 173
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DrouRe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DrouRe00.htm",
+          "index": 174
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WhitJa02.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WhitJa02.htm",
+          "index": 175
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/StewJo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/StewJo00.htm",
+          "index": 176
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MayeRu00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MayeRu00.htm",
+          "index": 177
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AjayJa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AjayJa00.htm",
+          "index": 178
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/L/LindPh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/L/LindPh00.htm",
+          "index": 179
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JackFr02.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JackFr02.htm",
+          "index": 180
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DelpRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DelpRo00.htm",
+          "index": 181
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GreeBe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GreeBe00.htm",
+          "index": 182
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FennDe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FennDe00.htm",
+          "index": 183
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GibsAn00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GibsAn00.htm",
+          "index": 184
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MathRy00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MathRy00.htm",
+          "index": 185
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BushMi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BushMi00.htm",
+          "index": 186
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MillLa01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MillLa01.htm",
+          "index": 187
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BushRe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BushRe00.htm",
+          "index": 188
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WillMo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WillMo00.htm",
+          "index": 189
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AndeGa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AndeGa00.htm",
+          "index": 190
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BettLa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BettLa00.htm",
+          "index": 191
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HillJe01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HillJe01.htm",
+          "index": 192
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CobbRe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CobbRe00.htm",
+          "index": 193
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WashJo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WashJo00.htm",
+          "index": 194
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PattCo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PattCo00.htm",
+          "index": 195
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/ButtMa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/ButtMa00.htm",
+          "index": 196
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RhodDo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RhodDo00.htm",
+          "index": 197
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BrowRo05.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BrowRo05.htm",
+          "index": 198
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CollTo01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CollTo01.htm",
+          "index": 199
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/TaylCh01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/TaylCh01.htm",
+          "index": 200
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GrahEa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GrahEa00.htm",
+          "index": 201
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/StevRh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/StevRh00.htm",
+          "index": 202
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/ThomAn01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/ThomAn01.htm",
+          "index": 203
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PittMi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PittMi00.htm",
+          "index": 204
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HumpBo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HumpBo00.htm",
+          "index": 205
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WindSa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WindSa00.htm",
+          "index": 206
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/N/NelsDa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/N/NelsDa00.htm",
+          "index": 207
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HoarLe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HoarLe00.htm",
+          "index": 208
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/ByarKe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/ByarKe00.htm",
+          "index": 210
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WalkKe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WalkKe00.htm",
+          "index": 211
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MurrLa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MurrLa00.htm",
+          "index": 212
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MurrAd00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MurrAd00.htm",
+          "index": 213
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/E/EdwaGu00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/E/EdwaGu00.htm",
+          "index": 214
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HarrRa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HarrRa00.htm",
+          "index": 215
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HydeCa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HydeCa00.htm",
+          "index": 216
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CoopEa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CoopEa00.htm",
+          "index": 217
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/ParmBe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/ParmBe00.htm",
+          "index": 218
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WheaTy00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WheaTy00.htm",
+          "index": 219
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/E/ElliGe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/E/ElliGe00.htm",
+          "index": 220
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/I/IvorCh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/I/IvorCh00.htm",
+          "index": 221
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BensCe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BensCe00.htm",
+          "index": 223
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SmitKe02.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SmitKe02.htm",
+          "index": 224
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GaryOl00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GaryOl00.htm",
+          "index": 225
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HarrFr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HarrFr00.htm",
+          "index": 226
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JoneJa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JoneJa00.htm",
+          "index": 227
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RussLe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RussLe00.htm",
+          "index": 228
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AberWa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AberWa00.htm",
+          "index": 229
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CentLa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CentLa00.htm",
+          "index": 230
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/L/LewiDi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/L/LewiDi00.htm",
+          "index": 231
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FerrEa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FerrEa00.htm",
+          "index": 232
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/ShipMa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/ShipMa00.htm",
+          "index": 233
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PachIs00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PachIs00.htm",
+          "index": 234
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/N/NathTo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/N/NathTo00.htm",
+          "index": 235
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RoziMi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RoziMi00.htm",
+          "index": 236
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/McClLe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/McClLe00.htm",
+          "index": 237
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BrowGa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BrowGa00.htm",
+          "index": 238
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GreeSh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GreeSh00.htm",
+          "index": 239
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MackMa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MackMa00.htm",
+          "index": 240
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DrakKe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DrakKe00.htm",
+          "index": 241
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FordJe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FordJe00.htm",
+          "index": 242
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BarlKe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BarlKe00.htm",
+          "index": 243
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BernGi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BernGi00.htm",
+          "index": 244
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WhitLe01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WhitLe01.htm",
+          "index": 245
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WellCh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WellCh00.htm",
+          "index": 246
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HogeMe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HogeMe00.htm",
+          "index": 247
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SpriRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SpriRo00.htm",
+          "index": 248
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JoneKe02.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JoneKe02.htm",
+          "index": 249
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JohnAn00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JohnAn00.htm",
+          "index": 250
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JohnJo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JohnJo00.htm",
+          "index": 251
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CrowIs00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CrowIs00.htm",
+          "index": 252
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BellJo01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BellJo01.htm",
+          "index": 253
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MetcEr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MetcEr00.htm",
+          "index": 254
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WoodDa02.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WoodDa02.htm",
+          "index": 255
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CoheTa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CoheTa00.htm",
+          "index": 256
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MackSt00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MackSt00.htm",
+          "index": 257
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RobiBr01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RobiBr01.htm",
+          "index": 258
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WillJa10.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WillJa10.htm",
+          "index": 259
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CainLy00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CainLy00.htm",
+          "index": 260
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/ColeTe01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/ColeTe01.htm",
+          "index": 261
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GoinNi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GoinNi00.htm",
+          "index": 262
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/ThomPi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/ThomPi00.htm",
+          "index": 263
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AlstMi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AlstMi00.htm",
+          "index": 264
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WareSp00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WareSp00.htm",
+          "index": 265
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PegrEr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PegrEr00.htm",
+          "index": 266
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SalaRa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SalaRa00.htm",
+          "index": 268
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BentAl00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BentAl00.htm",
+          "index": 269
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DowdRi01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DowdRi01.htm",
+          "index": 270
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JoneRo01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JoneRo01.htm",
+          "index": 271
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WillCa02.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WillCa02.htm",
+          "index": 272
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SingDe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SingDe00.htm",
+          "index": 273
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/K/KirbTe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/K/KirbTe00.htm",
+          "index": 274
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/StacZa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/StacZa00.htm",
+          "index": 275
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/TolbMi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/TolbMi00.htm",
+          "index": 276
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WilsWa02.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WilsWa02.htm",
+          "index": 277
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MoorRo01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MoorRo01.htm",
+          "index": 278
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BryaCu00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BryaCu00.htm",
+          "index": 279
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BrowCh03.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BrowCh03.htm",
+          "index": 280
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/StepJo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/StepJo00.htm",
+          "index": 281
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WardDe01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WardDe01.htm",
+          "index": 282
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PinkAl00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PinkAl00.htm",
+          "index": 283
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/I/IverEd00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/I/IverEd00.htm",
+          "index": 284
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/TillLe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/TillLe00.htm",
+          "index": 285
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PeacEl00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PeacEl00.htm",
+          "index": 286
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WatsKe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WatsKe00.htm",
+          "index": 287
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AlleJa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AlleJa00.htm",
+          "index": 289
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AsiaMa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AsiaMa00.htm",
+          "index": 290
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GreeHa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GreeHa00.htm",
+          "index": 291
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/L/LeshMi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/L/LeshMi00.htm",
+          "index": 293
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WillDa10.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WillDa10.htm",
+          "index": 294
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BateMa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BateMa00.htm",
+          "index": 295
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BellTa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BellTa00.htm",
+          "index": 296
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RichTo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RichTo00.htm",
+          "index": 297
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RiddRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RiddRo00.htm",
+          "index": 298
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CollAl00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CollAl00.htm",
+          "index": 299
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/E/EnisCu00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/E/EnisCu00.htm",
+          "index": 300
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DaviMi01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DaviMi01.htm",
+          "index": 301
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JoneJu01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JoneJu01.htm",
+          "index": 302
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CarpRo01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CarpRo01.htm",
+          "index": 303
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BrowTh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BrowTh00.htm",
+          "index": 304
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HarrJe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HarrJe00.htm",
+          "index": 305
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/K/KinnLa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/K/KinnLa00.htm",
+          "index": 306
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MitcEl00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MitcEl00.htm",
+          "index": 307
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HarmCl00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HarmCl00.htm",
+          "index": 308
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DelaJo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DelaJo00.htm",
+          "index": 309
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WoolBu00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WoolBu00.htm",
+          "index": 310
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/ThomRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/ThomRo00.htm",
+          "index": 311
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CharZa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CharZa00.htm",
+          "index": 312
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MustBr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MustBr00.htm",
+          "index": 313
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/TracTy00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/TracTy00.htm",
+          "index": 314
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/StraTr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/StraTr00.htm",
+          "index": 315
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CalhDo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CalhDo00.htm",
+          "index": 316
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AllgTy00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AllgTy00.htm",
+          "index": 317
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SuheMa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SuheMa00.htm",
+          "index": 318
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HiggMa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HiggMa00.htm",
+          "index": 319
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HighTi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HighTi00.htm",
+          "index": 320
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MossZa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MossZa00.htm",
+          "index": 321
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SmitSa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SmitSa00.htm",
+          "index": 322
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JohnDu00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JohnDu00.htm",
+          "index": 323
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MorrBa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MorrBa00.htm",
+          "index": 324
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FargJu00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FargJu00.htm",
+          "index": 325
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FostDe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FostDe00.htm",
+          "index": 326
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MichSo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MichSo00.htm",
+          "index": 327
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BernRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BernRo00.htm",
+          "index": 328
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/McKiJe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/McKiJe00.htm",
+          "index": 329
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PollFr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PollFr00.htm",
+          "index": 330
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/E/EdwaCl00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/E/EdwaCl00.htm",
+          "index": 331
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/McMiRa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/McMiRa00.htm",
+          "index": 332
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BaxtBr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BaxtBr00.htm",
+          "index": 333
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PoweBi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PoweBi00.htm",
+          "index": 334
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BrooRe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BrooRe00.htm",
+          "index": 335
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WillGe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WillGe00.htm",
+          "index": 336
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JennRa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JennRa00.htm",
+          "index": 337
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BestJa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BestJa00.htm",
+          "index": 338
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GajaHo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GajaHo00.htm",
+          "index": 339
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HillRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HillRo00.htm",
+          "index": 340
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WestTe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WestTe00.htm",
+          "index": 341
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HectJo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HectJo00.htm",
+          "index": 342
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MoriLa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MoriLa00.htm",
+          "index": 343
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/V/VanEMa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/V/VanEMa00.htm",
+          "index": 344
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WilsJe01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WilsJe01.htm",
+          "index": 345
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PierDa01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PierDa01.htm",
+          "index": 346
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BreiMa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BreiMa00.htm",
+          "index": 347
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WarrJa01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WarrJa01.htm",
+          "index": 348
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PalmPa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PalmPa00.htm",
+          "index": 349
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FaulKe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FaulKe00.htm",
+          "index": 350
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JoneFe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JoneFe00.htm",
+          "index": 351
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HarmRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HarmRo00.htm",
+          "index": 352
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HendDa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HendDa00.htm",
+          "index": 353
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MaroLa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MaroLa00.htm",
+          "index": 354
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SmitMa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SmitMa00.htm",
+          "index": 355
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BlayDe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BlayDe00.htm",
+          "index": 356
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JameGa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JameGa00.htm",
+          "index": 357
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WashLe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WashLe00.htm",
+          "index": 358
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GreeWi01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GreeWi01.htm",
+          "index": 359
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BellMi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BellMi00.htm",
+          "index": 360
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/E/ElliAn00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/E/ElliAn00.htm",
+          "index": 361
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GreeGa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GreeGa00.htm",
+          "index": 362
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HambTr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HambTr00.htm",
+          "index": 363
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BarbPe01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BarbPe01.htm",
+          "index": 364
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/Z/ZereAm00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/Z/ZereAm00.htm",
+          "index": 365
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HineNy00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HineNy00.htm",
+          "index": 366
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WayxCh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WayxCh00.htm",
+          "index": 367
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WonsGe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WonsGe00.htm",
+          "index": 368
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SimsCh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SimsCh00.htm",
+          "index": 369
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MorrSa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MorrSa00.htm",
+          "index": 370
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PresDa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PresDa00.htm",
+          "index": 371
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JackBr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JackBr00.htm",
+          "index": 372
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AkerCa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AkerCa00.htm",
+          "index": 373
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BryaKe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BryaKe00.htm",
+          "index": 374
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FullBr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FullBr00.htm",
+          "index": 375
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WillAn00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WillAn00.htm",
+          "index": 376
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MoorMe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MoorMe00.htm",
+          "index": 377
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/ClarJe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/ClarJe00.htm",
+          "index": 378
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HuntRi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HuntRi00.htm",
+          "index": 380
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/L/LangJe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/L/LangJe00.htm",
+          "index": 381
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JackBo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JackBo00.htm",
+          "index": 382
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BiakTi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BiakTi00.htm",
+          "index": 383
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GaskMy00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GaskMy00.htm",
+          "index": 384
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DaynRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DaynRo00.htm",
+          "index": 385
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BussDe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BussDe00.htm",
+          "index": 386
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/L/LintJo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/L/LintJo00.htm",
+          "index": 387
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WordBa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WordBa00.htm",
+          "index": 388
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WorkVi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WorkVi00.htm",
+          "index": 389
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/StarJa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/StarJa00.htm",
+          "index": 390
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BrowDo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BrowDo00.htm",
+          "index": 391
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WhitJa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WhitJa00.htm",
+          "index": 392
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BigsTa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BigsTa00.htm",
+          "index": 393
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/TateBe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/TateBe00.htm",
+          "index": 394
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/ToraRy00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/ToraRy00.htm",
+          "index": 395
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/K/KellRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/K/KellRo00.htm",
+          "index": 396
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DaveRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DaveRo00.htm",
+          "index": 397
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SpenTi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SpenTi00.htm",
+          "index": 398
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AlleJa01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AlleJa01.htm",
+          "index": 399
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/L/LaneFr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/L/LaneFr00.htm",
+          "index": 401
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MasoTr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MasoTr00.htm",
+          "index": 402
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DarkOr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DarkOr00.htm",
+          "index": 403
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/N/NorwJe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/N/NorwJe00.htm",
+          "index": 404
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RawlTh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RawlTh00.htm",
+          "index": 405
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CartMi03.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CartMi03.htm",
+          "index": 406
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/TateLa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/TateLa00.htm",
+          "index": 407
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/ThomBl00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/ThomBl00.htm",
+          "index": 408
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SmitOn00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SmitOn00.htm",
+          "index": 409
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/ThomLe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/ThomLe00.htm",
+          "index": 410
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BuckCo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BuckCo00.htm",
+          "index": 411
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HearHe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HearHe00.htm",
+          "index": 412
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GillMi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GillMi00.htm",
+          "index": 413
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FranAn00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FranAn00.htm",
+          "index": 414
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/E/ErviRi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/E/ErviRi00.htm",
+          "index": 415
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PrenTr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PrenTr00.htm",
+          "index": 416
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FennRi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FennRi00.htm",
+          "index": 417
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HeluRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HeluRo00.htm",
+          "index": 418
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PennRa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PennRa00.htm",
+          "index": 419
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GallWa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GallWa00.htm",
+          "index": 420
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PhilLa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PhilLa00.htm",
+          "index": 421
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JodaJi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JodaJi00.htm",
+          "index": 422
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SnelJa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SnelJa00.htm",
+          "index": 423
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/E/EdmoCh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/E/EdmoCh00.htm",
+          "index": 424
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MichCh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MichCh00.htm",
+          "index": 425
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BallVi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BallVi00.htm",
+          "index": 426
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/McKnTe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/McKnTe00.htm",
+          "index": 427
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GalbTo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GalbTo00.htm",
+          "index": 428
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/V/VereSh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/V/VereSh00.htm",
+          "index": 429
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HawkFr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HawkFr00.htm",
+          "index": 430
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WillKa01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WillKa01.htm",
+          "index": 431
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SherHe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SherHe00.htm",
+          "index": 432
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/Y/YounRi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/Y/YounRi00.htm",
+          "index": 433
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BennDo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BennDo00.htm",
+          "index": 434
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WestCh01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WestCh01.htm",
+          "index": 435
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JackWi01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JackWi01.htm",
+          "index": 436
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MoorJe01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MoorJe01.htm",
+          "index": 437
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/ThomCh03.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/ThomCh03.htm",
+          "index": 438
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/ToneAn00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/ToneAn00.htm",
+          "index": 439
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MorrMa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MorrMa00.htm",
+          "index": 440
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BookDe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BookDe00.htm",
+          "index": 441
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PeteAd00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PeteAd00.htm",
+          "index": 443
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WillDa05.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WillDa05.htm",
+          "index": 444
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/L/LeexAm00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/L/LeexAm00.htm",
+          "index": 445
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BrysSh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BrysSh00.htm",
+          "index": 446
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DaveNa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DaveNa00.htm",
+          "index": 447
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AndeRi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AndeRi00.htm",
+          "index": 448
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BrowDe01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BrowDe01.htm",
+          "index": 449
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DierSc00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DierSc00.htm",
+          "index": 450
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/O/OlivBr01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/O/OlivBr01.htm",
+          "index": 451
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/W/WorlTi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/W/WorlTi00.htm",
+          "index": 452
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BennWo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BennWo00.htm",
+          "index": 453
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/E/EckwJe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/E/EckwJe00.htm",
+          "index": 454
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HerbKh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HerbKh00.htm",
+          "index": 455
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RiddTh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RiddTh00.htm",
+          "index": 456
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/K/KingKe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/K/KingKe00.htm",
+          "index": 457
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/ParrRi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/ParrRi00.htm",
+          "index": 458
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HarpBr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HarpBr00.htm",
+          "index": 459
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FergVa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FergVa00.htm",
+          "index": 460
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JackBi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JackBi00.htm",
+          "index": 461
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JohnKe06.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JohnKe06.htm",
+          "index": 462
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AndeAl00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AndeAl00.htm",
+          "index": 463
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HolmDa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HolmDa00.htm",
+          "index": 464
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/R/RathTo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/R/RathTo00.htm",
+          "index": 465
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FletTe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FletTe00.htm",
+          "index": 466
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/G/GadoSa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/G/GadoSa00.htm",
+          "index": 467
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AdamGe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AdamGe00.htm",
+          "index": 468
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/V/VickRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/V/VickRo00.htm",
+          "index": 469
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HuckHa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HuckHa00.htm",
+          "index": 470
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CulvRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CulvRo00.htm",
+          "index": 471
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DaviKn00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DaviKn00.htm",
+          "index": 472
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CravAa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CravAa00.htm",
+          "index": 473
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DaviKe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DaviKe00.htm",
+          "index": 474
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SuggLe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SuggLe00.htm",
+          "index": 475
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BellRi01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BellRi01.htm",
+          "index": 476
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PeriSa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PeriSa00.htm",
+          "index": 477
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MasoJo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MasoJo00.htm",
+          "index": 478
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/T/TaylBi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/T/TaylBi00.htm",
+          "index": 479
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HighAl00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HighAl00.htm",
+          "index": 480
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MattAl01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MattAl01.htm",
+          "index": 481
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/L/LogaMa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/L/LogaMa00.htm",
+          "index": 482
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JensJi01.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JensJi01.htm",
+          "index": 483
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SpeaTy00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SpeaTy00.htm",
+          "index": 484
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/P/PattRi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/P/PattRi00.htm",
+          "index": 485
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/V/VardTo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/V/VardTo00.htm",
+          "index": 486
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FeneGi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FeneGi00.htm",
+          "index": 487
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/C/CartKi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/C/CartKi00.htm",
+          "index": 488
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JensJi00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JensJi00.htm",
+          "index": 489
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/Y/YounSe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/Y/YounSe00.htm",
+          "index": 490
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/B/BurkRe00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/B/BurkRe00.htm",
+          "index": 491
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MeggDa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MeggDa00.htm",
+          "index": 492
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/J/JennSt00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/J/JennSt00.htm",
+          "index": 493
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AbduAm00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AbduAm00.htm",
+          "index": 494
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/A/AlexCh00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/A/AlexCh00.htm",
+          "index": 495
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/F/FreeRo00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/F/FreeRo00.htm",
+          "index": 496
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/D/DaviRa04.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/D/DaviRa04.htm",
+          "index": 497
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/S/SmitSt00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/S/SmitSt00.htm",
+          "index": 498
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/M/MorrWa00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/M/MorrWa00.htm",
+          "index": 499
+        },
+        {
+          "url": "https://www.pro-football-reference.com/players/H/HillGr00.htm",
+          "isValid": true,
+          "category": "valid",
+          "error": null,
+          "normalized": "https://www.pro-football-reference.com/players/H/HillGr00.htm",
+          "index": 500
+        }
+      ],
+      "invalid": {
+        "malformed": [],
+        "non_player": [],
+        "wrong_domain": [],
+        "invalid_slug": [
+          {
+            "url": "https://www.pro-football-reference.com/players/S/SpilC.00.htm",
+            "isValid": false,
+            "category": "invalid_slug",
+            "error": "Invalid player URL format",
+            "normalized": null,
+            "index": 128
+          },
+          {
+            "url": "https://www.pro-football-reference.com/players/A/AndeC.00.htm",
+            "isValid": false,
+            "category": "invalid_slug",
+            "error": "Invalid player URL format",
+            "normalized": null,
+            "index": 209
+          },
+          {
+            "url": "https://www.pro-football-reference.com/players/S/SwifDA00.htm",
+            "isValid": false,
+            "category": "invalid_slug",
+            "error": "Invalid player URL format",
+            "normalized": null,
+            "index": 222
+          },
+          {
+            "url": "https://www.pro-football-reference.com/players/D/DobbJK00.htm",
+            "isValid": false,
+            "category": "invalid_slug",
+            "error": "Invalid player URL format",
+            "normalized": null,
+            "index": 267
+          },
+          {
+            "url": "https://www.pro-football-reference.com/players/D/DillAJ00.htm",
+            "isValid": false,
+            "category": "invalid_slug",
+            "error": "Invalid player URL format",
+            "normalized": null,
+            "index": 288
+          },
+          {
+            "url": "https://www.pro-football-reference.com/players/D/DuckT.00.htm",
+            "isValid": false,
+            "category": "invalid_slug",
+            "error": "Invalid player URL format",
+            "normalized": null,
+            "index": 292
+          },
+          {
+            "url": "https://www.pro-football-reference.com/players/F/ForeDO00.htm",
+            "isValid": false,
+            "category": "invalid_slug",
+            "error": "Invalid player URL format",
+            "normalized": null,
+            "index": 379
+          },
+          {
+            "url": "https://www.pro-football-reference.com/players/Y/YeldT.00.htm",
+            "isValid": false,
+            "category": "invalid_slug",
+            "error": "Invalid player URL format",
+            "normalized": null,
+            "index": 400
+          },
+          {
+            "url": "https://www.pro-football-reference.com/players/M/McKiJ.00.htm",
+            "isValid": false,
+            "category": "invalid_slug",
+            "error": "Invalid player URL format",
+            "normalized": null,
+            "index": 442
+          }
+        ]
+      },
+      "duplicates": [],
+      "summary": {
+        "validCount": 492,
+        "invalidCount": 9,
+        "duplicateCount": 0
+      }
+    }
+  },
+  "httpClientTest": {
+    "testUrls": 3,
+    "successfulRequests": 3,
+    "failedRequests": 0,
+    "successRate": 100,
+    "averageResponseTime": 1344.3333333333333,
+    "metrics": {
+      "requests": {
+        "total": 8,
+        "byHost": {
+          "www.pro-football-reference.com": 8
+        },
+        "byStatus": {
+          "200": 8
+        }
+      },
+      "rateLimits": {
+        "hits": 0,
+        "byHost": {}
+      },
+      "retries": {
+        "scheduled": 0,
+        "byReason": {}
+      },
+      "circuitBreaker": {
+        "stateChanges": 0,
+        "byHost": {}
+      },
+      "deferrals": {
+        "count": 0,
+        "byHost": {}
+      },
+      "limiters": [
+        "www.pro-football-reference.com"
+      ],
+      "circuits": [
+        {
+          "host": "www.pro-football-reference.com",
+          "state": "closed",
+          "failures": 0
+        }
+      ]
+    },
+    "details": [
+      {
+        "url": "https://www.pro-football-reference.com/players/T/TomlLa00.htm",
+        "success": true,
+        "status": 200,
+        "responseTime": 94,
+        "contentLength": "unknown"
+      },
+      {
+        "url": "https://www.pro-football-reference.com/players/F/FaulMa00.htm",
+        "success": true,
+        "status": 200,
+        "responseTime": 1937,
+        "contentLength": "unknown"
+      },
+      {
+        "url": "https://www.pro-football-reference.com/players/H/HolmPr00.htm",
+        "success": true,
+        "status": 200,
+        "responseTime": 2002,
+        "contentLength": "unknown"
+      }
+    ]
+  },
+  "scrapingTest": {
+    "sampleSize": 5,
+    "successfulScrapes": 5,
+    "failedScrapes": 0,
+    "successRate": 100,
+    "averageScrapingTime": 2005.8,
+    "averageContentLength": 352872.6,
+    "details": [
+      {
+        "url": "https://www.pro-football-reference.com/players/T/TomlLa00.htm",
+        "success": true,
+        "status": 200,
+        "contentLength": 400235,
+        "scrapingTime": 2023,
+        "hasContent": true
+      },
+      {
+        "url": "https://www.pro-football-reference.com/players/F/FaulMa00.htm",
+        "success": true,
+        "status": 200,
+        "contentLength": 415176,
+        "scrapingTime": 2004,
+        "hasContent": true
+      },
+      {
+        "url": "https://www.pro-football-reference.com/players/H/HolmPr00.htm",
+        "success": true,
+        "status": 200,
+        "contentLength": 352969,
+        "scrapingTime": 2019,
+        "hasContent": true
+      },
+      {
+        "url": "https://www.pro-football-reference.com/players/A/AlexSh00.htm",
+        "success": true,
+        "status": 200,
+        "contentLength": 313897,
+        "scrapingTime": 1998,
+        "hasContent": true
+      },
+      {
+        "url": "https://www.pro-football-reference.com/players/D/DaviTe00.htm",
+        "success": true,
+        "status": 200,
+        "contentLength": 282086,
+        "scrapingTime": 1985,
+        "hasContent": true
+      }
+    ]
+  },
+  "extractionTest": {
+    "testCount": 3,
+    "successfulExtractions": 3,
+    "successRate": 100,
+    "averageExtractionTime": 36.666666666666664,
+    "averageContentLength": 0,
+    "averageScore": 0,
+    "details": [
+      {
+        "success": true,
+        "extractionTime": 73,
+        "contentLength": 0,
+        "structuredDataKeys": 4,
+        "sportsValidation": {
+          "isValid": false,
+          "score": 0,
+          "reasons": [
+            "No content"
+          ]
+        },
+        "method": "fallback",
+        "score": 0
+      },
+      {
+        "success": true,
+        "extractionTime": 25,
+        "contentLength": 0,
+        "structuredDataKeys": 4,
+        "sportsValidation": {
+          "isValid": false,
+          "score": 0,
+          "reasons": [
+            "No content"
+          ]
+        },
+        "method": "fallback",
+        "score": 0
+      },
+      {
+        "success": true,
+        "extractionTime": 12,
+        "contentLength": 0,
+        "structuredDataKeys": 4,
+        "sportsValidation": {
+          "isValid": false,
+          "score": 0,
+          "reasons": [
+            "No content"
+          ]
+        },
+        "method": "fallback",
+        "score": 0
+      }
+    ]
+  },
+  "exportTest": {
+    "formatsTestedCount": 3,
+    "successfulExports": 3,
+    "successRate": 100,
+    "averageExportTime": 0.3333333333333333,
+    "details": [
+      {
+        "format": "enhanced-csv",
+        "success": true,
+        "exportTime": 0,
+        "dataSize": 640,
+        "isValid": true
+      },
+      {
+        "format": "structured-json",
+        "success": true,
+        "exportTime": 1,
+        "dataSize": 1389,
+        "isValid": [
+          {
+            "id": "player_0",
+            "url": "https://www.pro-football-reference.com/players/T/TomlLa00.htm",
+            "extractionInfo": {
+              "success": true,
+              "error": null,
+              "contentLength": 62,
+              "sportsValidationScore": 6,
+              "extractedAt": "2025-09-10T20:54:26.875Z"
+            },
+            "profile": {
+              "name": "Test Player",
+              "position": "QB",
+              "jerseyNumber": null,
+              "physicalStats": {
+                "height": "6'3\"",
+                "weight": "230 lbs"
+              },
+              "personal": {
+                "birthDate": null,
+                "birthPlace": null,
+                "college": "Texas Tech"
+              },
+              "draft": null
+            },
+            "statistics": {
+              "career": {
+                "passingYards": 28424,
+                "touchdowns": 219
+              },
+              "seasons": [
+                {
+                  "year": 2023,
+                  "passingYards": 4183,
+                  "touchdowns": 27
+                }
+              ],
+              "playoffs": {}
+            },
+            "achievements": [
+              "2x NFL MVP",
+              "Super Bowl MVP"
+            ],
+            "faqData": {},
+            "metadata": {
+              "title": "Test Player Stats"
+            },
+            "rawText": "Mock player content with stats and biographical information..."
+          }
+        ]
+      },
+      {
+        "format": "player-database",
+        "success": true,
+        "exportTime": 0,
+        "dataSize": 1206,
+        "isValid": [
+          {
+            "player_id": "player_1",
+            "stat_type": "career",
+            "data": {
+              "passingYards": 28424,
+              "touchdowns": 219
+            }
+          },
+          {
+            "player_id": "player_1",
+            "stat_type": "season",
+            "season_index": 0,
+            "data": {
+              "year": 2023,
+              "passingYards": 4183,
+              "touchdowns": 27
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "performanceTest": {
+    "testSetSize": 1503,
+    "validationTime": 1,
+    "urlsPerSecond": 1503000,
+    "memoryUsage": {
+      "rss": 151040000,
+      "heapTotal": 73314304,
+      "heapUsed": 44935800,
+      "external": 3548189,
+      "arrayBuffers": 139224
+    },
+    "scalabilityScore": "Excellent"
+  },
+  "errorHandlingTest": {
+    "testCases": 4,
+    "correctlyHandled": 4,
+    "errorHandlingRate": 100,
+    "details": [
+      {
+        "testCase": "invalid-url",
+        "expectedError": "malformed",
+        "actualCategory": "malformed",
+        "handledCorrectly": true,
+        "error": "Failed to parse URL: Invalid URL"
+      },
+      {
+        "testCase": "https://www.espn.com/nfl/player/_/id/123/test",
+        "expectedError": "wrong_domain",
+        "actualCategory": "wrong_domain",
+        "handledCorrectly": true,
+        "error": "Invalid domain: espn.com. Expected one of: pro-football-reference.com, basketball-reference.com, baseball-reference.com, hockey-reference.com, sports-reference.com"
+      },
+      {
+        "testCase": "https://www.pro-football-reference.com/teams/test.htm",
+        "expectedError": "non_player",
+        "actualCategory": "non_player",
+        "handledCorrectly": true,
+        "error": "URL is not a player page"
+      },
+      {
+        "testCase": "(empty)",
+        "expectedError": "malformed",
+        "actualCategory": "malformed",
+        "handledCorrectly": true,
+        "error": "Failed to parse URL: Invalid URL"
+      }
+    ]
+  },
+  "overallGrade": {
+    "score": 100,
+    "grade": "A"
+  },
+  "recommendations": [
+    {
+      "priority": "medium",
+      "category": "extraction",
+      "message": "Average extraction score is 0.0. Review content extraction patterns."
+    }
+  ]
+}
