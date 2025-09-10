@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Export Functionality</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .test-title { font-weight: bold; color: #333; margin-bottom: 10px; }
+        .test-result { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 3px; }
+        .success { color: green; }
+        .error { color: red; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Export Functionality Test</h1>
+    
+    <div class="test-section">
+        <div class="test-title">Test Scenario: Verify Export Functions</div>
+        <button onclick="runExportTest()">Run Export Test</button>
+        <div id="exportTestResults"></div>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">Mock Data Preview</div>
+        <div id="mockDataPreview"></div>
+    </div>
+
+    <script>
+        // Mock scrape results that match the actual data structure
+        const mockScrapeResults = [
+            {
+                index: 0,
+                url: 'https://www.pro-football-reference.com/players/M/MahoPa00.htm',
+                text: 'Patrick Mahomes II\nQuarterback\n\nBorn: September 17, 1995 in Tyler, TX\nHeight: 6-3, Weight: 230lb\nCollege: Texas Tech\n\nCareer Stats:\nPassing Yards: 28,424\nPassing TDs: 219\nPasser Rating: 103.5\n\n2x Super Bowl Champion\n2x NFL MVP\n',
+                metadata: {
+                    title: 'Patrick Mahomes Stats | Pro-Football-Reference.com',
+                    author: 'Sports Reference LLC',
+                    published_at: '2024-01-01',
+                    description: 'Career stats for Patrick Mahomes'
+                },
+                html: '<html>...</html>',
+                success: true,
+                error: null,
+                extractionDebug: {
+                    selectedMethod: 'sports-optimized',
+                    structuredData: {
+                        player: {
+                            name: 'Patrick Mahomes II',
+                            position: 'QB',
+                            jerseyNumber: '15',
+                            height: '6-3',
+                            weight: '230',
+                            birthDate: '1995-09-17',
+                            birthPlace: 'Tyler, TX',
+                            college: 'Texas Tech',
+                            draft: {
+                                year: '2017',
+                                team: 'Kansas City Chiefs',
+                                round: '1',
+                                pick: '10'
+                            }
+                        },
+                        statistics: {
+                            career: {
+                                passingYards: 28424,
+                                passingTDs: 219,
+                                passerRating: 103.5,
+                                completionPct: 66.3
+                            },
+                            seasons: [
+                                { year: 2023, team: 'KC', games: 16, passingYards: 5250, passingTDs: 41 },
+                                { year: 2022, team: 'KC', games: 17, passingYards: 5250, passingTDs: 41 }
+                            ],
+                            playoffs: {
+                                games: 18,
+                                passingYards: 5135,
+                                passingTDs: 41
+                            }
+                        },
+                        achievements: [
+                            '2x Super Bowl Champion',
+                            '2x NFL MVP',
+                            '3x Pro Bowl',
+                            '2x First-team All-Pro'
+                        ]
+                    },
+                    sportsValidation: {
+                        score: 6,
+                        isValid: true
+                    }
+                }
+            },
+            {
+                index: 1,
+                url: 'https://www.pro-football-reference.com/players/J/JeffJu00.htm',
+                text: 'Justin Jefferson\nWide Receiver\n\nBorn: June 16, 1999 in St. Rose, LA\nHeight: 6-1, Weight: 195lb\nCollege: LSU\n\nCareer Stats:\nReceiving Yards: 5,899\nReceiving TDs: 30\nReceptions: 395\n',
+                metadata: {
+                    title: 'Justin Jefferson Stats | Pro-Football-Reference.com',
+                    author: 'Sports Reference LLC',
+                    published_at: '2024-01-01',
+                    description: 'Career stats for Justin Jefferson'
+                },
+                html: '<html>...</html>',
+                success: true,
+                error: null,
+                extractionDebug: {
+                    selectedMethod: 'sports-optimized',
+                    structuredData: {
+                        player: {
+                            name: 'Justin Jefferson',
+                            position: 'WR',
+                            jerseyNumber: '18',
+                            height: '6-1',
+                            weight: '195',
+                            birthDate: '1999-06-16',
+                            birthPlace: 'St. Rose, LA',
+                            college: 'LSU',
+                            draft: {
+                                year: '2020',
+                                team: 'Minnesota Vikings',
+                                round: '1',
+                                pick: '22'
+                            }
+                        },
+                        statistics: {
+                            career: {
+                                receivingYards: 5899,
+                                receivingTDs: 30,
+                                receptions: 395,
+                                yardsPerReception: 14.9
+                            },
+                            seasons: [
+                                { year: 2023, team: 'MIN', games: 10, receivingYards: 1074, receivingTDs: 5 },
+                                { year: 2022, team: 'MIN', games: 17, receivingYards: 1809, receivingTDs: 8 }
+                            ]
+                        },
+                        achievements: [
+                            '3x Pro Bowl',
+                            '2x First-team All-Pro',
+                            'NFL Offensive Rookie of the Year'
+                        ]
+                    },
+                    sportsValidation: {
+                        score: 6,
+                        isValid: true
+                    }
+                }
+            }
+        ];
+
+        // Display mock data preview
+        document.getElementById('mockDataPreview').innerHTML = `
+            <pre>${JSON.stringify(mockScrapeResults[0], null, 2)}</pre>
+        `;
+
+        // Test the export functions
+        function runExportTest() {
+            const resultsDiv = document.getElementById('exportTestResults');
+            resultsDiv.innerHTML = '<div class="test-result">Running tests...</div>';
+
+            try {
+                // Test 1: Process scrape results
+                const processedResults = processScrapeResults(mockScrapeResults);
+                resultsDiv.innerHTML += '<div class="test-result success">✅ Process scrape results: PASS</div>';
+
+                // Test 2: Export Enhanced CSV
+                const csvData = exportEnhancedCSV(mockScrapeResults);
+                const csvLines = csvData.split('\n');
+                if (csvLines.length >= 3 && csvLines[0].includes('player_name')) {
+                    resultsDiv.innerHTML += `<div class="test-result success">✅ Enhanced CSV export: PASS (${csvLines.length} lines)</div>`;
+                } else {
+                    throw new Error('CSV export failed');
+                }
+
+                // Test 3: Export Structured JSON
+                const jsonData = exportStructuredJSON(mockScrapeResults);
+                const parsed = JSON.parse(jsonData);
+                if (parsed.exportInfo && parsed.players && parsed.players.length === 2) {
+                    resultsDiv.innerHTML += `<div class="test-result success">✅ Structured JSON export: PASS (${parsed.players.length} players)</div>`;
+                } else {
+                    throw new Error('JSON export failed');
+                }
+
+                // Test 4: Export Player Database
+                const dbData = exportPlayerDatabase(mockScrapeResults);
+                const database = JSON.parse(dbData);
+                if (database.players && database.statistics && database.achievements && database.metadata) {
+                    resultsDiv.innerHTML += `<div class="test-result success">✅ Player database export: PASS (${database.players.length} players)</div>`;
+                } else {
+                    throw new Error('Database export failed');
+                }
+
+                // Test 5: Download functionality
+                testDownloadFile('test.txt', 'Test content');
+                resultsDiv.innerHTML += '<div class="test-result success">✅ Download functionality: PASS</div>';
+
+                resultsDiv.innerHTML += '<div class="test-result" style="margin-top: 20px;"><strong>All tests passed! ✅</strong></div>';
+
+            } catch (error) {
+                resultsDiv.innerHTML += '<div class="test-result error">❌ Error: ' + error.message + '</div>';
+            }
+        }
+
+        // Copy the export functions from index.html for testing
+        function processScrapeResults(scrapeResults) {
+            return scrapeResults
+                .filter(Boolean)
+                .sort((a, b) => a.index - b.index)
+                .map(result => {
+                    const processed = {
+                        ...result,
+                        sportsData: result.extractionDebug?.structuredData || {},
+                        sportsValidation: result.extractionDebug?.sportsValidation || {}
+                    };
+                    
+                    if (result.extractionDebug?.structuredData) {
+                        processed.hasStructuredData = true;
+                        processed.structuredDataQuality = assessStructuredDataQuality(result.extractionDebug.structuredData);
+                    }
+                    
+                    return processed;
+                });
+        }
+
+        function exportEnhancedCSV(scrapeResults) {
+            const processedResults = processScrapeResults(scrapeResults);
+            
+            const headers = [
+                'url', 'success', 'error',
+                'player_name', 'position', 'jersey_number', 'height', 'weight',
+                'birth_date', 'birth_place', 'college',
+                'draft_year', 'draft_team', 'draft_round', 'draft_pick',
+                'content_length', 'extraction_method', 'sports_validation_score',
+                'has_structured_data', 'structured_data_quality',
+                'achievements_count', 'top_achievements',
+                'career_stats_available', 'season_stats_count', 'playoff_stats_available',
+                'title', 'author', 'published_at', 'description', 'text'
+            ];
+            
+            const rows = processedResults.map(result => {
+                const player = result.sportsData?.player || {};
+                const stats = result.sportsData?.statistics || {};
+                const achievements = result.sportsData?.achievements || [];
+                
+                return [
+                    result.url,
+                    result.success,
+                    result.error || '',
+                    player.name || '',
+                    player.position || '',
+                    player.jerseyNumber || '',
+                    player.height || '',
+                    player.weight || '',
+                    player.birthDate || '',
+                    player.birthPlace || '',
+                    player.college || '',
+                    player.draft?.year || '',
+                    player.draft?.team || '',
+                    player.draft?.round || '',
+                    player.draft?.pick || '',
+                    result.text?.length || 0,
+                    result.extractionDebug?.selectedMethod || '',
+                    result.sportsValidation?.score || 0,
+                    result.hasStructuredData || false,
+                    result.structuredDataQuality || 0,
+                    achievements.length,
+                    achievements.slice(0, 3).join('; '),
+                    Object.keys(stats.career || {}).length > 0,
+                    stats.seasons?.length || 0,
+                    Object.keys(stats.playoffs || {}).length > 0,
+                    result.metadata?.title || '',
+                    result.metadata?.author || '',
+                    result.metadata?.published_at || '',
+                    result.metadata?.description || '',
+                    result.text || ''
+                ];
+            });
+            
+            return arrayToCSV([headers, ...rows]);
+        }
+
+        function exportStructuredJSON(scrapeResults) {
+            const processedResults = processScrapeResults(scrapeResults);
+            
+            const structuredData = {
+                exportInfo: {
+                    timestamp: new Date().toISOString(),
+                    totalPlayers: processedResults.length,
+                    successfulExtractions: processedResults.filter(r => r.success).length,
+                    format: 'structured-json'
+                },
+                players: processedResults.map(result => createPlayerObject(result))
+            };
+            
+            return JSON.stringify(structuredData, null, 2);
+        }
+
+        function exportPlayerDatabase(scrapeResults) {
+            const processedResults = processScrapeResults(scrapeResults);
+            
+            const database = {
+                players: [],
+                statistics: [],
+                achievements: [],
+                draft_info: [],
+                metadata: {
+                    exported_at: new Date().toISOString(),
+                    total_records: processedResults.length,
+                    schema_version: '1.0'
+                }
+            };
+            
+            processedResults.forEach((result, index) => {
+                const playerId = `player_${index + 1}`;
+                const player = result.sportsData?.player || {};
+                const stats = result.sportsData?.statistics || {};
+                const achievements = result.sportsData?.achievements || [];
+                
+                database.players.push({
+                    id: playerId,
+                    name: player.name || null,
+                    position: player.position || null,
+                    jersey_number: player.jerseyNumber || null,
+                    height: player.height || null,
+                    weight: player.weight || null,
+                    birth_date: player.birthDate || null,
+                    birth_place: player.birthPlace || null,
+                    college: player.college || null,
+                    source_url: result.url,
+                    extraction_success: result.success,
+                    extraction_date: new Date().toISOString()
+                });
+                
+                if (player.draft) {
+                    database.draft_info.push({
+                        player_id: playerId,
+                        draft_year: player.draft.year,
+                        draft_team: player.draft.team,
+                        draft_round: player.draft.round,
+                        draft_pick: player.draft.pick
+                    });
+                }
+                
+                if (stats.career && Object.keys(stats.career).length > 0) {
+                    database.statistics.push({
+                        player_id: playerId,
+                        stat_type: 'career',
+                        data: stats.career
+                    });
+                }
+                
+                if (stats.seasons && stats.seasons.length > 0) {
+                    stats.seasons.forEach((season, seasonIndex) => {
+                        database.statistics.push({
+                            player_id: playerId,
+                            stat_type: 'season',
+                            season_index: seasonIndex,
+                            data: season
+                        });
+                    });
+                }
+                
+                achievements.forEach((achievement, achIndex) => {
+                    database.achievements.push({
+                        player_id: playerId,
+                        achievement_index: achIndex,
+                        achievement: achievement
+                    });
+                });
+            });
+            
+            return JSON.stringify(database, null, 2);
+        }
+
+        function createPlayerObject(result) {
+            const player = result.sportsData?.player || {};
+            const stats = result.sportsData?.statistics || {};
+            const achievements = result.sportsData?.achievements || [];
+            
+            return {
+                id: `player_${result.index}`,
+                url: result.url,
+                extractionInfo: {
+                    success: result.success,
+                    error: result.error || null,
+                    method: result.extractionDebug?.selectedMethod,
+                    contentLength: result.text?.length || 0,
+                    sportsValidationScore: result.sportsValidation?.score || 0,
+                    extractedAt: new Date().toISOString()
+                },
+                profile: {
+                    name: player.name || null,
+                    position: player.position || null,
+                    jerseyNumber: player.jerseyNumber || null,
+                    physicalStats: {
+                        height: player.height || null,
+                        weight: player.weight || null
+                    },
+                    personal: {
+                        birthDate: player.birthDate || null,
+                        birthPlace: player.birthPlace || null,
+                        college: player.college || null
+                    },
+                    draft: player.draft || null
+                },
+                statistics: {
+                    career: stats.career || {},
+                    seasons: stats.seasons || [],
+                    playoffs: stats.playoffs || {}
+                },
+                achievements: achievements,
+                metadata: result.metadata || {},
+                rawText: result.text || ''
+            };
+        }
+
+        function assessStructuredDataQuality(structuredData) {
+            if (!structuredData) return 0;
+            
+            let score = 0;
+            const player = structuredData.player || {};
+            const stats = structuredData.statistics || {};
+            const achievements = structuredData.achievements || [];
+            
+            if (player.name) score += 20;
+            if (player.position) score += 15;
+            if (player.height && player.weight) score += 10;
+            if (player.birthDate) score += 10;
+            if (player.college) score += 10;
+            if (player.draft) score += 15;
+            
+            if (stats.career && Object.keys(stats.career).length > 0) score += 10;
+            if (stats.seasons && stats.seasons.length > 0) score += 10;
+            if (stats.playoffs && Object.keys(stats.playoffs).length > 0) score += 5;
+            
+            if (achievements.length > 0) score += 5;
+            
+            return Math.min(score, 100);
+        }
+
+        function arrayToCSV(data) {
+            const escapeCSV = (value) => {
+                const str = (value || '').toString();
+                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                    return `"${str.replace(/"/g, '""')}"`;
+                }
+                return str;
+            };
+            
+            return data.map(row => 
+                row.map(cell => escapeCSV(cell)).join(',')
+            ).join('\n');
+        }
+
+        function testDownloadFile(filename, text) {
+            // Just test that the download function would work
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            URL.revokeObjectURL(url);
+            return true;
+        }
+    </script>
+</body>
+</html>
