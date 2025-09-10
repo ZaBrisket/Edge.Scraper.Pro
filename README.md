@@ -39,6 +39,9 @@ https://www.pro-football-reference.com/players/R/RiceJe00.htm
 - **Content Extraction**: Advanced algorithms for main content detection
 - **Export Options**: TXT, JSONL, CSV, Enhanced CSV, Structured JSON, Player Database
 - **Debug Tools**: Detailed extraction analysis and performance metrics
+- **PFR URL Validation**: Pre-fetch validation for Pro Football Reference and other sports reference URLs
+- **Duplicate Detection**: Upfront duplicate URL detection with normalized comparison
+- **Unified Timeouts**: Environment-driven HTTP timeout configuration (HTTP_DEADLINE_MS)
 
 ### Sports Enhancement
 - **Player Biography Parsing**: Name, position, physical stats, college, draft info

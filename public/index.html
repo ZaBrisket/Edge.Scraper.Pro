@@ -9,6 +9,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Web Scraper</title>
+    <script src="pfr-validator.js"></script>
     <style>
         /* Brutalist, Early-Web UI Theme */
         body { 
@@ -82,6 +83,60 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         .hidden { display: none; }
+        
+        /* Validation Report Styles */
+        .validation-report {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 1em;
+            margin-bottom: 1em;
+        }
+        
+        .validation-report h3 {
+            margin-top: 0;
+            margin-bottom: 0.5em;
+        }
+        
+        .validation-report h4 {
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+        }
+        
+        .validation-report h5 {
+            margin-top: 0.5em;
+            margin-bottom: 0.25em;
+        }
+        
+        .validation-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.5em;
+            margin-bottom: 1em;
+            padding: 0.5em;
+            background-color: #fff;
+            border: 1px solid #ccc;
+        }
+        
+        .validation-section {
+            margin-top: 1em;
+        }
+        
+        .validation-category {
+            margin-left: 1em;
+        }
+        
+        .invalid-url {
+            color: #d00;
+        }
+        
+        .validation-report ul {
+            margin: 0.5em 0;
+            padding-left: 1.5em;
+        }
+        
+        .validation-report li {
+            margin: 0.25em 0;
+        }
     </style>
 </head>
 <body>
@@ -92,6 +147,7 @@
         <div id="bulkInputs" class="section">
             <p><b>Instructions:</b> Paste a list of URLs (one per line) to scrape all text from each page.</p>
             <textarea id="urlList" placeholder="https://example.com/page1&#10;https://example.com/page2"></textarea>
+            <div id="validationReport" class="hidden"></div>
         </div>
         
         <div class="section">
@@ -172,7 +228,11 @@
             includeHtmlToggle: document.getElementById('includeHtmlToggle'),
             debugModeToggle: document.getElementById('debugModeToggle'),
             sportsOnlyToggle: document.getElementById('sportsOnlyToggle'),
+            validationReport: document.getElementById('validationReport'),
         };
+        
+        // Initialize PFR validator
+        const pfrValidator = new PFRValidator();
 
         let state = {
             scrapeResults: [],
@@ -458,8 +518,44 @@
 
         async function runBulkScrape() {
             if (!await verifyBackend()) return;
-            const urls = dom.urlList.value.trim().split('\n').filter(Boolean).map(url => cleanUrl(validate.url(url)));
-            if (urls.length === 0) throw new Error('Please paste at least one valid URL.');
+            
+            // Get raw URLs from input
+            const rawUrls = dom.urlList.value.trim().split('\n').filter(Boolean);
+            if (rawUrls.length === 0) throw new Error('Please paste at least one valid URL.');
+            
+            // Validate URLs first
+            const validationResult = pfrValidator.validateBatch(rawUrls);
+            
+            // Show validation report if there are any issues
+            if (validationResult.summary.invalidCount > 0 || validationResult.summary.duplicateCount > 0) {
+                const reportHTML = pfrValidator.generateHTMLReport(validationResult);
+                dom.validationReport.innerHTML = reportHTML;
+                dom.validationReport.classList.remove('hidden');
+                
+                // If all URLs are invalid, stop processing
+                if (validationResult.summary.validCount === 0) {
+                    throw new Error('No valid URLs to process. Please check the validation report above.');
+                }
+                
+                // Show confirmation dialog for partial processing
+                const proceed = confirm(
+                    `Found ${validationResult.summary.invalidCount} invalid URL(s) and ${validationResult.summary.duplicateCount} duplicate(s).\n\n` +
+                    `Do you want to proceed with ${validationResult.summary.validCount} valid URL(s)?`
+                );
+                
+                if (!proceed) {
+                    throw new Error('Scraping cancelled by user.');
+                }
+            } else {
+                // Hide validation report if no issues
+                dom.validationReport.classList.add('hidden');
+            }
+            
+            // Process only valid URLs in original order
+            const urls = validationResult.valid
+                .sort((a, b) => a.index - b.index)
+                .map(result => cleanUrl(result.normalized));
+            
             await processUrlsInParallel(urls, 'Scraping URL');
         }
 
@@ -467,7 +563,8 @@
             let completed = 0;
             const maxConcurrency = parseInt(dom.concurrencySlider.value, 10);
             const perRequestDelay = parseInt(dom.delayInput.value, 10);
-            const urlQueue = [...new Set(urls)].map((url, index) => ({ index, url }));
+            // No deduplication here - already handled by validator
+            const urlQueue = urls.map((url, index) => ({ index, url }));
             const totalUrls = urlQueue.length;
             state.scrapeResults = new Array(totalUrls);
 
@@ -1759,6 +1856,12 @@
                 dom.copyBtn.textContent = 'Copied!';
                 setTimeout(() => { dom.copyBtn.textContent = 'Copy'; }, 2000);
             } catch (err) { showError('Failed to copy text.'); }
+        });
+        
+        // Clear validation report when URL list changes
+        dom.urlList.addEventListener('input', () => {
+            dom.validationReport.classList.add('hidden');
+            pfrValidator.clearCache();
         });
     </script>
 </body>
