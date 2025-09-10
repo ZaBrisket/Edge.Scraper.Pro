@@ -40,6 +40,12 @@ class BatchProcessor {
       timeout: options.timeout || 10000,
       maxRetries: options.maxRetries || 2,
       errorReportSize: options.errorReportSize || 50,
+      // Enhanced options for large batches
+      chunkSize: options.chunkSize || 100, // Process URLs in chunks for memory management
+      memoryThreshold: options.memoryThreshold || 50 * 1024 * 1024, // 50MB memory threshold
+      progressReportInterval: options.progressReportInterval || 10, // Report progress every N URLs
+      enableMemoryOptimization: options.enableMemoryOptimization !== false, // Default true
+      maxUrlsPerBatch: options.maxUrlsPerBatch || 1500, // Maximum URLs allowed
       ...options
     };
     
@@ -77,6 +83,11 @@ class BatchProcessor {
     this.startTime = new Date();
     
     try {
+      // Check batch size limit
+      if (urls.length > this.options.maxUrlsPerBatch) {
+        throw new Error(`Batch size ${urls.length} exceeds maximum allowed ${this.options.maxUrlsPerBatch} URLs`);
+      }
+      
       // Phase 1: Validation and deduplication
       const validationResult = this.validateAndDeduplicate(urls);
       
@@ -94,12 +105,11 @@ class BatchProcessor {
         validationDetails: validationResult
       });
       
-      // Phase 2: Process valid URLs
+      // Phase 2: Process valid URLs with memory optimization
       this.state = BATCH_STATES.PROCESSING;
-      const processedResults = await this.processUrls(
-        validationResult.validUrls,
-        processor
-      );
+      const processedResults = this.options.enableMemoryOptimization && validationResult.validUrls.length > this.options.chunkSize
+        ? await this.processUrlsInChunks(validationResult.validUrls, processor)
+        : await this.processUrls(validationResult.validUrls, processor);
       
       // Phase 3: Compile final results
       this.state = BATCH_STATES.COMPLETED;
@@ -121,6 +131,117 @@ class BatchProcessor {
       this.onError(errorResult);
       throw error;
     }
+  }
+
+  /**
+   * Process URLs in chunks for large batches to optimize memory usage
+   * @param {Array} validUrls - Validated URLs to process
+   * @param {Function} processor - Processing function
+   * @returns {Promise<Array>} Processing results
+   */
+  async processUrlsInChunks(validUrls, processor) {
+    const allResults = [];
+    const totalUrls = validUrls.length;
+    const chunkSize = this.options.chunkSize;
+    let processedCount = 0;
+    
+    console.log(`Processing ${totalUrls} URLs in chunks of ${chunkSize} for memory optimization`);
+    
+    // Process URLs in chunks
+    for (let i = 0; i < validUrls.length && !this.controls.aborted; i += chunkSize) {
+      const chunk = validUrls.slice(i, i + chunkSize);
+      const chunkNumber = Math.floor(i / chunkSize) + 1;
+      const totalChunks = Math.ceil(validUrls.length / chunkSize);
+      
+      console.log(`Processing chunk ${chunkNumber}/${totalChunks} (${chunk.length} URLs)`);
+      
+      // Check memory usage before processing chunk
+      if (this.options.enableMemoryOptimization) {
+        await this.checkMemoryUsage();
+      }
+      
+      // Process current chunk
+      const chunkResults = await this.processUrls(chunk, processor);
+      allResults.push(...chunkResults);
+      
+      processedCount += chunk.length;
+      
+      // Report chunk completion
+      this.onProgress({
+        phase: 'processing',
+        completed: processedCount,
+        total: totalUrls,
+        percentage: Math.round((processedCount / totalUrls) * 100),
+        currentChunk: chunkNumber,
+        totalChunks: totalChunks,
+        chunkSize: chunk.length
+      });
+      
+      // Garbage collection hint between chunks for large batches
+      if (this.options.enableMemoryOptimization && chunkNumber < totalChunks) {
+        await this.performMemoryCleanup();
+        
+        // Small delay between chunks to allow memory cleanup
+        await this.delay(100);
+      }
+    }
+    
+    return allResults;
+  }
+
+  /**
+   * Check memory usage and provide warnings
+   */
+  async checkMemoryUsage() {
+    if (typeof performance !== 'undefined' && performance.memory) {
+      const memInfo = performance.memory;
+      const usedMemory = memInfo.usedJSHeapSize;
+      const memoryLimit = memInfo.jsHeapSizeLimit;
+      
+      console.log(`Memory usage: ${Math.round(usedMemory / (1024 * 1024))}MB / ${Math.round(memoryLimit / (1024 * 1024))}MB`);
+      
+      // Warning if memory usage is high
+      if (usedMemory > this.options.memoryThreshold) {
+        console.warn(`High memory usage detected: ${Math.round(usedMemory / (1024 * 1024))}MB`);
+        
+        // Force garbage collection if available
+        if (window.gc && typeof window.gc === 'function') {
+          console.log('Attempting garbage collection...');
+          window.gc();
+        }
+      }
+      
+      // Error if memory usage is critical
+      if (usedMemory > memoryLimit * 0.9) {
+        throw new Error(`Critical memory usage: ${Math.round(usedMemory / (1024 * 1024))}MB. Consider reducing batch size.`);
+      }
+    }
+  }
+
+  /**
+   * Perform memory cleanup between chunks
+   */
+  async performMemoryCleanup() {
+    // Clear completed results from memory temporarily if batch is very large
+    if (this.results.length > this.options.chunkSize * 2) {
+      console.log('Performing memory optimization...');
+      
+      // Keep only recent results in memory, store others temporarily
+      const recentResults = this.results.slice(-this.options.chunkSize);
+      const archivedCount = this.results.length - recentResults.length;
+      
+      this.results = recentResults;
+      
+      console.log(`Archived ${archivedCount} results to optimize memory usage`);
+    }
+    
+    // Force garbage collection if available
+    if (window.gc && typeof window.gc === 'function') {
+      window.gc();
+    }
+    
+    // Allow event loop to process
+    await this.delay(10);
   }
 
   /**

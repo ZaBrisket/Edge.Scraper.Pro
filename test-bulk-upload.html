@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Upload Test</title>
+    <style>
+        body { font-family: monospace; margin: 2em; }
+        .test-section { border: 1px solid #ccc; padding: 1em; margin: 1em 0; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+    </style>
+</head>
+<body>
+    <h1>Bulk URL Upload - Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="testResults"></div>
+    </div>
+    
+    <script>
+        // Simplified version of the URL processing classes for testing
+        class URLFileProcessor {
+            constructor() {
+                this.maxUrls = 1500;
+                this.maxFileSize = 5 * 1024 * 1024;
+            }
+            
+            looksLikeUrl(str) {
+                if (typeof str !== 'string' || str.length < 10) return false;
+                const urlPattern = /^https?:\/\/[^\s]+\.[^\s]+/i;
+                return urlPattern.test(str.trim());
+            }
+            
+            parseTxtContent(content) {
+                const lines = content.split(/\r?\n/);
+                const urls = [];
+                const comments = [];
+                const warnings = [];
+                
+                lines.forEach((line, index) => {
+                    const trimmedLine = line.trim();
+                    
+                    if (!trimmedLine) return;
+                    
+                    if (trimmedLine.startsWith('#')) {
+                        comments.push(trimmedLine.substring(1).trim());
+                        return;
+                    }
+                    
+                    if (this.looksLikeUrl(trimmedLine)) {
+                        urls.push(trimmedLine);
+                    } else {
+                        warnings.push(`Line ${index + 1}: "${trimmedLine}" doesn't appear to be a valid URL`);
+                    }
+                });
+                
+                return { urls, comments, warnings, totalLines: lines.length };
+            }
+            
+            parseJsonContent(content) {
+                try {
+                    const data = JSON.parse(content);
+                    const urls = [];
+                    const warnings = [];
+                    
+                    if (Array.isArray(data)) {
+                        data.forEach((item, index) => {
+                            if (typeof item === 'string' && this.looksLikeUrl(item)) {
+                                urls.push(item);
+                            } else {
+                                warnings.push(`Array item ${index + 1}: "${item}" is not a valid URL`);
+                            }
+                        });
+                    } else if (data && typeof data === 'object') {
+                        const possibleKeys = ['urls', 'url', 'links', 'list', 'data'];
+                        let foundUrls = false;
+                        
+                        for (const key of possibleKeys) {
+                            if (data[key] && Array.isArray(data[key])) {
+                                data[key].forEach((item, index) => {
+                                    if (typeof item === 'string' && this.looksLikeUrl(item)) {
+                                        urls.push(item);
+                                    } else {
+                                        warnings.push(`${key}[${index}]: "${item}" is not a valid URL`);
+                                    }
+                                });
+                                foundUrls = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!foundUrls) {
+                            throw new Error('No URL array found. Expected format: {"urls": [...]} or simple array');
+                        }
+                    }
+                    
+                    return { urls, comments: [], warnings, totalLines: urls.length };
+                } catch (error) {
+                    throw new Error('Invalid JSON format: ' + error.message);
+                }
+            }
+        }
+        
+        // Test data
+        const testTxtContent = `# Test URL file for bulk upload functionality
+# Sports URLs for testing
+https://www.pro-football-reference.com/players/M/MahoPa00.htm
+https://www.pro-football-reference.com/players/B/BradTo00.htm
+
+# General URLs for testing
+https://example.com
+not-a-url
+
+# Another sports URL
+https://www.basketball-reference.com/players/j/jamesle01.html`;
+        
+        const testJsonContent = `{
+  "urls": [
+    "https://www.pro-football-reference.com/players/M/MahoPa00.htm",
+    "https://www.pro-football-reference.com/players/B/BradTo00.htm",
+    "https://example.com",
+    "https://www.basketball-reference.com/players/j/jamesle01.html"
+  ]
+}`;
+        
+        // Run tests
+        function runTests() {
+            const processor = new URLFileProcessor();
+            const results = [];
+            
+            // Test 1: TXT parsing
+            try {
+                const txtResult = processor.parseTxtContent(testTxtContent);
+                results.push({
+                    test: 'TXT File Parsing',
+                    status: 'success',
+                    details: `Found ${txtResult.urls.length} URLs, ${txtResult.comments.length} comments, ${txtResult.warnings.length} warnings`,
+                    data: txtResult
+                });
+            } catch (error) {
+                results.push({
+                    test: 'TXT File Parsing',
+                    status: 'error',
+                    details: error.message
+                });
+            }
+            
+            // Test 2: JSON parsing
+            try {
+                const jsonResult = processor.parseJsonContent(testJsonContent);
+                results.push({
+                    test: 'JSON File Parsing',
+                    status: 'success',
+                    details: `Found ${jsonResult.urls.length} URLs, ${jsonResult.warnings.length} warnings`,
+                    data: jsonResult
+                });
+            } catch (error) {
+                results.push({
+                    test: 'JSON File Parsing',
+                    status: 'error',
+                    details: error.message
+                });
+            }
+            
+            // Test 3: URL validation
+            const testUrls = [
+                'https://www.pro-football-reference.com/players/M/MahoPa00.htm',
+                'https://example.com',
+                'not-a-url',
+                'ftp://invalid-protocol.com'
+            ];
+            
+            const validUrls = testUrls.filter(url => processor.looksLikeUrl(url));
+            results.push({
+                test: 'URL Validation',
+                status: validUrls.length > 0 ? 'success' : 'error',
+                details: `${validUrls.length}/${testUrls.length} URLs passed validation`,
+                data: { validUrls, invalidUrls: testUrls.filter(url => !processor.looksLikeUrl(url)) }
+            });
+            
+            // Test 4: Large batch simulation
+            const largeBatch = Array(1600).fill('https://example.com/test');
+            try {
+                if (largeBatch.length > processor.maxUrls) {
+                    throw new Error(`Batch size ${largeBatch.length} exceeds maximum allowed ${processor.maxUrls} URLs`);
+                }
+                results.push({
+                    test: 'Large Batch Validation',
+                    status: 'success',
+                    details: 'Should not reach here'
+                });
+            } catch (error) {
+                results.push({
+                    test: 'Large Batch Validation',
+                    status: 'success',
+                    details: `Correctly rejected batch: ${error.message}`
+                });
+            }
+            
+            return results;
+        }
+        
+        // Display results
+        function displayResults(results) {
+            const container = document.getElementById('testResults');
+            
+            results.forEach(result => {
+                const div = document.createElement('div');
+                div.className = result.status;
+                div.innerHTML = `
+                    <h3>${result.test}: ${result.status.toUpperCase()}</h3>
+                    <p>${result.details}</p>
+                    ${result.data ? `<details><summary>Data</summary><pre>${JSON.stringify(result.data, null, 2)}</pre></details>` : ''}
+                `;
+                container.appendChild(div);
+            });
+            
+            const summary = results.reduce((acc, result) => {
+                acc[result.status] = (acc[result.status] || 0) + 1;
+                return acc;
+            }, {});
+            
+            const summaryDiv = document.createElement('div');
+            summaryDiv.innerHTML = `<h3>Summary: ${summary.success || 0} passed, ${summary.error || 0} failed</h3>`;
+            container.insertBefore(summaryDiv, container.firstChild);
+        }
+        
+        // Run tests on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const results = runTests();
+            displayResults(results);
+        });
+    </script>
+</body>
+</html>

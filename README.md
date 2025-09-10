@@ -70,12 +70,41 @@ For detailed documentation, see [HTTP Client Enhancements](docs/HTTP_CLIENT_ENHA
 
 ## Usage
 
+### Bulk URL Upload (NEW!)
+**Upload up to 1500 URLs at once using TXT or JSON files:**
+
+1. **File Upload Options:**
+   - **TXT Format**: One URL per line, supports comments with `#`
+   - **JSON Format**: Array of URLs or `{"urls": [...]}` object format
+   - **Drag & Drop**: Simply drag files onto the upload area
+   - **Browse**: Click "Browse Files" to select files manually
+
+2. **Example TXT File:**
+```
+# Sports player URLs
+https://www.pro-football-reference.com/players/M/MahoPa00.htm
+https://www.pro-football-reference.com/players/B/BradTo00.htm
+
+# General URLs  
+https://example.com
+```
+
+3. **Example JSON File:**
+```json
+{
+  "urls": [
+    "https://www.pro-football-reference.com/players/M/MahoPa00.htm",
+    "https://www.pro-football-reference.com/players/B/BradTo00.htm"
+  ]
+}
+```
+
 ### Basic Web Scraping
-- **UI:** Open the deployed site, paste one URL per line, and click **Scrape**
+- **UI:** Upload a file or paste URLs manually, then click **Scrape**
 - **Programmatic:** Call `/.netlify/functions/fetch-url?url=<https URL>` to fetch HTML
 
 ### Enhanced Sports Scraping
-1. Paste Pro Football Reference player URLs (one per line)
+1. Upload sports URLs via file or paste Pro Football Reference player URLs manually
 2. Enable "Debug Mode" for detailed extraction analysis
 3. Use "Sports URLs Only" filter for focused results
 4. Export with specialized formats:
@@ -93,6 +122,7 @@ https://www.pro-football-reference.com/players/R/RiceJe00.htm
 ## Features
 
 ### Core Functionality
+- **Bulk File Upload**: Upload up to 1500 URLs via TXT or JSON files with drag-and-drop support
 - **Bulk Processing**: Concurrent scraping with rate limiting and error handling
 - **Enhanced HTTP Client**: Per-host rate limiting, 429-aware retries, circuit breaker hygiene
 - **Content Extraction**: Advanced algorithms for main content detection
@@ -100,6 +130,8 @@ https://www.pro-football-reference.com/players/R/RiceJe00.htm
 - **Debug Tools**: Detailed extraction analysis and performance metrics
 - **PFR URL Validation**: Pre-fetch validation for Pro Football Reference and other sports reference URLs
 - **Duplicate Detection**: Upfront duplicate URL detection with normalized comparison
+- **Memory Optimization**: Chunked processing for large batches with automatic memory management
+- **Progress Tracking**: Real-time progress with pause/resume capability and session recovery
 - **Unified Timeouts**: Environment-driven HTTP timeout configuration (HTTP_DEADLINE_MS)
 
 ### Sports Enhancement
