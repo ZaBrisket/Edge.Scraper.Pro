@@ -499,9 +499,10 @@ class BatchProcessor {
             const startTime = Date.now();
             itemLogger.debug('Processing URL');
             
-            // Create timeout wrapper
+            // Create timeout wrapper with cleanup
+            let timeoutId;
             const timeoutPromise = new Promise((_, reject) => {
-              setTimeout(() => {
+              timeoutId = setTimeout(() => {
                 reject(new Error(`Processing timeout after ${this.options.timeout}ms`));
               }, this.options.timeout);
             });
@@ -510,7 +511,12 @@ class BatchProcessor {
             const result = await Promise.race([
               processor(item.url, item),
               timeoutPromise
-            ]);
+            ]).finally(() => {
+              // Always clean up the timer
+              if (timeoutId) {
+                clearTimeout(timeoutId);
+              }
+            });
             
             const processingTime = Date.now() - startTime;
             
