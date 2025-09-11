@@ -9,6 +9,7 @@ import urllib.error
 import ssl
 import json
 import time
+import os
 from typing import List, Dict, Any
 
 class SimpleD2PScraper:
@@ -279,10 +280,18 @@ def main():
         'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
     }
     
-    with open('/workspace/detailed_analysis.json', 'w') as f:
-        json.dump(detailed_results, f, indent=2)
+    # Create output directory if it doesn't exist
+    output_dir = 'scraping_output'
+    os.makedirs(output_dir, exist_ok=True)
     
-    print(f"\n💾 Detailed results saved to: /workspace/detailed_analysis.json")
+    output_file = os.path.join(output_dir, 'detailed_analysis.json')
+    try:
+        with open(output_file, 'w') as f:
+            json.dump(detailed_results, f, indent=2)
+        print(f"\n💾 Detailed results saved to: {output_file}")
+    except Exception as e:
+        print(f"\n⚠️  Warning: Could not save results to file: {e}")
+        print("   Results are still displayed above.")
     print("\n" + "=" * 60)
     print("🎯 CONCLUSION: The pagination URLs are not working because the site")
     print("   structure has changed. Use the working endpoints found above")

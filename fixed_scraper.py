@@ -7,6 +7,7 @@ Handles 404 errors and provides alternative approaches
 import requests
 import time
 import json
+import os
 from urllib.parse import urljoin, urlparse
 from typing import List, Dict, Any
 import logging
@@ -262,13 +263,20 @@ def main():
         print(f"  {rec}")
     
     # Save results to file
-    with open('/workspace/scraping_results.json', 'w') as f:
-        json.dump({
-            'site_analysis': site_analysis,
-            'scrape_results': scrape_results
-        }, f, indent=2)
+    output_dir = 'scraping_output'
+    os.makedirs(output_dir, exist_ok=True)
     
-    print(f"\n💾 Results saved to /workspace/scraping_results.json")
+    output_file = os.path.join(output_dir, 'scraping_results.json')
+    try:
+        with open(output_file, 'w') as f:
+            json.dump({
+                'site_analysis': site_analysis,
+                'scrape_results': scrape_results
+            }, f, indent=2)
+        print(f"\n💾 Results saved to {output_file}")
+    except Exception as e:
+        print(f"\n⚠️  Warning: Could not save results to file: {e}")
+        print("   Results are still displayed above.")
 
 if __name__ == "__main__":
     main()
