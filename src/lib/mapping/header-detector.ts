@@ -1,4 +1,12 @@
-import { FieldDef } from '../../generated/prisma';
+// Define FieldDef interface locally since we're not using the generated client here
+export interface FieldDef {
+  id: string;
+  targetField: string;
+  sourceHeaders: string[];
+  transform?: string;
+  required: boolean;
+  defaultValue?: string;
+}
 
 export interface HeaderMatch {
   sourceHeader: string;

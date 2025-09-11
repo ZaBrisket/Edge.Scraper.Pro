@@ -65,24 +65,40 @@ export async function dequeueJob(
 ): Promise<QueueJob | null> {
   const now = Date.now();
   
-  // Get jobs that are ready to process (processAt <= now)
-  const jobs = await redis.zrangebyscore(queueName, 0, now, { count: 1 });
+  // Get all jobs from queue and filter by processAt time
+  const allJobs = await redis.zrange(queueName, 0, -1, { withScores: true });
   
-  if (!jobs || jobs.length === 0) {
+  if (!allJobs || allJobs.length === 0) {
     return null;
   }
 
-  const jobData = jobs[0];
+  // Find first job that's ready to process
+  let jobData: string | null = null;
+  let jobScore: number | null = null;
+  
+  for (let i = 0; i < allJobs.length; i += 2) {
+    const data = allJobs[i] as string;
+    const score = allJobs[i + 1] as number;
+    
+    if (score <= now) {
+      jobData = data;
+      jobScore = score;
+      break;
+    }
+  }
+  
+  if (!jobData) {
+    return null;
+  }
+
   const job: QueueJob = JSON.parse(jobData);
 
   // Remove from queue and add to processing set with visibility timeout
-  const pipeline = redis.pipeline();
-  pipeline.zrem(queueName, jobData);
-  pipeline.zadd(
+  await redis.zrem(queueName, jobData);
+  await redis.zadd(
     `${queueName}:processing`,
     { score: now + visibilityTimeout * 1000, member: jobData },
   );
-  await pipeline.exec();
 
   // Update job status
   await redis.hset(`job:${job.id}`, {
@@ -163,34 +179,46 @@ export async function getJobStatus(jobId: string): Promise<any> {
 export async function cleanupExpiredJobs(queueName: string): Promise<number> {
   const now = Date.now();
   
-  // Get expired jobs from processing queue
-  const expiredJobs = await redis.zrangebyscore(`${queueName}:processing`, 0, now);
+  // Get all jobs from processing queue with scores
+  const allProcessingJobs = await redis.zrange(`${queueName}:processing`, 0, -1, { withScores: true });
   
-  if (!expiredJobs || expiredJobs.length === 0) {
+  if (!allProcessingJobs || allProcessingJobs.length === 0) {
+    return 0;
+  }
+
+  const expiredJobs: string[] = [];
+  
+  // Find expired jobs
+  for (let i = 0; i < allProcessingJobs.length; i += 2) {
+    const jobData = allProcessingJobs[i] as string;
+    const expireTime = allProcessingJobs[i + 1] as number;
+    
+    if (expireTime <= now) {
+      expiredJobs.push(jobData);
+    }
+  }
+  
+  if (expiredJobs.length === 0) {
     return 0;
   }
 
   // Move expired jobs back to main queue
-  const pipeline = redis.pipeline();
-  
   for (const jobData of expiredJobs) {
     const job: QueueJob = JSON.parse(jobData);
     
     // Remove from processing
-    pipeline.zrem(`${queueName}:processing`, jobData);
+    await redis.zrem(`${queueName}:processing`, jobData);
     
     // Add back to main queue with current timestamp
     job.processAt = now;
-    pipeline.zadd(queueName, { score: job.processAt, member: JSON.stringify(job) });
+    await redis.zadd(queueName, { score: job.processAt, member: JSON.stringify(job) });
     
     // Update job status
-    pipeline.hset(`job:${job.id}`, {
+    await redis.hset(`job:${job.id}`, {
       status: 'queued',
       retriedAt: now,
     });
   }
-  
-  await pipeline.exec();
   
   return expiredJobs.length;
 }
