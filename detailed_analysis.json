@@ -1,0 +1,661 @@
+{
+  "exploration_results": {
+    "all_tests": [
+      {
+        "url": "https://www.d2pbuyersguide.com",
+        "status_code": 200,
+        "success": true,
+        "content_length": 5,
+        "content_preview": "Test\n",
+        "headers": {
+          "Date": "Thu, 11 Sep 2025 16:31:52 GMT",
+          "Server": "Apache",
+          "Content-Length": "5",
+          "Connection": "close",
+          "Content-Type": "text/html; charset=UTF-8"
+        }
+      },
+      {
+        "url": "http://www.d2pbuyersguide.com",
+        "status_code": 200,
+        "success": true,
+        "content_length": 24400,
+        "content_preview": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\" lang=\"en\">\n  <head>\n\t<meta name=\"robots\" content=\"index, follow\"> \n\t<meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\"/",
+        "headers": {
+          "Date": "Thu, 11 Sep 2025 16:31:53 GMT",
+          "Server": "Apache",
+          "Set-Cookie": "symfony=8aher6cu6qolg2foa53nibs305; path=/",
+          "Connection": "close",
+          "Transfer-Encoding": "chunked",
+          "Content-Type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/",
+        "status_code": 200,
+        "success": true,
+        "content_length": 5,
+        "content_preview": "Test\n",
+        "headers": {
+          "Date": "Thu, 11 Sep 2025 16:31:54 GMT",
+          "Server": "Apache",
+          "Content-Length": "5",
+          "Connection": "close",
+          "Content-Type": "text/html; charset=UTF-8"
+        }
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/index.html",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /index.html was not found on this server.</p>\n</body>"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/index.php",
+        "status_code": 200,
+        "success": true,
+        "content_length": 5,
+        "content_preview": "Test\n",
+        "headers": {
+          "Date": "Thu, 11 Sep 2025 16:31:55 GMT",
+          "Server": "Apache",
+          "Content-Length": "5",
+          "Connection": "close",
+          "Content-Type": "text/html; charset=UTF-8"
+        }
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/home",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /home was not found on this server.</p>\n</body></html"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/main",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /main was not found on this server.</p>\n</body></html"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/products",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /products was not found on this server.</p>\n</body></"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/items",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /items was not found on this server.</p>\n</body></htm"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/guide",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /guide was not found on this server.</p>\n</body></htm"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/buyers-guide",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /buyers-guide was not found on this server.</p>\n</bod"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/d2p",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /d2p was not found on this server.</p>\n</body></html>"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/api",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /api was not found on this server.</p>\n</body></html>"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/search",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /search was not found on this server.</p>\n</body></ht"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/category",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /category was not found on this server.</p>\n</body></"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter was not found on this server.</p>\n</body></ht"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/all",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /all was not found on this server.</p>\n</body></html>"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/page/1",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /page/1 was not found on this server.</p>\n</body></ht"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/page1",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /page1 was not found on this server.</p>\n</body></htm"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/p/1",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /p/1 was not found on this server.</p>\n</body></html>"
+      }
+    ],
+    "working_endpoints": [
+      {
+        "url": "https://www.d2pbuyersguide.com",
+        "status_code": 200,
+        "success": true,
+        "content_length": 5,
+        "content_preview": "Test\n",
+        "headers": {
+          "Date": "Thu, 11 Sep 2025 16:31:52 GMT",
+          "Server": "Apache",
+          "Content-Length": "5",
+          "Connection": "close",
+          "Content-Type": "text/html; charset=UTF-8"
+        }
+      },
+      {
+        "url": "http://www.d2pbuyersguide.com",
+        "status_code": 200,
+        "success": true,
+        "content_length": 24400,
+        "content_preview": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\" lang=\"en\">\n  <head>\n\t<meta name=\"robots\" content=\"index, follow\"> \n\t<meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\"/",
+        "headers": {
+          "Date": "Thu, 11 Sep 2025 16:31:53 GMT",
+          "Server": "Apache",
+          "Set-Cookie": "symfony=8aher6cu6qolg2foa53nibs305; path=/",
+          "Connection": "close",
+          "Transfer-Encoding": "chunked",
+          "Content-Type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/",
+        "status_code": 200,
+        "success": true,
+        "content_length": 5,
+        "content_preview": "Test\n",
+        "headers": {
+          "Date": "Thu, 11 Sep 2025 16:31:54 GMT",
+          "Server": "Apache",
+          "Content-Length": "5",
+          "Connection": "close",
+          "Content-Type": "text/html; charset=UTF-8"
+        }
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/index.php",
+        "status_code": 200,
+        "success": true,
+        "content_length": 5,
+        "content_preview": "Test\n",
+        "headers": {
+          "Date": "Thu, 11 Sep 2025 16:31:55 GMT",
+          "Server": "Apache",
+          "Content-Length": "5",
+          "Connection": "close",
+          "Content-Type": "text/html; charset=UTF-8"
+        }
+      }
+    ],
+    "summary": {
+      "total_tested": 20,
+      "successful": 4,
+      "failed": 16
+    }
+  },
+  "scraping_results": {
+    "all_results": [
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/1",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/1 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/1"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/2",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/2 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/2"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/3",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/3 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/3"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/4",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/4 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/4"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/5",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/5 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/5"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/6",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/6 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/6"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/7",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/7 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/7"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/8",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/8 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/8"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/9",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/9 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/9"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/10",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/10 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/10"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/11",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/11 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/11"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/12",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/12 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/12"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/13",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/13 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/13"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/14",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/14 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/14"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/15",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/15 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/15"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/16",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/16 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/16"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/17",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/17 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/17"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/18",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/18 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/18"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/19",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/19 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/19"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/20",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/20 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/20"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/21",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/21 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/21"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/22",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/22 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/22"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/23",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/23 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/23"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/24",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/24 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/24"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/25",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/25 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/25"
+      }
+    ],
+    "successful": [],
+    "failed": [
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/1",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/1 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/1"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/2",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/2 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/2"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/3",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/3 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/3"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/4",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/4 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/4"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/5",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/5 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/5"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/6",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/6 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/6"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/7",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/7 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/7"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/8",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/8 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/8"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/9",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/9 was not found on this server.</p>\n",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/9"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/10",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/10 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/10"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/11",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/11 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/11"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/12",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/12 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/12"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/13",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/13 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/13"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/14",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/14 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/14"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/15",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/15 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/15"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/16",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/16 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/16"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/17",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/17 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/17"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/18",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/18 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/18"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/19",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/19 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/19"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/20",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/20 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/20"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/21",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/21 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/21"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/22",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/22 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/22"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/23",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/23 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/23"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/24",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/24 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/24"
+      },
+      {
+        "url": "https://www.d2pbuyersguide.com/filter/all/page/25",
+        "status_code": 404,
+        "success": false,
+        "error": "HTTP 404: Not Found",
+        "content_preview": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>404 Not Found</title>\n</head><body>\n<h1>Not Found</h1>\n<p>The requested URL /filter/all/page/25 was not found on this server.</p>",
+        "original_url": "http://www.d2pbuyersguide.com/filter/all/page/25"
+      }
+    ],
+    "summary": {
+      "total": 25,
+      "successful": 0,
+      "failed": 25,
+      "success_rate": "0.0%"
+    }
+  },
+  "recommendations": [
+    "\u2705 Found 4 working endpoints",
+    "\ud83d\udd27 Use the working endpoints instead of the pagination URLs",
+    "\u274c All original pagination URLs failed",
+    "\ud83d\udd0d The pagination structure has likely changed",
+    "\ud83d\udccb Try using the working endpoints found during exploration",
+    "\ud83d\udd27 404 errors confirm URL structure has changed"
+  ],
+  "timestamp": "2025-09-11 16:32:19"
+}
