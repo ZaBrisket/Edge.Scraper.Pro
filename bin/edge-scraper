@@ -2,9 +2,16 @@
 
 const { Command } = require('commander');
 const path = require('path');
+const fs = require('fs');
 
 // Import the trivia exporter (will need to compile TypeScript first)
 const { exportTriviaDataset } = require('../dist/exporters/trivia_v1/index');
+
+// Import batch processor and extractors
+const { BatchProcessor } = require('../src/lib/batch-processor');
+const { SupplierDirectoryExtractor } = require('../src/lib/supplier-directory-extractor');
+const { SupplierDirectoryTestSuite } = require('../src/lib/supplier-directory-test-suite');
+const { SupplierDataExporter } = require('../src/lib/supplier-export');
 
 const program = new Command();
 
@@ -58,7 +65,6 @@ program
 
       // Ensure output directory exists
       const outputDir = path.dirname(outputPath);
-      const fs = require('fs');
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
       }
@@ -70,6 +76,130 @@ program
 
     } catch (error) {
       console.error('Export failed:', error.message);
+      if (options.verbose) {
+        console.error(error.stack);
+      }
+      process.exit(1);
+    }
+  });
+
+program
+  .command('scrape')
+  .description('Scrape websites and extract data')
+  .option('--urls <file>', 'file containing URLs to scrape (one per line)', 'urls.txt')
+  .option('--mode <mode>', 'extraction mode', 'supplier-directory', 'supplier-directory|sports|general')
+  .option('--output <file>', 'output file path', 'scraped-data.json')
+  .option('--concurrency <number>', 'number of concurrent requests', '3')
+  .option('--delay <ms>', 'delay between requests in milliseconds', '1000')
+  .option('--timeout <ms>', 'request timeout in milliseconds', '30000')
+  .option('--verbose', 'verbose output', false)
+  .action(async (options) => {
+    try {
+      console.log('🚀 Starting web scraping...\n');
+      
+      // Read URLs from file
+      const urlsPath = path.resolve(options.urls);
+      if (!fs.existsSync(urlsPath)) {
+        console.error(`URLs file not found: ${urlsPath}`);
+        process.exit(1);
+      }
+      
+      const urls = fs.readFileSync(urlsPath, 'utf8')
+        .split('\n')
+        .map(url => url.trim())
+        .filter(url => url.length > 0);
+      
+      if (urls.length === 0) {
+        console.error('No URLs found in file');
+        process.exit(1);
+      }
+      
+      console.log(`Found ${urls.length} URLs to process`);
+      console.log(`Extraction mode: ${options.mode}`);
+      console.log(`Concurrency: ${options.concurrency}`);
+      console.log(`Delay: ${options.delay}ms\n`);
+      
+      // Create batch processor
+      const processor = new BatchProcessor({
+        concurrency: parseInt(options.concurrency),
+        delayMs: parseInt(options.delay),
+        timeout: parseInt(options.timeout),
+        extractionMode: options.mode,
+        onProgress: (progress) => {
+          if (options.verbose) {
+            console.log(`Progress: ${progress.completed}/${progress.total} (${progress.percentage}%)`);
+          }
+        }
+      });
+      
+      // Process URLs
+      const startTime = Date.now();
+      const result = await processor.processBatch(urls);
+      const duration = Date.now() - startTime;
+      
+      // Save results
+      const outputPath = path.resolve(options.output);
+      const outputDir = path.dirname(outputPath);
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+      
+      // Export based on file extension
+      const exporter = new SupplierDataExporter();
+      const format = path.extname(outputPath).toLowerCase();
+      
+      if (format === '.csv') {
+        exporter.exportBatchResults(result, outputPath, { pretty: false });
+      } else {
+        // Default to JSON
+        exporter.exportBatchResults(result, outputPath, { pretty: true });
+      }
+      
+      // Also create a summary report
+      const summaryPath = outputPath.replace(/\.[^.]+$/, '-summary.json');
+      exporter.createSummaryReport(result, summaryPath);
+      
+      // Print summary
+      console.log('\n📊 Scraping Complete!');
+      console.log('====================');
+      console.log(`Total URLs: ${result.stats.totalUrls}`);
+      console.log(`Processed: ${result.stats.processedUrls}`);
+      console.log(`Successful: ${result.stats.successfulUrls}`);
+      console.log(`Failed: ${result.stats.failedUrls}`);
+      console.log(`Duration: ${Math.round(duration / 1000)}s`);
+      console.log(`Results saved to: ${outputPath}`);
+      console.log(`Summary report: ${summaryPath}`);
+      
+      if (result.stats.failedUrls > 0) {
+        console.log(`\n⚠️  ${result.stats.failedUrls} URLs failed. Check the summary report for details.`);
+      }
+      
+    } catch (error) {
+      console.error('Scraping failed:', error.message);
+      if (options.verbose) {
+        console.error(error.stack);
+      }
+      process.exit(1);
+    }
+  });
+
+program
+  .command('test-supplier')
+  .description('Run tests for supplier directory extraction')
+  .option('--verbose', 'verbose output', false)
+  .action(async (options) => {
+    try {
+      console.log('🧪 Running Supplier Directory Tests...\n');
+      
+      const testSuite = new SupplierDirectoryTestSuite();
+      const results = await testSuite.runAllTests();
+      
+      if (results.failed > 0) {
+        process.exit(1);
+      }
+      
+    } catch (error) {
+      console.error('Tests failed:', error.message);
       if (options.verbose) {
         console.error(error.stack);
       }
