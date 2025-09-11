@@ -378,8 +378,8 @@
                         <!-- Enhanced validation options -->
                         <div class="validation-options">
                             <label>
-                                <input type="checkbox" id="checkConnectivity" checked>
-                                Check URL connectivity (verifies URLs are reachable)
+                                <input type="checkbox" id="checkConnectivity">
+                                Check URL connectivity (verifies URLs are reachable) - May cause false negatives
                             </label>
                             <label>
                                 <input type="checkbox" id="enableSequencing" checked>
@@ -2185,8 +2185,8 @@
                     // Parse based on file type
                     const parseResult = this.parseFileContent(content, file.name);
                     
-                    // Validate URLs with enhanced validation
-                    const validationResult = await this.validateUrls(parseResult.urls, true, (progress, current, total) => {
+                    // Validate URLs with enhanced validation (connectivity check disabled by default)
+                    const validationResult = await this.validateUrls(parseResult.urls, false, (progress, current, total) => {
                         // Update progress if callback is provided
                         if (window.updateValidationProgress) {
                             window.updateValidationProgress(progress, current, total);
@@ -2561,7 +2561,7 @@
                 dom.validationStatus.textContent = 'Reading file...';
                 
                 // Get validation options
-                const checkConnectivity = dom.checkConnectivity ? dom.checkConnectivity.checked : true;
+                const checkConnectivity = dom.checkConnectivity ? dom.checkConnectivity.checked : false;
                 const enableSequencing = dom.enableSequencing ? dom.enableSequencing.checked : true;
                 
                 // Update progress

@@ -124,11 +124,28 @@ class EnhancedURLValidator {
         result.responseTime = connectivityResult.responseTime;
         result.redirects = connectivityResult.redirects;
         
-        if (!connectivityResult.isReachable) {
+        // Only fail validation for truly unreachable URLs, not CORS or network issues
+        if (!connectivityResult.isReachable && 
+            connectivityResult.category !== ENHANCED_VALIDATION_CATEGORIES.TIMEOUT &&
+            !connectivityResult.error?.includes('CORS') &&
+            !connectivityResult.error?.includes('cross-origin') &&
+            !connectivityResult.error?.includes('blocked by CORS policy')) {
           result.category = connectivityResult.category;
           result.error = connectivityResult.error;
           this.validationCache.set(cacheKey, result);
           return result;
+        }
+        
+        // Add connectivity warnings for CORS or timeout issues
+        if (connectivityResult.error?.includes('CORS') || 
+            connectivityResult.error?.includes('cross-origin') ||
+            connectivityResult.error?.includes('blocked by CORS policy')) {
+          result.warnings = result.warnings || [];
+          result.warnings.push('CORS restricted - may require server-side scraping');
+        }
+        if (connectivityResult.category === ENHANCED_VALIDATION_CATEGORIES.TIMEOUT) {
+          result.warnings = result.warnings || [];
+          result.warnings.push('URL timed out during connectivity check - may still be valid');
         }
       }
 
@@ -319,12 +336,15 @@ class EnhancedURLValidator {
         result.category = ENHANCED_VALIDATION_CATEGORIES.VALID;
         result.warnings = ['CORS restricted - may require server-side scraping'];
       } else if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-        // Network error or unreachable URL
+        // Network error - but don't fail validation, just mark as potentially unreachable
         result.isReachable = false;
-        result.category = ENHANCED_VALIDATION_CATEGORIES.UNREACHABLE;
-        result.error = 'Network error or unreachable URL';
+        result.category = ENHANCED_VALIDATION_CATEGORIES.VALID; // Still consider valid for scraping
+        result.warnings = ['Network error during connectivity check - URL may still be valid for scraping'];
       } else {
-        result.error = error.message;
+        // Other errors - still consider valid for scraping
+        result.isReachable = false;
+        result.category = ENHANCED_VALIDATION_CATEGORIES.VALID;
+        result.warnings = [`Connectivity check failed: ${error.message} - URL may still be valid for scraping`];
       }
     }
 
