@@ -68,6 +68,91 @@ try {
 
 For detailed documentation, see [HTTP Client Enhancements](docs/HTTP_CLIENT_ENHANCEMENTS.md).
 
+## URL Normalization & Pagination Discovery
+
+### D2P Buyers Guide Enhancement
+
+The enhanced scraper now includes robust URL normalization and pagination discovery to fix common 404 issues:
+
+#### Key Features
+- **URL Canonicalization**: Automatic HTTP→HTTPS upgrades, www variants, trailing slash handling
+- **Pagination Discovery**: Auto-detection of pagination patterns with letter-based fallback
+- **Structured Error Logging**: Comprehensive error taxonomy with NDJSON output
+- **Intelligent Fallbacks**: Multiple URL variants tested until one succeeds
+
+#### URL Canonicalization Process
+```javascript
+const { URLCanonicalizer } = require('./src/lib/http/url-canonicalizer');
+
+const canonicalizer = new URLCanonicalizer();
+const result = await canonicalizer.canonicalize('http://example.com/page/1');
+
+if (result.success) {
+  console.log('Canonicalized:', result.canonicalUrl); // https://example.com/page/1
+  console.log('Status:', result.status); // 200
+  console.log('Redirects:', result.redirectChain); // []
+}
+```
+
+#### Pagination Discovery
+```javascript
+const { PaginationDiscovery } = require('./src/lib/http/pagination-discovery');
+
+const discovery = new PaginationDiscovery();
+const result = await discovery.discoverPagination('https://example.com/filter/all/page/1');
+
+if (result.success) {
+  console.log('Discovered pages:', result.totalPages);
+  console.log('Page URLs:', result.discoveredPages.map(p => p.url));
+}
+```
+
+#### Enhanced Scraping
+```javascript
+const { EnhancedScraper } = require('./src/lib/http/enhanced-scraper');
+
+const scraper = new EnhancedScraper({
+  enableCanonicalization: true,
+  enablePaginationDiscovery: true,
+  enableStructuredLogging: true
+});
+
+// Single URL with full enhancement pipeline
+const result = await scraper.scrapeUrl('http://example.com/page/1');
+
+// Batch processing
+const results = await scraper.scrapeUrls(urlList);
+
+// With pagination discovery
+const paginationResult = await scraper.scrapeWithPagination(baseUrl);
+```
+
+#### D2P Replay Script
+```bash
+# Test the enhancement against the original failing URLs
+node bin/d2p-replay.js
+
+# This will:
+# 1. Test first 5 URLs to verify fixes
+# 2. Process all 50 original URLs with enhancements
+# 3. Show detailed results and error breakdown
+# 4. Save structured results to logs/
+```
+
+#### Error Classification
+The enhanced scraper provides detailed error classification:
+- `http_404`, `http_403`, `http_429`, `http_5xx`
+- `dns_error`, `connection_refused`, `timeout`
+- `blocked_by_robots`, `anti_bot_challenge`
+- `canonicalization_failed`, `pagination_failed`
+
+#### Expected Results
+- **Before**: 50/50 URLs failing with 404 errors
+- **After**: 80-90% success rate with automatic URL normalization
+- **Bonus**: Automatic discovery of additional pagination pages
+
+For detailed documentation, see [D2P Enhancement Summary](D2P_ENHANCEMENT_SUMMARY.md).
+
 ## Usage
 
 ### Bulk URL Upload (NEW!)

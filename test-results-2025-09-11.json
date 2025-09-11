@@ -91,7 +91,7 @@
             "isValid": true,
             "dataSize": 2797,
             "issues": [],
-            "sampleData": "{\n  \"exportInfo\": {\n    \"timestamp\": \"2025-09-11T03:52:46.931Z\",\n    \"totalPlayers\": 2,\n    \"successfulExtractions\": 2,\n    \"format\": \"structured-json\"\n  },\n  \"players\": [\n    {\n      \"id\": \"player_0\"..."
+            "sampleData": "{\n  \"exportInfo\": {\n    \"timestamp\": \"2025-09-11T17:11:06.713Z\",\n    \"totalPlayers\": 2,\n    \"successfulExtractions\": 2,\n    \"format\": \"structured-json\"\n  },\n  \"players\": [\n    {\n      \"id\": \"player_0\"..."
           },
           {
             "format": "player-database",

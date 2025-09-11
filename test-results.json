@@ -1,52 +1,52 @@
 {
   "summary": {
-    "passed": 5,
-    "failed": 0,
-    "warnings": 1,
-    "totalDuration": 6253.25817
+    "passed": 2,
+    "failed": 4,
+    "warnings": 0,
+    "totalDuration": 158.049623
   },
   "details": [
     {
       "test": "HTTP Client Memory Leaks",
-      "status": "PASS",
-      "message": "Memory increase: 10MB (within 50MB threshold)",
-      "duration": "4871.24ms",
-      "timestamp": "2025-09-11T03:52:45.788Z"
+      "status": "FAIL",
+      "message": "Error: Cannot find module 'bottleneck'\nRequire stack:\n- /workspace/src/lib/http/client.js\n- /workspace/test-efficiency-improvements.js",
+      "duration": null,
+      "timestamp": "2025-09-11T17:11:06.677Z"
     },
     {
       "test": "DOM Memory Leaks",
-      "status": "WARN",
-      "message": "Memory increase: 90MB (exceeds 50MB threshold)",
-      "duration": "1242.67ms",
-      "timestamp": "2025-09-11T03:52:47.031Z"
+      "status": "FAIL",
+      "message": "Error: Cannot find module 'jsdom'\nRequire stack:\n- /workspace/test-efficiency-improvements.js",
+      "duration": null,
+      "timestamp": "2025-09-11T17:11:06.680Z"
     },
     {
       "test": "Export Performance",
       "status": "PASS",
-      "message": "CSV: 6.87ms, JSON: 6.38ms (both under 100ms)",
-      "duration": "14.90ms",
-      "timestamp": "2025-09-11T03:52:47.051Z"
+      "message": "CSV: 18.58ms, JSON: 23.38ms (both under 100ms)",
+      "duration": "50.12ms",
+      "timestamp": "2025-09-11T17:11:06.730Z"
     },
     {
       "test": "Error Boundary Functionality",
-      "status": "PASS",
-      "message": "Error handling prevents crashes and returns partial results",
-      "duration": "15.57ms",
-      "timestamp": "2025-09-11T03:52:47.068Z"
+      "status": "FAIL",
+      "message": "Error: Cannot find module 'jsdom'\nRequire stack:\n- /workspace/test-efficiency-improvements.js",
+      "duration": null,
+      "timestamp": "2025-09-11T17:11:06.731Z"
     },
     {
       "test": "Request Debouncing",
       "status": "PASS",
       "message": "Request debouncing prevents duplicate requests",
-      "duration": "100.27ms",
-      "timestamp": "2025-09-11T03:52:47.169Z"
+      "duration": "101.35ms",
+      "timestamp": "2025-09-11T17:11:06.833Z"
     },
     {
       "test": "Backward Compatibility",
-      "status": "PASS",
-      "message": "All existing functionality remains accessible",
-      "duration": "0.03ms",
-      "timestamp": "2025-09-11T03:52:47.169Z"
+      "status": "FAIL",
+      "message": "Error: Cannot find module 'bottleneck'\nRequire stack:\n- /workspace/src/lib/http/client.js\n- /workspace/test-efficiency-improvements.js",
+      "duration": null,
+      "timestamp": "2025-09-11T17:11:06.833Z"
     }
   ]
 }

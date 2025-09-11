@@ -27,7 +27,7 @@ const urlSchema = z.string().url().refine(
 const fetchOptionsSchema = z.object({
   retries: z.number().int().min(0).max(10).optional(),
   timeout: z.number().int().min(100).max(300000).optional(), // 100ms to 5 minutes
-  correlationId: z.string().uuid().optional(),
+  correlationId: z.string().min(1).optional(), // More lenient correlation ID validation
   headers: z.record(z.string()).optional(),
   method: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS']).optional(),
   body: z.any().optional(),
