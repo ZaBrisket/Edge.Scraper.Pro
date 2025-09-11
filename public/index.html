@@ -2386,6 +2386,13 @@
 
                 // Apply URL sequencing for optimal scraping performance
                 const sequencedUrls = this.sequenceUrlsForScraping(validUrls);
+                
+                // Debug: Verify no URLs were lost during sequencing
+                if (validUrls.length !== sequencedUrls.length) {
+                    console.warn(`URL sequencing issue: Input ${validUrls.length} URLs, output ${sequencedUrls.length} URLs`);
+                    console.log('Original URLs:', validUrls);
+                    console.log('Sequenced URLs:', sequencedUrls);
+                }
 
                 return {
                     validUrls: sequencedUrls,
@@ -2404,6 +2411,8 @@
              */
             sequenceUrlsForScraping(urls) {
                 if (!urls || urls.length === 0) return urls;
+
+                console.log('Sequencing URLs:', { inputCount: urls.length, urls: urls });
 
                 // Group URLs by domain to implement rate limiting
                 const domainGroups = new Map();
@@ -2424,28 +2433,30 @@
                     }
                 });
 
+                console.log('Domain groups:', Object.fromEntries(domainGroups));
+
                 // Interleave URLs from different domains to avoid overwhelming any single domain
                 const sequencedUrls = [];
-                const maxUrlsPerDomain = Math.ceil(urls.length / Math.max(domainGroups.size, 1));
+                const domainArray = Array.from(domainGroups.entries());
                 
-                // Create interleaved sequence
-                for (let i = 0; i < maxUrlsPerDomain; i++) {
-                    domainGroups.forEach(domainUrls => {
+                // Find the maximum number of URLs in any single domain
+                const maxUrlsInAnyDomain = Math.max(...domainArray.map(([_, urls]) => urls.length));
+                
+                console.log('Max URLs in any domain:', maxUrlsInAnyDomain);
+                
+                // Create interleaved sequence - process all URLs from all domains
+                for (let i = 0; i < maxUrlsInAnyDomain; i++) {
+                    domainArray.forEach(([domain, domainUrls]) => {
                         if (i < domainUrls.length) {
                             sequencedUrls.push(domainUrls[i]);
                         }
                     });
                 }
 
-                // Add any remaining URLs from domains with more URLs
-                domainGroups.forEach(domainUrls => {
-                    if (domainUrls.length > maxUrlsPerDomain) {
-                        sequencedUrls.push(...domainUrls.slice(maxUrlsPerDomain));
-                    }
-                });
-
                 // Add other URLs at the end
                 sequencedUrls.push(...otherUrls);
+
+                console.log('Sequenced URLs:', { outputCount: sequencedUrls.length, urls: sequencedUrls });
 
                 return sequencedUrls;
             }
@@ -2687,8 +2698,25 @@
                 return;
             }
             
+            console.log('Processing file URLs:', {
+                totalUrls: result.urls.length,
+                fileName: result.fileName,
+                urls: result.urls
+            });
+            
             // Populate the URL list textarea
             dom.urlList.value = result.urls.join('\n');
+            
+            // Verify URLs were set correctly
+            const setUrls = dom.urlList.value.split('\n').filter(Boolean);
+            if (setUrls.length !== result.urls.length) {
+                console.error('URL count mismatch after setting textarea:', {
+                    expected: result.urls.length,
+                    actual: setUrls.length,
+                    originalUrls: result.urls,
+                    setUrls: setUrls
+                });
+            }
             
             // Clear file upload area
             clearFileUpload();
