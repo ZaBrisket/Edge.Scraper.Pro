@@ -232,6 +232,26 @@ netlify logs --filter=uploads-presign
 - Check S3 bucket CORS configuration
 - Ensure bucket exists and is accessible
 
+#### 1a. Memory Exhaustion Issues
+
+**Symptoms**: Functions timeout on large files, "out of memory" errors
+```bash
+# Check function memory usage
+netlify logs --filter="out of memory\|timeout"
+
+# Monitor file processing times
+grep "processing time" netlify-logs.txt
+
+# Check file sizes being processed
+psql $DATABASE_URL -c "SELECT original_filename, file_size FROM uploads WHERE file_size > 5000000;"
+```
+
+**Resolution**:
+- Verify streaming parsers are being used (not buffer.toString())
+- Check that Excel files use sheetRows limit in xlsx.read()
+- Ensure CSV streaming stops after sample size reached
+- Monitor function execution time and memory usage
+
 #### 2. Export Job Failures
 
 **Symptoms**: Jobs stuck in "processing" or failing repeatedly

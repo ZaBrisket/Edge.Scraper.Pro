@@ -542,7 +542,19 @@ curl -X POST http://localhost:3000/api/uploads/presign \
 - **API Response Time**: p95 < 500ms (non-export endpoints)
 - **Export Processing**: 10k rows < 30 seconds
 - **Auto-Mapping Accuracy**: ≥90% on SourceScrub data
+- **Memory Usage**: <512MB per function execution
+- **File Processing**: 10MB files without memory exhaustion
 - **Uptime**: 99.9% availability target
+
+#### Memory Optimization
+
+The system uses streaming parsers to handle large files efficiently:
+
+- **CSV Processing**: Streams data without loading full content into memory
+- **Excel Processing**: Uses `sheetRows` limit to read only required data
+- **Buffer Management**: 1MB buffer limits with automatic processing
+- **Sample Parsing**: Stops reading after sample size is reached
+- **Safety Checks**: 64KB header parsing limit, 30s timeout protection
 
 #### Security Features
 

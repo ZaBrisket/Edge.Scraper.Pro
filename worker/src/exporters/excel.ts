@@ -60,14 +60,8 @@ export class ExcelExporter {
       throw new Error('Template or dataset not found');
     }
 
-    // Download source file from S3
-    const sourceObject = await s3.getObject({
-      Bucket: this.bucket,
-      Key: payload.s3Key,
-    }).promise();
-
-    // Parse source data
-    const sourceData = await this.parseSourceData(sourceObject.Body as Buffer, payload.contentType);
+    // Parse source data using streaming/optimized approach
+    const sourceData = await this.parseSourceData(payload.s3Key, payload.contentType);
     logger.info(`Parsed ${sourceData.rows.length} rows from source file`);
 
     // Apply mapping and transformations
@@ -110,18 +104,23 @@ export class ExcelExporter {
     };
   }
 
-  private async parseSourceData(buffer: Buffer, contentType: string): Promise<{
+  private async parseSourceData(s3Key: string, contentType: string): Promise<{
     headers: string[];
     rows: Array<Record<string, any>>;
   }> {
     if (contentType === 'text/csv') {
-      return this.parseCsvData(buffer);
+      return this.parseCsvData(s3Key);
     } else {
-      return this.parseExcelData(buffer);
+      // For Excel, we still need to download, but we can optimize the parsing
+      const sourceObject = await s3.getObject({
+        Bucket: this.bucket,
+        Key: s3Key,
+      }).promise();
+      return this.parseExcelData(sourceObject.Body as Buffer);
     }
   }
 
-  private async parseCsvData(buffer: Buffer): Promise<{
+  private async parseCsvData(s3Key: string): Promise<{
     headers: string[];
     rows: Array<Record<string, any>>;
   }> {
@@ -129,9 +128,13 @@ export class ExcelExporter {
       const rows: Array<Record<string, any>> = [];
       let headers: string[] = [];
 
-      const stream = Readable.from(buffer.toString('utf8'));
+      // Stream directly from S3 instead of loading buffer into memory
+      const s3Stream = s3.getObject({
+        Bucket: this.bucket,
+        Key: s3Key,
+      }).createReadStream();
       
-      stream
+      s3Stream
         .pipe(csv())
         .on('headers', (headerList: string[]) => {
           headers = headerList;

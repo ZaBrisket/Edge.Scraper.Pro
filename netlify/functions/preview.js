@@ -24,17 +24,23 @@ const PreviewRequestSchema = z.object({
 });
 
 /**
- * Parse CSV data and return sample rows
+ * Parse CSV data and return sample rows using streaming approach
  */
-async function parseCsvSample(buffer, sampleSize) {
+async function parseCsvSample(s3Key, sampleSize) {
+  const bucket = process.env.S3_BUCKET || 'edge-scraper-pro-artifacts';
+  
   return new Promise((resolve, reject) => {
     const rows = [];
     let headers = null;
     let rowCount = 0;
     
-    const stream = Readable.from(buffer.toString('utf8'));
+    // Create S3 stream instead of loading full buffer
+    const s3Stream = s3.getObject({
+      Bucket: bucket,
+      Key: s3Key,
+    }).createReadStream();
     
-    stream
+    s3Stream
       .pipe(csv())
       .on('headers', (headerList) => {
         headers = headerList;
@@ -45,7 +51,7 @@ async function parseCsvSample(buffer, sampleSize) {
           rowCount++;
         } else {
           // Stop parsing after we have enough samples
-          stream.destroy();
+          s3Stream.destroy();
         }
       })
       .on('end', () => {
@@ -56,15 +62,30 @@ async function parseCsvSample(buffer, sampleSize) {
 }
 
 /**
- * Parse Excel data and return sample rows
+ * Parse Excel data and return sample rows with memory optimization
  */
 function parseExcelSample(buffer, sampleSize) {
-  const workbook = xlsx.read(buffer, { type: 'buffer' });
+  // Read only the sample rows we need, not the entire worksheet
+  const workbook = xlsx.read(buffer, { 
+    type: 'buffer',
+    sheetRows: sampleSize + 1, // +1 for header row
+    cellDates: false,
+    cellNF: false,
+    cellStyles: false
+  });
+  
   const firstSheetName = workbook.SheetNames[0];
   const worksheet = workbook.Sheets[firstSheetName];
   
-  // Convert to JSON with header row
-  const jsonData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
+  if (!worksheet['!ref']) {
+    return { headers: [], rows: [] };
+  }
+  
+  // Convert to JSON with header row (limited rows)
+  const jsonData = xlsx.utils.sheet_to_json(worksheet, { 
+    header: 1,
+    range: 0 // Start from first row
+  });
   
   if (jsonData.length === 0) {
     return { headers: [], rows: [] };
@@ -172,17 +193,17 @@ exports.handler = async (event, context) => {
     const upload = dataset.uploads[0];
     const bucket = process.env.S3_BUCKET || 'edge-scraper-pro-artifacts';
 
-    // Download file from S3
-    const s3Object = await s3.getObject({
-      Bucket: bucket,
-      Key: upload.s3Key,
-    }).promise();
-
-    // Parse file based on content type
+    // Parse file based on content type using streaming/optimized approach
     let parseResult;
     if (upload.contentType === 'text/csv') {
-      parseResult = await parseCsvSample(s3Object.Body, validatedData.sampleSize);
+      // Use streaming approach for CSV
+      parseResult = await parseCsvSample(upload.s3Key, validatedData.sampleSize);
     } else {
+      // For Excel, download but with optimized parsing
+      const s3Object = await s3.getObject({
+        Bucket: bucket,
+        Key: upload.s3Key,
+      }).promise();
       parseResult = parseExcelSample(s3Object.Body, validatedData.sampleSize);
     }
 

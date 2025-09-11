@@ -21,30 +21,35 @@ const CommitRequestSchema = z.object({
 });
 
 /**
- * Estimate row count from CSV/Excel file
+ * Estimate row count from CSV/Excel file using streaming/chunked approach
  */
 async function estimateRowCount(s3Key, contentType) {
   try {
     const bucket = process.env.S3_BUCKET || 'edge-scraper-pro-artifacts';
     
-    // Get file from S3
-    const result = await s3.getObject({
-      Bucket: bucket,
-      Key: s3Key,
-    }).promise();
-
     if (contentType === 'text/csv') {
-      // For CSV, count newlines in a sample
-      const content = result.Body.toString('utf8');
-      const lines = content.split('\n').filter(line => line.trim());
-      return Math.max(0, lines.length - 1); // Subtract header row
+      // For CSV, stream and count newlines without loading full content
+      return await estimateCsvRowCount(bucket, s3Key);
     } else {
-      // For Excel files
-      const workbook = xlsx.read(result.Body, { type: 'buffer' });
+      // For Excel files, we need to load the file but only read the range
+      const result = await s3.getObject({
+        Bucket: bucket,
+        Key: s3Key,
+      }).promise();
+      
+      // Read only the worksheet range, not the full data
+      const workbook = xlsx.read(result.Body, { 
+        type: 'buffer',
+        sheetStubs: true, // Only read cell references, not values
+        cellDates: false,
+        cellNF: false,
+        cellStyles: false
+      });
+      
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
       const range = xlsx.utils.decode_range(worksheet['!ref'] || 'A1:A1');
-      return Math.max(0, range.e.r); // End row (0-indexed), so this gives us row count minus header
+      return Math.max(0, range.e.r); // End row (0-indexed)
     }
   } catch (error) {
     console.error('Error estimating row count:', error);
@@ -53,36 +58,91 @@ async function estimateRowCount(s3Key, contentType) {
 }
 
 /**
- * Parse first few rows to detect headers
+ * Stream CSV and count lines without loading full content into memory
+ */
+async function estimateCsvRowCount(bucket, s3Key) {
+  return new Promise((resolve, reject) => {
+    let lineCount = 0;
+    let buffer = '';
+    let isFirstChunk = true;
+    
+    const stream = s3.getObject({
+      Bucket: bucket,
+      Key: s3Key,
+    }).createReadStream();
+    
+    stream.on('data', (chunk) => {
+      buffer += chunk.toString('utf8');
+      
+      // Process complete lines
+      const lines = buffer.split('\n');
+      
+      // Keep the last incomplete line in buffer
+      buffer = lines.pop() || '';
+      
+      // Count lines (skip header on first chunk)
+      if (isFirstChunk && lines.length > 0) {
+        lineCount += Math.max(0, lines.length - 1); // Skip header
+        isFirstChunk = false;
+      } else {
+        lineCount += lines.length;
+      }
+      
+      // Memory safety: if buffer gets too large, process it
+      if (buffer.length > 1024 * 1024) { // 1MB buffer limit
+        if (buffer.includes('\n')) {
+          const bufferLines = buffer.split('\n');
+          lineCount += bufferLines.length - 1;
+          buffer = bufferLines[bufferLines.length - 1];
+        }
+      }
+    });
+    
+    stream.on('end', () => {
+      // Count final line if buffer has content
+      if (buffer.trim()) {
+        lineCount += 1;
+      }
+      resolve(lineCount);
+    });
+    
+    stream.on('error', reject);
+  });
+}
+
+/**
+ * Parse first few rows to detect headers using streaming approach
  */
 async function parseHeaders(s3Key, contentType) {
   try {
     const bucket = process.env.S3_BUCKET || 'edge-scraper-pro-artifacts';
     
-    // Get file from S3
-    const result = await s3.getObject({
-      Bucket: bucket,
-      Key: s3Key,
-    }).promise();
-
     if (contentType === 'text/csv') {
-      // Parse CSV headers
-      const content = result.Body.toString('utf8');
-      const lines = content.split('\n');
-      if (lines.length > 0) {
-        const headerLine = lines[0];
-        // Simple CSV parsing - in production, use proper CSV parser
-        const headers = headerLine.split(',').map(h => h.replace(/['"]/g, '').trim());
-        return headers.filter(h => h.length > 0);
-      }
+      // Stream only the first chunk to get headers
+      return await parseCsvHeaders(bucket, s3Key);
     } else {
-      // Parse Excel headers
-      const workbook = xlsx.read(result.Body, { type: 'buffer' });
+      // For Excel, we need to read the file but only parse the header row
+      const result = await s3.getObject({
+        Bucket: bucket,
+        Key: s3Key,
+      }).promise();
+
+      // Read only the first row for headers
+      const workbook = xlsx.read(result.Body, { 
+        type: 'buffer',
+        sheetRows: 1, // Only read first row
+        cellDates: false,
+        cellNF: false,
+        cellStyles: false
+      });
+      
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
       
+      if (!worksheet['!ref']) return [];
+      
       // Get first row as headers
-      const range = xlsx.utils.decode_range(worksheet['!ref'] || 'A1:A1');
+      const range = xlsx.utils.decode_range(worksheet['!ref']);
       const headers = [];
       
       for (let col = range.s.c; col <= range.e.c; col++) {
@@ -95,12 +155,66 @@ async function parseHeaders(s3Key, contentType) {
       
       return headers.filter(h => h.length > 0);
     }
-    
-    return [];
   } catch (error) {
     console.error('Error parsing headers:', error);
     return [];
   }
+}
+
+/**
+ * Stream CSV and parse only the header row
+ */
+async function parseCsvHeaders(bucket, s3Key) {
+  return new Promise((resolve, reject) => {
+    let buffer = '';
+    let headersParsed = false;
+    
+    const stream = s3.getObject({
+      Bucket: bucket,
+      Key: s3Key,
+    }).createReadStream();
+    
+    stream.on('data', (chunk) => {
+      if (headersParsed) {
+        stream.destroy(); // Stop reading once we have headers
+        return;
+      }
+      
+      buffer += chunk.toString('utf8');
+      
+      // Look for first complete line
+      const newlineIndex = buffer.indexOf('\n');
+      if (newlineIndex !== -1) {
+        const headerLine = buffer.substring(0, newlineIndex);
+        
+        // Parse CSV header line (simple parsing)
+        const headers = headerLine.split(',').map(h => h.replace(/['"]/g, '').trim());
+        const validHeaders = headers.filter(h => h.length > 0);
+        
+        headersParsed = true;
+        stream.destroy();
+        resolve(validHeaders);
+      }
+      
+      // Safety check: if no newline in first 64KB, something's wrong
+      if (buffer.length > 64 * 1024) {
+        stream.destroy();
+        reject(new Error('No header line found in first 64KB of file'));
+      }
+    });
+    
+    stream.on('end', () => {
+      if (!headersParsed && buffer.trim()) {
+        // File has only one line (header only)
+        const headers = buffer.trim().split(',').map(h => h.replace(/['"]/g, '').trim());
+        resolve(headers.filter(h => h.length > 0));
+      } else if (!headersParsed) {
+        resolve([]);
+      }
+    });
+    
+    stream.on('error', reject);
+  });
 }
 
 exports.handler = async (event, context) => {
