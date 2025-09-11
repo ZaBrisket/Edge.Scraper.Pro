@@ -2683,6 +2683,12 @@
                 }
             }
             
+            // Add filtering notice if URLs were removed
+            const totalFiltered = (result.invalidUrls?.length || 0) + (result.duplicates?.length || 0);
+            if (totalFiltered > 0) {
+                previewText += `\n\n⚠️  Note: ${totalFiltered} URLs were filtered out during validation. Only valid, unique URLs are loaded into the textarea below.`;
+            }
+            
             dom.fileDetails.innerHTML = `<div class="file-success"><pre>${previewText}</pre></div>`;
         }
         
@@ -2718,11 +2724,17 @@
                 });
             }
             
-            // Clear file upload area
-            clearFileUpload();
+            // Keep preview visible so user can see what was filtered
+            // clearFileUpload(); // <-- removed to preserve validation info
             
-            // Show success message
-            const message = `Successfully loaded ${result.urls.length} URLs from ${result.fileName}`;
+            // Show success message with filtering details
+            let message = `Successfully loaded ${result.urls.length} valid URLs from ${result.fileName}`;
+            if (result.invalidUrls && result.invalidUrls.length > 0) {
+                message += ` (${result.invalidUrls.length} invalid URLs filtered out)`;
+            }
+            if (result.duplicates && result.duplicates.length > 0) {
+                message += ` (${result.duplicates.length} duplicate URLs removed)`;
+            }
             dom.urlList.style.backgroundColor = '#f0f8ff';
             dom.urlList.style.border = '2px solid #b0d4f1';
             
@@ -2735,8 +2747,9 @@
             // Trigger validation if we have sports URLs
             const hasSportsUrls = result.urls.some(url => isSportsURL(url));
             if (hasSportsUrls) {
-                // The existing validation will be triggered by the input event
-                dom.urlList.dispatchEvent(new Event('input'));
+                // Don't dispatch input event as it would hide the validation reports
+                // The validation will be triggered when the user manually edits the textarea
+                console.log('Sports URLs detected - validation will be triggered on manual edit');
             }
             
             // Scroll to the URL list
@@ -2995,8 +3008,9 @@
             return validation;
         }
         
-        // Clear validation report when URL list changes
-        dom.urlList.addEventListener('input', () => {
+        // Clear validation report when URL list changes (only on user edits)
+        dom.urlList.addEventListener('input', (e) => {
+            if (!e.isTrusted) return; // only clear on user edits, not programmatic updates
             dom.validationReport.classList.add('hidden');
             dom.errorReport.classList.add('hidden');
             pfrValidator.clearCache();
