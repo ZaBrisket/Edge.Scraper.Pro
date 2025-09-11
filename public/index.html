@@ -10,6 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Web Scraper</title>
     <script src="pfr-validator.js"></script>
+    <script src="enhanced-url-validator.js"></script>
     <script src="batch-processor.js"></script>
     <style>
         /* Brutalist, Early-Web UI Theme */
@@ -275,6 +276,46 @@
             padding: 0.5em 1em;
         }
         
+        /* Enhanced validation options */
+        .validation-options {
+            margin: 1em 0;
+            padding: 1em;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+        }
+        
+        .validation-options label {
+            display: block;
+            margin-bottom: 0.5em;
+            font-weight: normal;
+        }
+        
+        .validation-options input[type="checkbox"] {
+            margin-right: 0.5em;
+        }
+        
+        /* Progress indicator */
+        .progress-bar-container {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            margin: 0.5em 0;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        #validationStatus {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 0.5em;
+        }
+        
         .manual-input-section {
             margin-top: 1em;
         }
@@ -333,6 +374,27 @@
                     <div id="filePreview" class="hidden">
                         <h4>File Preview:</h4>
                         <div id="fileDetails"></div>
+                        
+                        <!-- Enhanced validation options -->
+                        <div class="validation-options">
+                            <label>
+                                <input type="checkbox" id="checkConnectivity" checked>
+                                Check URL connectivity (verifies URLs are reachable)
+                            </label>
+                            <label>
+                                <input type="checkbox" id="enableSequencing" checked>
+                                Enable URL sequencing (optimizes scraping performance)
+                            </label>
+                        </div>
+                        
+                        <!-- Progress indicator for validation -->
+                        <div id="validationProgress" class="hidden">
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" id="validationProgressBar"></div>
+                            </div>
+                            <div id="validationStatus">Validating URLs...</div>
+                        </div>
+                        
                         <div class="file-actions">
                             <button id="processFileBtn" type="button">Process URLs</button>
                             <button id="clearFileBtn" type="button">Clear File</button>
@@ -440,6 +502,11 @@
             fileDetails: document.getElementById('fileDetails'),
             processFileBtn: document.getElementById('processFileBtn'),
             clearFileBtn: document.getElementById('clearFileBtn'),
+            checkConnectivity: document.getElementById('checkConnectivity'),
+            enableSequencing: document.getElementById('enableSequencing'),
+            validationProgress: document.getElementById('validationProgress'),
+            validationProgressBar: document.getElementById('validationProgressBar'),
+            validationStatus: document.getElementById('validationStatus'),
         };
         
         // Initialize PFR validator and batch processor
@@ -2095,12 +2162,13 @@
             } catch (err) { showError('Failed to copy text.'); }
         });
         
-        // URL File Processing Engine
+        // Enhanced URL File Processing Engine
         class URLFileProcessor {
             constructor() {
                 this.maxUrls = 1500;
                 this.maxFileSize = 5 * 1024 * 1024; // 5MB
                 this.supportedTypes = ['text/plain', 'application/json', '.txt', '.json'];
+                this.enhancedValidator = new EnhancedURLValidator();
             }
             
             async processFile(file) {
@@ -2117,8 +2185,13 @@
                     // Parse based on file type
                     const parseResult = this.parseFileContent(content, file.name);
                     
-                    // Validate URLs
-                    const validationResult = this.validateUrls(parseResult.urls);
+                    // Validate URLs with enhanced validation
+                    const validationResult = await this.validateUrls(parseResult.urls, true, (progress, current, total) => {
+                        // Update progress if callback is provided
+                        if (window.updateValidationProgress) {
+                            window.updateValidationProgress(progress, current, total);
+                        }
+                    });
                     
                     return {
                         success: true,
@@ -2279,41 +2352,102 @@
                 return urlPattern.test(str.trim());
             }
             
-            validateUrls(urls) {
-                const validUrls = [];
-                const invalidUrls = [];
-                const duplicates = [];
-                const errors = [];
-                const seen = new Set();
-                
+            async validateUrls(urls, checkConnectivity = false, progressCallback = null) {
                 if (urls.length > this.maxUrls) {
-                    errors.push(`Too many URLs: ${urls.length}. Maximum allowed: ${this.maxUrls}`);
-                    urls = urls.slice(0, this.maxUrls);
+                    throw new Error(`Too many URLs: ${urls.length}. Maximum allowed: ${this.maxUrls}`);
                 }
-                
-                urls.forEach((url, index) => {
-                    try {
-                        const cleanedUrl = cleanUrl(url);
-                        const normalizedUrl = cleanedUrl.toLowerCase();
-                        
-                        if (seen.has(normalizedUrl)) {
-                            duplicates.push({ url: cleanedUrl, line: index + 1 });
-                        } else {
-                            seen.add(normalizedUrl);
-                            // Use existing validation logic
-                            const validatedUrl = validate.url(cleanedUrl);
-                            validUrls.push(validatedUrl);
-                        }
-                    } catch (error) {
-                        invalidUrls.push({ 
-                            url: url, 
-                            line: index + 1, 
-                            error: error.message 
+
+                // Use enhanced validator for comprehensive validation
+                const validationResult = await this.enhancedValidator.validateBatch(
+                    urls, 
+                    checkConnectivity, 
+                    progressCallback
+                );
+
+                // Convert to legacy format for compatibility
+                const validUrls = validationResult.valid.map(item => item.formatted || item.url);
+                const invalidUrls = [];
+                const duplicates = validationResult.duplicates.map(dup => ({
+                    url: dup.url,
+                    line: dup.index + 1
+                }));
+
+                // Flatten invalid URLs by category
+                Object.values(validationResult.invalid).forEach(categoryUrls => {
+                    categoryUrls.forEach(item => {
+                        invalidUrls.push({
+                            url: item.url,
+                            line: item.index + 1,
+                            error: item.error,
+                            category: item.category
                         });
+                    });
+                });
+
+                // Apply URL sequencing for optimal scraping performance
+                const sequencedUrls = this.sequenceUrlsForScraping(validUrls);
+
+                return {
+                    validUrls: sequencedUrls,
+                    invalidUrls,
+                    duplicates,
+                    errors: validationResult.summary.invalidCount > 0 ? [`${validationResult.summary.invalidCount} invalid URLs found`] : [],
+                    validationResult, // Include full validation result for enhanced reporting
+                    warnings: validationResult.warnings || []
+                };
+            }
+
+            /**
+             * Sequence URLs for optimal scraping performance
+             * @param {string[]} urls - Array of valid URLs
+             * @returns {string[]} Sequenced URLs
+             */
+            sequenceUrlsForScraping(urls) {
+                if (!urls || urls.length === 0) return urls;
+
+                // Group URLs by domain to implement rate limiting
+                const domainGroups = new Map();
+                const otherUrls = [];
+
+                urls.forEach(url => {
+                    try {
+                        const urlObj = new URL(url);
+                        const domain = urlObj.hostname.toLowerCase().replace('www.', '');
+                        
+                        if (!domainGroups.has(domain)) {
+                            domainGroups.set(domain, []);
+                        }
+                        domainGroups.get(domain).push(url);
+                    } catch (error) {
+                        // If URL parsing fails, add to other URLs
+                        otherUrls.push(url);
                     }
                 });
+
+                // Interleave URLs from different domains to avoid overwhelming any single domain
+                const sequencedUrls = [];
+                const maxUrlsPerDomain = Math.ceil(urls.length / Math.max(domainGroups.size, 1));
                 
-                return { validUrls, invalidUrls, duplicates, errors };
+                // Create interleaved sequence
+                for (let i = 0; i < maxUrlsPerDomain; i++) {
+                    domainGroups.forEach(domainUrls => {
+                        if (i < domainUrls.length) {
+                            sequencedUrls.push(domainUrls[i]);
+                        }
+                    });
+                }
+
+                // Add any remaining URLs from domains with more URLs
+                domainGroups.forEach(domainUrls => {
+                    if (domainUrls.length > maxUrlsPerDomain) {
+                        sequencedUrls.push(...domainUrls.slice(maxUrlsPerDomain));
+                    }
+                });
+
+                // Add other URLs at the end
+                sequencedUrls.push(...otherUrls);
+
+                return sequencedUrls;
             }
             
             generatePreviewText(result) {
@@ -2421,18 +2555,43 @@
                 // Show processing state
                 showFileProcessing('Reading and parsing file...');
                 
+                // Show progress indicator
+                dom.validationProgress.classList.remove('hidden');
+                dom.validationProgressBar.style.width = '0%';
+                dom.validationStatus.textContent = 'Reading file...';
+                
+                // Get validation options
+                const checkConnectivity = dom.checkConnectivity ? dom.checkConnectivity.checked : true;
+                const enableSequencing = dom.enableSequencing ? dom.enableSequencing.checked : true;
+                
+                // Update progress
+                dom.validationStatus.textContent = 'Parsing file...';
+                dom.validationProgressBar.style.width = '25%';
+                
                 // Process the file
                 const result = await fileProcessor.processFile(file);
                 currentFileResult = result;
                 
                 if (result.success) {
-                    showFilePreview(result);
+                    // Update progress
+                    dom.validationStatus.textContent = 'Validating URLs...';
+                    dom.validationProgressBar.style.width = '50%';
+                    
+                    // Show enhanced file preview
+                    showEnhancedFilePreview(result);
+                    
+                    // Hide progress indicator
+                    dom.validationProgress.classList.add('hidden');
+                    dom.validationProgressBar.style.width = '100%';
+                    dom.validationStatus.textContent = 'Validation complete!';
                 } else {
                     showFileError(result.error);
+                    dom.validationProgress.classList.add('hidden');
                 }
             } catch (error) {
                 console.error('File processing error:', error);
                 showFileError('Failed to process file: ' + error.message);
+                dom.validationProgress.classList.add('hidden');
             }
         }
         
@@ -2485,6 +2644,35 @@
                 
                 dom.fileDetails.innerHTML += `<div class="file-error"><pre>${warningText}</pre></div>`;
             }
+        }
+        
+        function showEnhancedFilePreview(result) {
+            dom.uploadPrompt.classList.add('hidden');
+            dom.filePreview.classList.remove('hidden');
+            
+            // Generate enhanced preview with validation details
+            let previewText = fileProcessor.generatePreviewText(result);
+            
+            // Add enhanced validation info
+            if (result.validationResult) {
+                previewText += `\n\n=== Enhanced Validation Results ===`;
+                previewText += `\nValid URLs: ${result.validationResult.summary.validCount}`;
+                previewText += `\nInvalid URLs: ${result.validationResult.summary.invalidCount}`;
+                previewText += `\nDuplicate URLs: ${result.validationResult.summary.duplicateCount}`;
+                previewText += `\nUnreachable URLs: ${result.validationResult.summary.unreachableCount}`;
+                previewText += `\nScraping Blocked URLs: ${result.validationResult.summary.scrapingBlockedCount}`;
+                previewText += `\nProcessing Time: ${(result.validationResult.processingTime / 1000).toFixed(2)}s`;
+                
+                if (result.warnings && result.warnings.length > 0) {
+                    previewText += `\n\nWarnings:`;
+                    const uniqueWarnings = [...new Set(result.warnings)];
+                    uniqueWarnings.forEach(warning => {
+                        previewText += `\n- ${warning}`;
+                    });
+                }
+            }
+            
+            dom.fileDetails.innerHTML = `<div class="file-success"><pre>${previewText}</pre></div>`;
         }
         
         function showFileError(error) {

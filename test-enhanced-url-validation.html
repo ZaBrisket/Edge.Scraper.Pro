@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced URL Validation Test</title>
+    <script src="enhanced-url-validator.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #28a745;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .url-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f8f9fa;
+        }
+        .url-item {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .url-item.valid {
+            color: #28a745;
+        }
+        .url-item.invalid {
+            color: #dc3545;
+        }
+        .url-item.warning {
+            color: #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Enhanced URL Validation Test</h1>
+        <p>This page demonstrates the enhanced URL validation capabilities including domain validation, connectivity checks, and URL sequencing.</p>
+
+        <div class="test-section">
+            <h3>Test URLs</h3>
+            <p>Enter URLs to test (one per line):</p>
+            <textarea id="testUrls" placeholder="https://www.pro-football-reference.com/players/M/MahoPa00.htm
+https://www.basketball-reference.com/players/j/jamesle01.html
+https://www.github.com
+https://www.stackoverflow.com
+https://invalid-url-test.com
+https://www.google.com
+https://www.amazon.com
+https://localhost:3000
+ftp://invalid-protocol.com
+https://www.wikipedia.org
+https://www.medium.com
+https://www.reddit.com">https://www.pro-football-reference.com/players/M/MahoPa00.htm
+https://www.basketball-reference.com/players/j/jamesle01.html
+https://www.github.com
+https://www.stackoverflow.com
+https://invalid-url-test.com
+https://www.google.com
+https://www.amazon.com
+https://localhost:3000
+ftp://invalid-protocol.com
+https://www.wikipedia.org
+https://www.medium.com
+https://www.reddit.com</textarea>
+            
+            <div>
+                <label>
+                    <input type="checkbox" id="checkConnectivity" checked>
+                    Check URL connectivity (verifies URLs are reachable)
+                </label>
+            </div>
+            <div>
+                <label>
+                    <input type="checkbox" id="enableSequencing" checked>
+                    Enable URL sequencing (optimizes scraping performance)
+                </label>
+            </div>
+            
+            <button onclick="runValidation()">Run Enhanced Validation</button>
+            <button onclick="clearResults()">Clear Results</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Validation Progress</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div id="progressStatus">Ready to validate...</div>
+        </div>
+
+        <div class="test-section">
+            <h3>Validation Results</h3>
+            <div id="results" class="results">Click "Run Enhanced Validation" to see results...</div>
+        </div>
+
+        <div class="test-section">
+            <h3>Sequenced URLs (for scraping)</h3>
+            <div id="sequencedUrls" class="url-list">URLs will be sequenced here after validation...</div>
+        </div>
+    </div>
+
+    <script>
+        const validator = new EnhancedURLValidator();
+        
+        function updateProgress(percentage, current, total) {
+            const progressFill = document.getElementById('progressFill');
+            const progressStatus = document.getElementById('progressStatus');
+            
+            progressFill.style.width = percentage + '%';
+            progressStatus.textContent = `Validating ${current} of ${total} URLs (${percentage}%)`;
+        }
+        
+        async function runValidation() {
+            const testUrls = document.getElementById('testUrls').value
+                .split('\n')
+                .map(url => url.trim())
+                .filter(url => url.length > 0);
+            
+            const checkConnectivity = document.getElementById('checkConnectivity').checked;
+            const enableSequencing = document.getElementById('enableSequencing').checked;
+            
+            if (testUrls.length === 0) {
+                alert('Please enter some URLs to test');
+                return;
+            }
+            
+            // Clear previous results
+            document.getElementById('results').textContent = 'Running validation...';
+            document.getElementById('sequencedUrls').textContent = 'Processing...';
+            
+            try {
+                // Run enhanced validation
+                const validationResult = await validator.validateBatch(
+                    testUrls, 
+                    checkConnectivity, 
+                    updateProgress
+                );
+                
+                // Display results
+                displayResults(validationResult);
+                
+                // Display sequenced URLs if enabled
+                if (enableSequencing) {
+                    displaySequencedUrls(validationResult.valid);
+                }
+                
+            } catch (error) {
+                document.getElementById('results').textContent = 'Error: ' + error.message;
+                console.error('Validation error:', error);
+            }
+        }
+        
+        function displayResults(result) {
+            const resultsDiv = document.getElementById('results');
+            
+            let html = `=== Enhanced URL Validation Report ===\n`;
+            html += `Total URLs: ${result.total}\n`;
+            html += `Valid URLs: ${result.summary.validCount}\n`;
+            html += `Invalid URLs: ${result.summary.invalidCount}\n`;
+            html += `Duplicate URLs: ${result.summary.duplicateCount}\n`;
+            html += `Unreachable URLs: ${result.summary.unreachableCount}\n`;
+            html += `Scraping Blocked URLs: ${result.summary.scrapingBlockedCount}\n`;
+            html += `Processing Time: ${(result.processingTime / 1000).toFixed(2)}s\n\n`;
+            
+            // Show warnings
+            if (result.warnings && result.warnings.length > 0) {
+                html += `Warnings:\n`;
+                const uniqueWarnings = [...new Set(result.warnings)];
+                uniqueWarnings.forEach(warning => {
+                    html += `- ${warning}\n`;
+                });
+                html += `\n`;
+            }
+            
+            // Show duplicates
+            if (result.duplicates.length > 0) {
+                html += `Duplicate URLs:\n`;
+                const duplicateGroups = new Map();
+                result.duplicates.forEach(dup => {
+                    if (!duplicateGroups.has(dup.normalized)) {
+                        duplicateGroups.set(dup.normalized, []);
+                    }
+                    duplicateGroups.get(dup.normalized).push(dup.url);
+                });
+                
+                duplicateGroups.forEach((urls, normalized) => {
+                    html += `  ${normalized}\n`;
+                    urls.forEach(url => html += `    - ${url}\n`);
+                });
+                html += `\n`;
+            }
+            
+            // Show invalid URLs by category
+            const invalidCategories = Object.entries(result.invalid)
+                .filter(([_, urls]) => urls.length > 0);
+            
+            if (invalidCategories.length > 0) {
+                html += `Invalid URLs by Category:\n`;
+                invalidCategories.forEach(([category, urls]) => {
+                    const categoryName = category.replace(/_/g, ' ').toUpperCase();
+                    html += `  ${categoryName} (${urls.length}):\n`;
+                    urls.forEach(({ url, error, warnings }) => {
+                        html += `    - ${url}\n`;
+                        if (error) html += `      Error: ${error}\n`;
+                        if (warnings && warnings.length > 0) {
+                            warnings.forEach(warning => html += `      Warning: ${warning}\n`);
+                        }
+                    });
+                    html += `\n`;
+                });
+            }
+            
+            resultsDiv.textContent = html;
+        }
+        
+        function displaySequencedUrls(validUrls) {
+            const sequencedDiv = document.getElementById('sequencedUrls');
+            
+            if (validUrls.length === 0) {
+                sequencedDiv.textContent = 'No valid URLs to sequence';
+                return;
+            }
+            
+            // Apply URL sequencing
+            const sequencedUrls = sequenceUrlsForScraping(validUrls.map(item => item.formatted || item.url));
+            
+            let html = '';
+            sequencedUrls.forEach((url, index) => {
+                const urlItem = document.createElement('div');
+                urlItem.className = 'url-item valid';
+                urlItem.textContent = `${index + 1}. ${url}`;
+                html += urlItem.outerHTML;
+            });
+            
+            sequencedDiv.innerHTML = html;
+        }
+        
+        function sequenceUrlsForScraping(urls) {
+            if (!urls || urls.length === 0) return urls;
+
+            // Group URLs by domain to implement rate limiting
+            const domainGroups = new Map();
+            const otherUrls = [];
+
+            urls.forEach(url => {
+                try {
+                    const urlObj = new URL(url);
+                    const domain = urlObj.hostname.toLowerCase().replace('www.', '');
+                    
+                    if (!domainGroups.has(domain)) {
+                        domainGroups.set(domain, []);
+                    }
+                    domainGroups.get(domain).push(url);
+                } catch (error) {
+                    // If URL parsing fails, add to other URLs
+                    otherUrls.push(url);
+                }
+            });
+
+            // Interleave URLs from different domains to avoid overwhelming any single domain
+            const sequencedUrls = [];
+            const maxUrlsPerDomain = Math.ceil(urls.length / Math.max(domainGroups.size, 1));
+            
+            // Create interleaved sequence
+            for (let i = 0; i < maxUrlsPerDomain; i++) {
+                domainGroups.forEach(domainUrls => {
+                    if (i < domainUrls.length) {
+                        sequencedUrls.push(domainUrls[i]);
+                    }
+                });
+            }
+
+            // Add any remaining URLs from domains with more URLs
+            domainGroups.forEach(domainUrls => {
+                if (domainUrls.length > maxUrlsPerDomain) {
+                    sequencedUrls.push(...domainUrls.slice(maxUrlsPerDomain));
+                }
+            });
+
+            // Add other URLs at the end
+            sequencedUrls.push(...otherUrls);
+
+            return sequencedUrls;
+        }
+        
+        function clearResults() {
+            document.getElementById('results').textContent = 'Click "Run Enhanced Validation" to see results...';
+            document.getElementById('sequencedUrls').textContent = 'URLs will be sequenced here after validation...';
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressStatus').textContent = 'Ready to validate...';
+        }
+        
+        // Initialize with sample URLs
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Enhanced URL Validation Test Page Loaded');
+            console.log('Available validator methods:', Object.getOwnPropertyNames(EnhancedURLValidator.prototype));
+        });
+    </script>
+</body>
+</html>
