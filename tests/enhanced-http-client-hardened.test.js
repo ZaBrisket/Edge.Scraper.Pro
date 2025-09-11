@@ -19,7 +19,7 @@ process.env.HTTP_JITTER_FACTOR = '0.1';
 process.env.HTTP_CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS = '2';
 process.env.HTTP_INTER_REQUEST_DELAY_MS = '50';
 
-const { fetchWithPolicy, getMetrics, resetMetrics, cleanup } = require('../src/lib/http/enhanced-client-hardened');
+const { fetchWithPolicy, getMetrics, resetMetrics, cleanup } = require('../src/lib/http/enhanced-client');
 const { TimeoutError, CircuitOpenError, NetworkError, RateLimitError, ValidationError } = require('../src/lib/http/errors');
 
 test.beforeEach(() => {

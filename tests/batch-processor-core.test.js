@@ -7,7 +7,7 @@ process.env.HTTP_MAX_RETRIES = '3';
 process.env.HTTP_DEADLINE_MS = '5000';
 process.env.HTTP_MAX_CONCURRENCY = '5';
 
-const { BatchProcessor, ERROR_CATEGORIES, BATCH_STATES } = require('../src/lib/batch-processor-hardened');
+const { BatchProcessor, ERROR_CATEGORIES, BATCH_STATES } = require('../src/lib/batch-processor');
 
 // Test core functionality
 test('BatchProcessor core functionality', async (t) => {
