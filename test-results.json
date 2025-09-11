@@ -3,7 +3,7 @@
     "passed": 2,
     "failed": 4,
     "warnings": 0,
-    "totalDuration": 126.28643799999999
+    "totalDuration": 162.656493
   },
   "details": [
     {
@@ -11,42 +11,42 @@
       "status": "FAIL",
       "message": "Error: Cannot find module 'bottleneck'\nRequire stack:\n- /workspace/src/lib/http/client.js\n- /workspace/test-efficiency-improvements.js",
       "duration": null,
-      "timestamp": "2025-09-10T20:49:08.634Z"
+      "timestamp": "2025-09-11T03:01:38.475Z"
     },
     {
       "test": "DOM Memory Leaks",
       "status": "FAIL",
       "message": "Error: Cannot find module 'jsdom'\nRequire stack:\n- /workspace/test-efficiency-improvements.js",
       "duration": null,
-      "timestamp": "2025-09-10T20:49:08.636Z"
+      "timestamp": "2025-09-11T03:01:38.478Z"
     },
     {
       "test": "Export Performance",
       "status": "PASS",
-      "message": "CSV: 10.66ms, JSON: 6.93ms (both under 100ms)",
-      "duration": "21.37ms",
-      "timestamp": "2025-09-10T20:49:08.657Z"
+      "message": "CSV: 25.78ms, JSON: 17.73ms (both under 100ms)",
+      "duration": "52.79ms",
+      "timestamp": "2025-09-11T03:01:38.531Z"
     },
     {
       "test": "Error Boundary Functionality",
       "status": "FAIL",
       "message": "Error: Cannot find module 'jsdom'\nRequire stack:\n- /workspace/test-efficiency-improvements.js",
       "duration": null,
-      "timestamp": "2025-09-10T20:49:08.658Z"
+      "timestamp": "2025-09-11T03:01:38.532Z"
     },
     {
       "test": "Request Debouncing",
       "status": "PASS",
       "message": "Request debouncing prevents duplicate requests",
-      "duration": "101.32ms",
-      "timestamp": "2025-09-10T20:49:08.759Z"
+      "duration": "101.91ms",
+      "timestamp": "2025-09-11T03:01:38.635Z"
     },
     {
       "test": "Backward Compatibility",
       "status": "FAIL",
       "message": "Error: Cannot find module 'bottleneck'\nRequire stack:\n- /workspace/src/lib/http/client.js\n- /workspace/test-efficiency-improvements.js",
       "duration": null,
-      "timestamp": "2025-09-10T20:49:08.759Z"
+      "timestamp": "2025-09-11T03:01:38.636Z"
     }
   ]
 }
