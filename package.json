@@ -8,8 +8,16 @@
   },
   "scripts": {
     "test": "node --test",
-    "build": "tsc",
-    "export:trivia": "npm run build && node bin/edge-scraper export"
+    "build": "npm run db:generate && tsc",
+    "export:trivia": "npm run build && node bin/edge-scraper export",
+    "db:generate": "npx prisma generate",
+    "db:migrate": "npx prisma migrate dev",
+    "db:seed": "npx tsx prisma/seed.ts",
+    "db:reset": "npx prisma migrate reset",
+    "dev": "next dev",
+    "next:build": "npm run db:generate && next build",
+    "start": "next start",
+    "postinstall": "npx prisma generate"
   },
   "bin": {
     "edge-scraper": "./bin/edge-scraper"
@@ -19,10 +27,29 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@hookform/resolvers": "^5.2.1",
+    "@prisma/client": "^6.16.1",
+    "@tanstack/react-query": "^5.87.4",
+    "@tanstack/react-virtual": "^3.13.12",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "@upstash/redis": "^1.35.3",
+    "aws-sdk": "^2.1692.0",
     "bottleneck": "^2.19.5",
+    "csv-parser": "^3.2.0",
+    "exceljs": "^4.4.0",
     "jsdom": "^26.1.0",
+    "multer": "^2.0.2",
+    "next": "^15.5.3",
     "pino": "^8.15.0",
-    "zod": "^3.22.4"
+    "playwright": "^1.55.0",
+    "prisma": "^6.16.1",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-hook-form": "^7.62.0",
+    "xlsx": "^0.18.5",
+    "zod": "^3.22.4",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@types/node": "^24.3.1",
@@ -31,6 +58,7 @@
     "commander": "^14.0.0",
     "jsdom": "^26.1.0",
     "nock": "^13.5.6",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   }
 }

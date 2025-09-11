@@ -1,9 +1,11 @@
 [build]
   publish = "public"
   functions = "netlify/functions"
+  command = "npm run build"
 
 [functions]
   node_bundler = "esbuild"
+  included_files = ["prisma/**/*"]
 
 # Proxy API routes to Netlify Functions
 [[redirects]]
@@ -15,4 +17,40 @@
   # Temporary mapping for deprecated schema endpoint; returns 410
   from = "/api/get-schema"
   to = "/.netlify/functions/get-schema"
+  status = 200
+
+# Target List Formatter API Routes
+[[redirects]]
+  from = "/api/uploads/presign"
+  to = "/.netlify/functions/uploads-presign"
+  status = 200
+
+[[redirects]]
+  from = "/api/uploads/commit"
+  to = "/.netlify/functions/uploads-commit"
+  status = 200
+
+[[redirects]]
+  from = "/api/templates"
+  to = "/.netlify/functions/templates"
+  status = 200
+
+[[redirects]]
+  from = "/api/preview"
+  to = "/.netlify/functions/preview"
+  status = 200
+
+[[redirects]]
+  from = "/api/jobs/export"
+  to = "/.netlify/functions/jobs-export"
+  status = 200
+
+[[redirects]]
+  from = "/api/jobs/*"
+  to = "/.netlify/functions/jobs-status"
+  status = 200
+
+[[redirects]]
+  from = "/api/artifacts/*/signed-url"
+  to = "/.netlify/functions/artifacts-download"
   status = 200

@@ -385,6 +385,211 @@ The exporter produces a JSON file with the following structure:
 - **Schema validation**: Built-in JSON schema validation with comprehensive error reporting
 - **Position-specific stats**: Separates QB, RB, WR, and TE statistics into dedicated arrays
 
+## Target List Formatter
+
+### 🎯 Professional Target List Processing
+
+The **Target List Formatter** is a comprehensive system for uploading, mapping, and exporting target company lists with professional formatting that matches the UTSS (Universal Target Selection System) style.
+
+#### Key Features
+
+- **Smart Upload**: Drag-and-drop CSV/Excel files with automatic validation
+- **Auto-Mapping Engine**: 90%+ accurate column detection with manual override capability  
+- **UTSS-Style Exports**: Professional Excel and PDF outputs with branded formatting
+- **Queue-Based Processing**: Scalable background job system with retry logic
+- **Secure Architecture**: S3 storage, signed URLs, CSV injection protection
+
+#### Quick Start
+
+1. **Navigate to Target Lists**
+   ```
+   http://localhost:3000/targets/new
+   ```
+
+2. **Upload Your Data**
+   - Drag & drop CSV or Excel files (max 10MB)
+   - Supports SourceScrub, Apollo.io, and custom formats
+   - Automatic header detection and row estimation
+
+3. **Map Your Columns**
+   - Auto-mapping with 90%+ accuracy
+   - Manual override with drag-to-field interface
+   - Real-time validation and confidence scoring
+
+4. **Preview & Export**
+   - Live preview with data transformations
+   - One-click Excel (XLSX) and PDF exports
+   - Professional UTSS-style formatting
+
+#### Supported Data Fields
+
+**Core Fields:**
+- `rank` - Numeric ranking (optional)
+- `companyName` - Company name (**required**)
+- `city` - Business location city
+- `state` - Business location state/province
+- `description` - Business description or industry
+
+**Financial Fields:**
+- `estimatedRevenueMillions` - Annual revenue in millions
+
+**Executive Fields:**
+- `executiveName` - Key contact name
+- `executiveTitle` - Contact job title
+
+**Additional Fields:**
+- `logoUrl` - Company logo URL
+
+#### API Endpoints
+
+```bash
+# Upload Management
+POST /api/uploads/presign     # Get presigned upload URL
+POST /api/uploads/commit      # Commit uploaded file
+
+# Template Management  
+GET  /api/templates           # List mapping templates
+POST /api/templates           # Create/update template
+
+# Data Processing
+POST /api/preview             # Preview mapped data
+POST /api/jobs/export         # Start export job
+GET  /api/jobs/:id            # Get job status
+
+# File Downloads
+GET  /api/artifacts/:id/signed-url  # Get download URL
+```
+
+#### Environment Setup
+
+```bash
+# Database
+DATABASE_URL="postgresql://user:pass@localhost:5432/edge_scraper_pro"
+
+# Redis Queue
+REDIS_URL="redis://localhost:6379"
+
+# AWS S3 Storage
+S3_REGION="us-east-1"
+S3_BUCKET="edge-scraper-pro-artifacts"
+AWS_ACCESS_KEY_ID="your-access-key"
+AWS_SECRET_ACCESS_KEY="your-secret-key"
+
+# Application
+APP_BASE_URL="http://localhost:3000"
+```
+
+#### Database Setup
+
+```bash
+# Install dependencies
+npm install
+
+# Generate Prisma client
+npm run db:generate
+
+# Run migrations
+npm run db:migrate
+
+# Seed templates
+npm run db:seed
+```
+
+#### Worker Deployment
+
+The export worker can be deployed as a containerized service:
+
+```bash
+# Build worker image
+docker build -f worker/Dockerfile -t export-worker .
+
+# Run worker
+docker run -e DATABASE_URL=$DATABASE_URL \
+           -e REDIS_URL=$REDIS_URL \
+           -e S3_BUCKET=$S3_BUCKET \
+           export-worker
+```
+
+#### Testing
+
+```bash
+# Run unit tests
+npm test
+
+# Test with sample data
+curl -X POST http://localhost:3000/api/uploads/presign \
+  -H "Content-Type: application/json" \
+  -d '{"filename":"sample.csv","contentType":"text/csv"}'
+```
+
+#### Architecture Overview
+
+```
+┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
+│   Next.js UI   │───▶│ Netlify Fns  │───▶│ Postgres DB     │
+│   React Query  │    │ API Endpoints │    │ Prisma ORM      │
+└─────────────────┘    └──────────────┘    └─────────────────┘
+                              │
+                              ▼
+┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
+│   S3 Storage    │◀───│ Redis Queue  │───▶│ Export Worker   │
+│ Files/Artifacts │    │ Job System   │    │ Excel/PDF Gen   │
+└─────────────────┘    └──────────────┘    └─────────────────┘
+```
+
+#### Performance Targets
+
+- **API Response Time**: p95 < 500ms (non-export endpoints)
+- **Export Processing**: 10k rows < 30 seconds
+- **Auto-Mapping Accuracy**: ≥90% on SourceScrub data
+- **Memory Usage**: <512MB per function execution
+- **File Processing**: 10MB files without memory exhaustion
+- **Uptime**: 99.9% availability target
+
+#### Memory Optimization
+
+The system uses streaming parsers to handle large files efficiently:
+
+- **CSV Processing**: Streams data without loading full content into memory
+- **Excel Processing**: Uses `sheetRows` limit to read only required data
+- **Buffer Management**: 1MB buffer limits with automatic processing
+- **Sample Parsing**: Stops reading after sample size is reached
+- **Safety Checks**: 64KB header parsing limit, 30s timeout protection
+
+#### Security Features
+
+- **CSV Injection Protection**: Automatic escaping of formula-starting cells
+- **Signed URLs**: Time-limited access to uploaded and exported files  
+- **Input Validation**: Zod schema validation on all API endpoints
+- **File Size Limits**: 10MB upload limit with clear error messages
+- **Access Control**: User-scoped data access (authentication required)
+
+#### Troubleshooting
+
+**Upload Issues:**
+- Check file format (CSV, XLSX, XLS only)
+- Verify file size < 10MB
+- Ensure first row contains headers
+
+**Mapping Problems:**
+- Review auto-mapping confidence scores
+- Use manual override for custom headers
+- Check required field validation
+
+**Export Failures:**
+- Monitor job logs in `/jobs` page
+- Verify worker is running and connected
+- Check S3 permissions and connectivity
+
+#### Sample Data
+
+Test with the provided sample file:
+```bash
+fixtures/sample_sourcescrub.csv
+```
+
+Contains 20 companies with SourceScrub-style headers for testing auto-mapping accuracy.
+
 ## Documentation
 - **[Sports Scraper Guide](docs/SPORTS_SCRAPER.md)**: Comprehensive documentation for sports features
 - **[Operations Manual](docs/OPERATIONS.md)**: Deployment and configuration details
