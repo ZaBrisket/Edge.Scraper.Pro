@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Connectivity Fix Test</title>
+    <script src="public/enhanced-url-validator.js"></script>
+</head>
+<body>
+    <h1>Connectivity Fix Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testConnectivityFix() {
+            const validator = new EnhancedURLValidator();
+            const testUrls = [
+                'https://www.d2pbuyersguide.com',
+                'https://www.thomasnet.com', 
+                'https://www.globalspec.com',
+                'https://example.com',
+                'https://httpbin.org/html',
+                'not-a-url',
+                'https://www.pro-football-reference.com/players/M/MahoPa00.htm'
+            ];
+            
+            console.log('Testing URL validation with connectivity check (should be more lenient now)...');
+            const results = await validator.validateBatch(testUrls, true);
+            
+            document.getElementById('results').innerHTML = `
+                <h2>Validation Results (with connectivity check)</h2>
+                <p>Total URLs: ${results.total}</p>
+                <p>Valid URLs: ${results.summary.validCount}</p>
+                <p>Invalid URLs: ${results.summary.invalidCount}</p>
+                <p>Duplicates: ${results.summary.duplicateCount}</p>
+                <p>Unreachable: ${results.summary.unreachableCount}</p>
+                <p>Scraping Blocked: ${results.summary.scrapingBlockedCount}</p>
+                
+                <h3>Valid URLs (${results.valid.length}):</h3>
+                <ul>
+                    ${results.valid.map(url => `<li>${url.url} - ${url.category} ${url.warnings ? '(warnings: ' + url.warnings.join(', ') + ')' : ''}</li>`).join('')}
+                </ul>
+                
+                <h3>Invalid URLs by Category:</h3>
+                ${Object.entries(results.invalid).map(([category, urls]) => 
+                    urls.length > 0 ? `
+                        <h4>${category} (${urls.length}):</h4>
+                        <ul>
+                            ${urls.map(url => `<li>${url.url} - ${url.error}</li>`).join('')}
+                        </ul>
+                    ` : ''
+                ).join('')}
+                
+                <h3>Raw Results for Debugging:</h3>
+                <pre>${JSON.stringify(results, null, 2)}</pre>
+            `;
+            
+            console.log('Full results:', results);
+        }
+        
+        testConnectivityFix();
+    </script>
+</body>
+</html>

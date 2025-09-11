@@ -124,28 +124,38 @@ class EnhancedURLValidator {
         result.responseTime = connectivityResult.responseTime;
         result.redirects = connectivityResult.redirects;
         
-        // Only fail validation for truly unreachable URLs, not CORS or network issues
-        if (!connectivityResult.isReachable && 
-            connectivityResult.category !== ENHANCED_VALIDATION_CATEGORIES.TIMEOUT &&
-            !connectivityResult.error?.includes('CORS') &&
-            !connectivityResult.error?.includes('cross-origin') &&
-            !connectivityResult.error?.includes('blocked by CORS policy')) {
-          result.category = connectivityResult.category;
-          result.error = connectivityResult.error;
-          this.validationCache.set(cacheKey, result);
-          return result;
-        }
-        
-        // Add connectivity warnings for CORS or timeout issues
-        if (connectivityResult.error?.includes('CORS') || 
-            connectivityResult.error?.includes('cross-origin') ||
-            connectivityResult.error?.includes('blocked by CORS policy')) {
-          result.warnings = result.warnings || [];
-          result.warnings.push('CORS restricted - may require server-side scraping');
-        }
-        if (connectivityResult.category === ENHANCED_VALIDATION_CATEGORIES.TIMEOUT) {
-          result.warnings = result.warnings || [];
-          result.warnings.push('URL timed out during connectivity check - may still be valid');
+        // If connectivity check explicitly marked as VALID, don't fail validation
+        if (connectivityResult.category === ENHANCED_VALIDATION_CATEGORIES.VALID) {
+          // Add any warnings from connectivity check
+          if (connectivityResult.warnings && connectivityResult.warnings.length > 0) {
+            result.warnings = result.warnings || [];
+            result.warnings.push(...connectivityResult.warnings);
+          }
+          // Continue to next validation step - don't return early
+        } else {
+          // Only fail validation for truly unreachable URLs, not CORS or network issues
+          if (!connectivityResult.isReachable && 
+              connectivityResult.category !== ENHANCED_VALIDATION_CATEGORIES.TIMEOUT &&
+              !connectivityResult.error?.includes('CORS') &&
+              !connectivityResult.error?.includes('cross-origin') &&
+              !connectivityResult.error?.includes('blocked by CORS policy')) {
+            result.category = connectivityResult.category;
+            result.error = connectivityResult.error;
+            this.validationCache.set(cacheKey, result);
+            return result;
+          }
+          
+          // Add connectivity warnings for CORS or timeout issues
+          if (connectivityResult.error?.includes('CORS') || 
+              connectivityResult.error?.includes('cross-origin') ||
+              connectivityResult.error?.includes('blocked by CORS policy')) {
+            result.warnings = result.warnings || [];
+            result.warnings.push('CORS restricted - may require server-side scraping');
+          }
+          if (connectivityResult.category === ENHANCED_VALIDATION_CATEGORIES.TIMEOUT) {
+            result.warnings = result.warnings || [];
+            result.warnings.push('URL timed out during connectivity check - may still be valid');
+          }
         }
       }
 
