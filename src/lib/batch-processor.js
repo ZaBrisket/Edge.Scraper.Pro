@@ -13,8 +13,11 @@
 const { URL } = require('url');
 const { z } = require('zod');
 const { randomUUID } = require('crypto');
+const { JSDOM } = require('jsdom');
 const config = require('./config');
 const createLogger = require('./http/logging');
+const { SupplierDirectoryExtractor } = require('./supplier-directory-extractor');
+const { SportsContentExtractor } = require('./sports-extractor');
 
 // Input validation schemas
 const urlArraySchema = z.array(z.string()).min(1).max(10000);
@@ -25,6 +28,7 @@ const batchOptionsSchema = z.object({
   timeout: z.number().int().min(100).max(300000).optional(),
   maxRetries: z.number().int().min(0).max(10).optional(),
   errorReportSize: z.number().int().min(10).max(1000).optional(),
+  extractionMode: z.enum(['sports', 'supplier-directory', 'general']).optional(),
   onProgress: z.function().optional(),
   onError: z.function().optional(),
   onComplete: z.function().optional(),
@@ -72,6 +76,7 @@ class BatchProcessor {
       timeout: validatedOptions.timeout || config.DEFAULT_TIMEOUT_MS || 30000,
       maxRetries: validatedOptions.maxRetries ?? config.MAX_RETRIES ?? 3,
       errorReportSize: validatedOptions.errorReportSize || 50,
+      extractionMode: validatedOptions.extractionMode || 'general',
       ...validatedOptions
     };
     
@@ -138,15 +143,117 @@ class BatchProcessor {
   }
 
   /**
+   * Create processor function based on extraction mode
+   */
+  createProcessor() {
+    const { fetchWithPolicy } = require('./http/enhanced-client');
+    
+    return async (url, item) => {
+      try {
+        // Fetch the page
+        const response = await fetchWithPolicy(url, {
+          correlationId: this.correlationId,
+          timeout: this.options.timeout
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const html = await response.text();
+        const dom = new JSDOM(html);
+        const document = dom.window.document;
+        
+        // Process based on extraction mode
+        switch (this.options.extractionMode) {
+          case 'supplier-directory':
+            return this.processSupplierDirectory(document, url);
+          case 'sports':
+            return this.processSportsContent(document, url);
+          default:
+            return this.processGeneralContent(document, url);
+        }
+      } catch (error) {
+        throw new Error(`Processing failed: ${error.message}`);
+      }
+    };
+  }
+
+  /**
+   * Process supplier directory content
+   */
+  processSupplierDirectory(document, url) {
+    const extractor = new SupplierDirectoryExtractor();
+    const result = extractor.extractSupplierData(document, url);
+    
+    return {
+      type: 'supplier-directory',
+      url,
+      companies: result.companies,
+      metadata: result.metadata,
+      validation: result.validation,
+      extractionScore: result.score,
+      extractedAt: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Process sports content
+   */
+  processSportsContent(document, url) {
+    const extractor = new SportsContentExtractor();
+    const result = extractor.extractSportsContent(document, url);
+    
+    return {
+      type: 'sports',
+      url,
+      content: result.content,
+      structuredData: result.structuredData,
+      validation: result.sportsValidation,
+      extractionScore: result.score,
+      extractedAt: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Process general content
+   */
+  processGeneralContent(document, url) {
+    // Basic content extraction
+    const title = document.querySelector('title')?.textContent || '';
+    const headings = Array.from(document.querySelectorAll('h1, h2, h3'))
+      .map(h => h.textContent.trim())
+      .filter(h => h.length > 0);
+    
+    const paragraphs = Array.from(document.querySelectorAll('p'))
+      .map(p => p.textContent.trim())
+      .filter(p => p.length > 50)
+      .slice(0, 10); // Limit to first 10 paragraphs
+    
+    return {
+      type: 'general',
+      url,
+      title,
+      headings,
+      paragraphs,
+      extractedAt: new Date().toISOString()
+    };
+  }
+
+  /**
    * Process a batch of URLs with comprehensive validation and error handling
    * @param {string[]} urls - Array of URLs to process
-   * @param {Function} processor - Function to process each URL
+   * @param {Function} processor - Optional custom processor function
    * @returns {Promise<BatchResult>} Batch processing result
    */
-  async processBatch(urls, processor) {
+  async processBatch(urls, processor = null) {
     // Validate inputs
     const validatedUrls = urlArraySchema.parse(urls);
-    if (typeof processor !== 'function') {
+    
+    // Use provided processor or create one based on extraction mode
+    const processorFunction = processor || this.createProcessor();
+    
+    if (typeof processorFunction !== 'function') {
       throw new TypeError('Processor must be a function');
     }
     
@@ -187,7 +294,7 @@ class BatchProcessor {
       this.state = BATCH_STATES.PROCESSING;
       const processedResults = await this.processUrls(
         validationResult.validUrls,
-        processor
+        processorFunction
       );
       
       // Phase 3: Compile final results

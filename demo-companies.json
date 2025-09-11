@@ -1,0 +1,62 @@
+{
+  "metadata": {
+    "exportedAt": "2025-09-11T16:04:48.710Z",
+    "totalCompanies": 4,
+    "format": "json",
+    "version": "1.0"
+  },
+  "companies": [
+    {
+      "name": "ACCUMOLD",
+      "contact": "1711 SE Oralabor Rd. Ankeny, IA 50021",
+      "website": "https://www.accu-mold.com",
+      "rawData": {
+        "cellCount": 3,
+        "cellTexts": [
+          "ACCUMOLD",
+          "1711 SE Oralabor Rd. Ankeny, IA 50021",
+          "www.accu-mold.com"
+        ]
+      }
+    },
+    {
+      "name": "ACCURATE COATING INC.",
+      "contact": "955 Godfrey Ave. SW Grand Rapids, MI 49503",
+      "website": "https://www.accuratecoatinginc.com",
+      "rawData": {
+        "cellCount": 3,
+        "cellTexts": [
+          "ACCURATE COATING INC.",
+          "955 Godfrey Ave. SW Grand Rapids, MI 49503",
+          "www.accuratecoatinginc.com"
+        ]
+      }
+    },
+    {
+      "name": "ACCURATE GASKET & STAMPING",
+      "contact": "2780 S. Raritan St. Englewood, CO 80110",
+      "website": "https://www.accurategasket.com",
+      "rawData": {
+        "cellCount": 3,
+        "cellTexts": [
+          "ACCURATE GASKET & STAMPING",
+          "2780 S. Raritan St. Englewood, CO 80110",
+          "www.accurategasket.com"
+        ]
+      }
+    },
+    {
+      "name": "ACCURATE METAL FINISHING LLC",
+      "contact": "414 South St. Randolph, MA 02368",
+      "website": "https://www.accuratemetalfinishing.com",
+      "rawData": {
+        "cellCount": 3,
+        "cellTexts": [
+          "ACCURATE METAL FINISHING LLC",
+          "414 South St. Randolph, MA 02368",
+          "www.accuratemetalfinishing.com"
+        ]
+      }
+    }
+  ]
+}
