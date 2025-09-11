@@ -18,6 +18,8 @@ const config = require('./config');
 const createLogger = require('./http/logging');
 const { SupplierDirectoryExtractor } = require('./supplier-directory-extractor');
 const { SportsContentExtractor } = require('./sports-extractor');
+const { EnhancedFetchClient } = require('./http/enhanced-fetch-client');
+const { StructuredLogger } = require('./http/structured-logger');
 
 // Input validation schemas
 const urlArraySchema = z.array(z.string()).min(1).max(10000);
@@ -29,21 +31,32 @@ const batchOptionsSchema = z.object({
   maxRetries: z.number().int().min(0).max(10).optional(),
   errorReportSize: z.number().int().min(10).max(1000).optional(),
   extractionMode: z.enum(['sports', 'supplier-directory', 'general']).optional(),
+  enableUrlNormalization: z.boolean().optional(),
+  enablePaginationDiscovery: z.boolean().optional(),
+  enableStructuredLogging: z.boolean().optional(),
   onProgress: z.function().optional(),
   onError: z.function().optional(),
   onComplete: z.function().optional(),
   correlationId: z.string().uuid().optional()
 }).strict();
 
-// Error categories for detailed reporting
+// Enhanced error categories for detailed reporting
 const ERROR_CATEGORIES = {
   NETWORK: 'network',
-  TIMEOUT: 'timeout',
+  TIMEOUT: 'timeout', 
   PARSING: 'parsing',
   VALIDATION: 'validation',
   RATE_LIMIT: 'rate_limit',
   SERVER_ERROR: 'server_error',
   CLIENT_ERROR: 'client_error',
+  HTTP_404: 'http_404',
+  HTTP_403: 'http_403',
+  HTTP_401: 'http_401',
+  DNS_ERROR: 'dns_error',
+  BLOCKED_BY_ROBOTS: 'blocked_by_robots',
+  ANTI_BOT_CHALLENGE: 'anti_bot_challenge',
+  REDIRECT_LOOP: 'redirect_loop',
+  SSL_ERROR: 'ssl_error',
   UNKNOWN: 'unknown'
 };
 
@@ -77,6 +90,9 @@ class BatchProcessor {
       maxRetries: validatedOptions.maxRetries ?? config.MAX_RETRIES ?? 3,
       errorReportSize: validatedOptions.errorReportSize || 50,
       extractionMode: validatedOptions.extractionMode || 'general',
+      enableUrlNormalization: validatedOptions.enableUrlNormalization !== false,
+      enablePaginationDiscovery: validatedOptions.enablePaginationDiscovery !== false,
+      enableStructuredLogging: validatedOptions.enableStructuredLogging !== false,
       ...validatedOptions
     };
     
@@ -91,6 +107,22 @@ class BatchProcessor {
     this.totalCount = 0;
     this.startTime = null;
     this.endTime = null;
+    
+    // Initialize enhanced components
+    this.enhancedFetchClient = new EnhancedFetchClient({
+      timeout: this.options.timeout,
+      enableCanonicalization: this.options.enableUrlNormalization,
+      enablePaginationDiscovery: this.options.enablePaginationDiscovery,
+      rateLimitPerSecond: 1.5, // Conservative rate limiting
+      respectRobots: true
+    });
+    
+    this.structuredLogger = this.options.enableStructuredLogging ? 
+      new StructuredLogger({
+        jobId: this.batchId,
+        enableConsoleLogging: true,
+        enableFileLogging: true
+      }) : null;
     
     // Control flags with thread-safe access
     this.controls = {
@@ -305,6 +337,15 @@ class BatchProcessor {
         validationResult,
         processedResults
       );
+      
+      // Finalize structured logging
+      if (this.structuredLogger) {
+        try {
+          await this.structuredLogger.finalize();
+        } catch (loggingError) {
+          this.logger.warn({ error: loggingError.message }, 'Failed to finalize structured logging');
+        }
+      }
       
       this.logger.info({ 
         batchId: this.batchId,
@@ -635,10 +676,25 @@ class BatchProcessor {
               timestamp: new Date().toISOString()
             };
             
+            // Log to structured logger if enabled
+            if (this.structuredLogger) {
+              await this.structuredLogger.logRequest({
+                original_url: item.url,
+                resolved_url: result.resolvedUrl || item.url,
+                success: true,
+                status_code: result.response?.status || 200,
+                response_time_ms: processingTime,
+                canonicalized: !!result.canonicalizationResult?.success,
+                pagination_discovered: result.paginationDiscovered || false,
+                robots_blocked: false,
+                redirect_chain: result.canonicalizationResult?.redirectChain || []
+              });
+            }
+            
             itemLogger.info({ processingTime }, 'URL processed successfully');
             
           } catch (error) {
-            const errorInfo = this.categorizeError(error);
+            const errorInfo = this.categorizeError(error, item.url, error.resolvedUrl);
             
             results[item.index] = {
               ...item,
@@ -646,12 +702,34 @@ class BatchProcessor {
               error: error.message,
               errorCategory: errorInfo.category,
               errorDetails: errorInfo,
+              originalUrl: errorInfo.originalUrl,
+              resolvedUrl: errorInfo.resolvedUrl,
+              redirectChain: errorInfo.redirectChain,
               timestamp: new Date().toISOString()
             };
             
+            // Log to structured logger if enabled
+            if (this.structuredLogger) {
+              await this.structuredLogger.logRequest({
+                original_url: item.url,
+                resolved_url: errorInfo.resolvedUrl || item.url,
+                success: false,
+                error: error.message,
+                error_class: errorInfo.category,
+                error_code: error.code,
+                status_code: error.status,
+                response_time_ms: processingTime,
+                canonicalized: !!error.canonicalizationResult?.success,
+                robots_blocked: error.code === 'BLOCKED_BY_ROBOTS',
+                redirect_chain: errorInfo.redirectChain || []
+              });
+            }
+            
             itemLogger.error({ 
               error: error.message,
-              category: errorInfo.category 
+              category: errorInfo.category,
+              originalUrl: item.url,
+              resolvedUrl: errorInfo.resolvedUrl
             }, 'URL processing failed');
             
             this.recordError(item.url, errorInfo);
@@ -716,23 +794,41 @@ class BatchProcessor {
   }
 
   /**
-   * Categorize error for intelligent reporting
+   * Enhanced error categorization for intelligent reporting
    * @param {Error} error - Error to categorize
+   * @param {string} originalUrl - Original URL that was requested
+   * @param {string} resolvedUrl - Final resolved URL (if any)
    * @returns {ErrorInfo} Categorized error information
    */
-  categorizeError(error) {
+  categorizeError(error, originalUrl = null, resolvedUrl = null) {
     const errorInfo = {
       message: error.message?.substring(0, 500), // Limit message length
       category: ERROR_CATEGORIES.UNKNOWN,
       code: error.code,
       status: error.status,
-      timestamp: new Date().toISOString()
+      originalUrl,
+      resolvedUrl: resolvedUrl || originalUrl,
+      timestamp: new Date().toISOString(),
+      userAgent: null,
+      redirectChain: error.redirectChain || []
     };
     
-    // Network errors
-    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || 
-        error.code === 'ENETUNREACH' || error.code === 'ECONNRESET' ||
-        error.message?.includes('network')) {
+    // DNS resolution errors
+    if (error.code === 'ENOTFOUND' || error.code === 'EAI_NODATA' || 
+        error.code === 'EAI_NONAME' || error.message?.includes('getaddrinfo')) {
+      errorInfo.category = ERROR_CATEGORIES.DNS_ERROR;
+    }
+    // SSL/TLS errors
+    else if (error.code === 'CERT_UNTRUSTED' || error.code === 'CERT_EXPIRED' ||
+             error.code === 'CERT_INVALID' || error.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' ||
+             error.message?.includes('certificate') || error.message?.includes('SSL') ||
+             error.message?.includes('TLS')) {
+      errorInfo.category = ERROR_CATEGORIES.SSL_ERROR;
+    }
+    // Network connection errors
+    else if (error.code === 'ECONNREFUSED' || error.code === 'ECONNRESET' ||
+             error.code === 'ENETUNREACH' || error.code === 'EHOSTUNREACH' ||
+             error.message?.includes('network') || error.message?.includes('connection')) {
       errorInfo.category = ERROR_CATEGORIES.NETWORK;
     }
     // Timeout errors
@@ -740,21 +836,50 @@ class BatchProcessor {
              error.code === 'ESOCKETTIMEDOUT') {
       errorInfo.category = ERROR_CATEGORIES.TIMEOUT;
     }
+    // Specific HTTP status codes
+    else if (error.status === 404) {
+      errorInfo.category = ERROR_CATEGORIES.HTTP_404;
+    }
+    else if (error.status === 403) {
+      errorInfo.category = ERROR_CATEGORIES.HTTP_403;
+    }
+    else if (error.status === 401) {
+      errorInfo.category = ERROR_CATEGORIES.HTTP_401;
+    }
     // Rate limiting
     else if (error.status === 429 || error.message?.includes('rate limit')) {
       errorInfo.category = ERROR_CATEGORIES.RATE_LIMIT;
+    }
+    // Anti-bot challenges (Cloudflare, etc.)
+    else if (error.status === 503 && (
+             error.message?.includes('cloudflare') || 
+             error.message?.includes('checking your browser') ||
+             error.message?.includes('challenge') ||
+             error.message?.includes('captcha'))) {
+      errorInfo.category = ERROR_CATEGORIES.ANTI_BOT_CHALLENGE;
+    }
+    // Robots.txt blocking
+    else if (error.message?.includes('robots.txt') || 
+             error.message?.includes('disallowed by robots') ||
+             (error.status === 403 && error.message?.includes('robot'))) {
+      errorInfo.category = ERROR_CATEGORIES.BLOCKED_BY_ROBOTS;
+    }
+    // Redirect loops
+    else if (error.message?.includes('redirect') && 
+             (error.message?.includes('loop') || error.message?.includes('circular'))) {
+      errorInfo.category = ERROR_CATEGORIES.REDIRECT_LOOP;
     }
     // Server errors
     else if (error.status >= 500 && error.status < 600) {
       errorInfo.category = ERROR_CATEGORIES.SERVER_ERROR;
     }
-    // Client errors
+    // Other client errors
     else if (error.status >= 400 && error.status < 500) {
       errorInfo.category = ERROR_CATEGORIES.CLIENT_ERROR;
     }
     // Parsing errors
     else if (error.message?.includes('parse') || error.message?.includes('JSON') ||
-             error.message?.includes('XML')) {
+             error.message?.includes('XML') || error.message?.includes('HTML')) {
       errorInfo.category = ERROR_CATEGORIES.PARSING;
     }
     // Validation errors
