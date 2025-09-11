@@ -4,7 +4,7 @@ import csv from 'csv-parser';
 import xlsx from 'xlsx';
 import { Readable } from 'stream';
 import { createHash } from 'crypto';
-import { PrismaClient } from '../../../src/generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import { transformRow } from '../../../src/lib/mapping/transforms';
 import { generateArtifactKey } from '../../../src/lib/infrastructure/s3';
 import { createLogger } from '../utils/logger';

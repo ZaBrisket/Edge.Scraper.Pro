@@ -1,18 +1,10 @@
-const { PrismaClient } = require('../../src/generated/prisma');
-const { objectExists, getObjectMetadata } = require('../../src/lib/infrastructure/s3');
-const AWS = require('aws-sdk');
+const { PrismaClient } = require('@prisma/client');
+const { objectExists, getObjectMetadata, s3, BUCKET } = require('./utils/s3');
 const csv = require('csv-parser');
 const xlsx = require('xlsx');
 const { z } = require('zod');
 
 const prisma = new PrismaClient();
-
-// Configure AWS S3
-const s3 = new AWS.S3({
-  region: process.env.S3_REGION || 'us-east-1',
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-});
 
 // Request schema validation
 const CommitRequestSchema = z.object({
@@ -25,15 +17,15 @@ const CommitRequestSchema = z.object({
  */
 async function estimateRowCount(s3Key, contentType) {
   try {
-    const bucket = process.env.S3_BUCKET || 'edge-scraper-pro-artifacts';
+    const BUCKET = process.env.S3_BUCKET || 'edge-scraper-pro-artifacts';
     
     if (contentType === 'text/csv') {
       // For CSV, stream and count newlines without loading full content
-      return await estimateCsvRowCount(bucket, s3Key);
+      return await estimateCsvRowCount(s3Key);
     } else {
       // For Excel files, we need to load the file but only read the range
       const result = await s3.getObject({
-        Bucket: bucket,
+        Bucket: BUCKET,
         Key: s3Key,
       }).promise();
       
@@ -60,14 +52,14 @@ async function estimateRowCount(s3Key, contentType) {
 /**
  * Stream CSV and count lines without loading full content into memory
  */
-async function estimateCsvRowCount(bucket, s3Key) {
+async function estimateCsvRowCount(s3Key) {
   return new Promise((resolve, reject) => {
     let lineCount = 0;
     let buffer = '';
     let isFirstChunk = true;
     
     const stream = s3.getObject({
-      Bucket: bucket,
+      Bucket: BUCKET,
       Key: s3Key,
     }).createReadStream();
     
@@ -115,15 +107,15 @@ async function estimateCsvRowCount(bucket, s3Key) {
  */
 async function parseHeaders(s3Key, contentType) {
   try {
-    const bucket = process.env.S3_BUCKET || 'edge-scraper-pro-artifacts';
+    const BUCKET = process.env.S3_BUCKET || 'edge-scraper-pro-artifacts';
     
     if (contentType === 'text/csv') {
       // Stream only the first chunk to get headers
-      return await parseCsvHeaders(bucket, s3Key);
+      return await parseCsvHeaders(BUCKET, s3Key);
     } else {
       // For Excel, we need to read the file but only parse the header row
       const result = await s3.getObject({
-        Bucket: bucket,
+        Bucket: BUCKET,
         Key: s3Key,
       }).promise();
 
@@ -164,13 +156,13 @@ async function parseHeaders(s3Key, contentType) {
 /**
  * Stream CSV and parse only the header row
  */
-async function parseCsvHeaders(bucket, s3Key) {
+async function parseCsvHeaders(BUCKET, s3Key) {
   return new Promise((resolve, reject) => {
     let buffer = '';
     let headersParsed = false;
     
     const stream = s3.getObject({
-      Bucket: bucket,
+      Bucket: BUCKET,
       Key: s3Key,
     }).createReadStream();
     

@@ -1,19 +1,11 @@
-const { PrismaClient } = require('../../src/generated/prisma');
-const { transformRow } = require('../../src/lib/mapping/transforms');
-const AWS = require('aws-sdk');
+const { PrismaClient } = require('@prisma/client');
+const { transformRow } = require('./utils/transforms');
+const { s3, BUCKET } = require('./utils/s3');
 const csv = require('csv-parser');
 const xlsx = require('xlsx');
 const { z } = require('zod');
-const { Readable } = require('stream');
 
 const prisma = new PrismaClient();
-
-// Configure AWS S3
-const s3 = new AWS.S3({
-  region: process.env.S3_REGION || 'us-east-1',
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-});
 
 // Request schema validation
 const PreviewRequestSchema = z.object({
@@ -27,7 +19,6 @@ const PreviewRequestSchema = z.object({
  * Parse CSV data and return sample rows using streaming approach
  */
 async function parseCsvSample(s3Key, sampleSize) {
-  const bucket = process.env.S3_BUCKET || 'edge-scraper-pro-artifacts';
   
   return new Promise((resolve, reject) => {
     const rows = [];
@@ -36,7 +27,7 @@ async function parseCsvSample(s3Key, sampleSize) {
     
     // Create S3 stream instead of loading full buffer
     const s3Stream = s3.getObject({
-      Bucket: bucket,
+      Bucket: BUCKET,
       Key: s3Key,
     }).createReadStream();
     
@@ -191,7 +182,6 @@ exports.handler = async (event, context) => {
     }
 
     const upload = dataset.uploads[0];
-    const bucket = process.env.S3_BUCKET || 'edge-scraper-pro-artifacts';
 
     // Parse file based on content type using streaming/optimized approach
     let parseResult;
@@ -201,7 +191,7 @@ exports.handler = async (event, context) => {
     } else {
       // For Excel, download but with optimized parsing
       const s3Object = await s3.getObject({
-        Bucket: bucket,
+        Bucket: BUCKET,
         Key: upload.s3Key,
       }).promise();
       parseResult = parseExcelSample(s3Object.Body, validatedData.sampleSize);

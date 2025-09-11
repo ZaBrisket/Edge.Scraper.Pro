@@ -1,9 +1,11 @@
 [build]
   publish = "public"
   functions = "netlify/functions"
+  command = "npm run build"
 
 [functions]
   node_bundler = "esbuild"
+  included_files = ["prisma/**/*"]
 
 # Proxy API routes to Netlify Functions
 [[redirects]]

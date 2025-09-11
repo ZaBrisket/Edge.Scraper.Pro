@@ -1,4 +1,4 @@
-import { PrismaClient } from '../../src/generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import { dequeueJob, completeJob, failJob, cleanupExpiredJobs } from '../../src/lib/infrastructure/redis';
 import { ExcelExporter } from './exporters/excel';
 import { PDFExporter } from './exporters/pdf';

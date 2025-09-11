@@ -1,5 +1,5 @@
-const { PrismaClient } = require('../../src/generated/prisma');
-const { enqueueJob } = require('../../src/lib/infrastructure/redis');
+const { PrismaClient } = require('@prisma/client');
+const { enqueueJob } = require('./utils/redis');
 const { z } = require('zod');
 const crypto = require('crypto');
 

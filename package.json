@@ -8,15 +8,16 @@
   },
   "scripts": {
     "test": "node --test",
-    "build": "tsc",
+    "build": "npm run db:generate && tsc",
     "export:trivia": "npm run build && node bin/edge-scraper export",
     "db:generate": "npx prisma generate",
     "db:migrate": "npx prisma migrate dev",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:reset": "npx prisma migrate reset",
     "dev": "next dev",
-    "next:build": "next build",
-    "start": "next start"
+    "next:build": "npm run db:generate && next build",
+    "start": "next start",
+    "postinstall": "npx prisma generate"
   },
   "bin": {
     "edge-scraper": "./bin/edge-scraper"

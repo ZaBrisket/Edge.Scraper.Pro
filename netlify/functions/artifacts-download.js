@@ -1,5 +1,5 @@
-const { PrismaClient } = require('../../src/generated/prisma');
-const { generatePresignedDownload } = require('../../src/lib/infrastructure/s3');
+const { PrismaClient } = require('@prisma/client');
+const { generatePresignedDownload } = require('./utils/s3');
 
 const prisma = new PrismaClient();
 
