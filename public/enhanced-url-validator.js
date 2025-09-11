@@ -287,7 +287,6 @@ class EnhancedURLValidator {
 
       const response = await fetch(url, {
         method: 'HEAD', // Use HEAD to minimize data transfer
-        mode: 'no-cors', // Avoid CORS issues
         signal: controller.signal,
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; URLValidator/1.0)'
@@ -308,11 +307,22 @@ class EnhancedURLValidator {
       if (error.name === 'AbortError') {
         result.category = ENHANCED_VALIDATION_CATEGORIES.TIMEOUT;
         result.error = 'Request timed out';
-      } else if (error.name === 'TypeError' && error.message.includes('CORS')) {
-        // CORS error might still mean the URL is reachable
+      } else if (error.name === 'TypeError' && (
+        error.message.includes('CORS') || 
+        error.message.includes('cross-origin') ||
+        error.message.includes('blocked by CORS policy') ||
+        error.message.includes('Access to fetch at') ||
+        error.message.includes('has been blocked by CORS policy')
+      )) {
+        // CORS error means the URL is reachable but blocked by CORS policy
         result.isReachable = true;
         result.category = ENHANCED_VALIDATION_CATEGORIES.VALID;
         result.warnings = ['CORS restricted - may require server-side scraping'];
+      } else if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        // Network error or unreachable URL
+        result.isReachable = false;
+        result.category = ENHANCED_VALIDATION_CATEGORIES.UNREACHABLE;
+        result.error = 'Network error or unreachable URL';
       } else {
         result.error = error.message;
       }

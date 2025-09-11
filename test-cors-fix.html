@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Fix Test</title>
+    <script src="public/enhanced-url-validator.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .warning { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>CORS Fix Test</h1>
+    <p>Testing the fixed CORS handling in checkConnectivity method.</p>
+    
+    <div id="testResults"></div>
+    
+    <button onclick="runCorsTest()">Run CORS Test</button>
+    
+    <script>
+        const validator = new EnhancedURLValidator();
+        
+        async function runCorsTest() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<p>Running CORS tests...</p>';
+            
+            // Test URLs that should trigger different CORS scenarios
+            const testUrls = [
+                'https://httpbin.org/get', // Should work (CORS enabled)
+                'https://www.google.com', // Should work
+                'https://api.github.com', // Should work (CORS enabled)
+                'https://httpbin.org/headers', // Should work
+                'https://jsonplaceholder.typicode.com/posts/1', // Should work
+                'https://www.example.com', // Might have CORS issues
+                'https://httpbin.org/status/404', // Should work but return 404
+                'https://httpbin.org/delay/10', // Should timeout
+                'https://invalid-domain-that-does-not-exist-12345.com', // Should fail
+            ];
+            
+            let results = [];
+            
+            for (const url of testUrls) {
+                try {
+                    console.log(`Testing: ${url}`);
+                    const result = await validator.checkConnectivity(url);
+                    results.push({ url, result, success: true });
+                } catch (error) {
+                    results.push({ url, result: null, error: error.message, success: false });
+                }
+            }
+            
+            // Display results
+            let html = '<h2>Test Results</h2>';
+            
+            results.forEach(({ url, result, error, success }) => {
+                if (!success) {
+                    html += `<div class="test-result error">
+                        <strong>Error testing ${url}:</strong><br>
+                        ${error}
+                    </div>`;
+                    return;
+                }
+                
+                const { isReachable, category, error: resultError, warnings } = result;
+                
+                let className = 'info';
+                let status = '';
+                
+                if (isReachable) {
+                    if (warnings && warnings.some(w => w.includes('CORS'))) {
+                        className = 'warning';
+                        status = 'CORS RESTRICTED (but reachable)';
+                    } else {
+                        className = 'success';
+                        status = 'REACHABLE';
+                    }
+                } else {
+                    className = 'error';
+                    status = 'UNREACHABLE';
+                }
+                
+                html += `<div class="test-result ${className}">
+                    <strong>${url}</strong><br>
+                    Status: ${status}<br>
+                    Category: ${category}<br>
+                    ${resultError ? `Error: ${resultError}<br>` : ''}
+                    ${warnings && warnings.length > 0 ? `Warnings: ${warnings.join(', ')}<br>` : ''}
+                    Response Time: ${result.responseTime ? result.responseTime + 'ms' : 'N/A'}<br>
+                    Redirects: ${result.redirects ? result.redirects.length : 0}
+                </div>`;
+            });
+            
+            resultsDiv.innerHTML = html;
+            
+            // Summary
+            const reachable = results.filter(r => r.success && r.result.isReachable).length;
+            const corsRestricted = results.filter(r => r.success && r.result.warnings && r.result.warnings.some(w => w.includes('CORS'))).length;
+            const unreachable = results.filter(r => r.success && !r.result.isReachable).length;
+            const errors = results.filter(r => !r.success).length;
+            
+            html += `<div class="test-result info">
+                <h3>Summary</h3>
+                Total URLs tested: ${testUrls.length}<br>
+                Reachable: ${reachable}<br>
+                CORS Restricted: ${corsRestricted}<br>
+                Unreachable: ${unreachable}<br>
+                Errors: ${errors}
+            </div>`;
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        // Run test on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('CORS Fix Test Page Loaded');
+        });
+    </script>
+</body>
+</html>
