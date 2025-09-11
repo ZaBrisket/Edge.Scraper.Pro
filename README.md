@@ -68,6 +68,151 @@ try {
 
 For detailed documentation, see [HTTP Client Enhancements](docs/HTTP_CLIENT_ENHANCEMENTS.md).
 
+## URL Normalization & Pagination Discovery
+
+### 🔧 Robust URL Canonicalization
+
+EdgeScraperPro automatically handles common URL issues that cause 404 errors through intelligent URL normalization:
+
+#### Key Features
+- **HTTP → HTTPS Upgrade**: Automatically retries failed HTTP requests with HTTPS
+- **Domain Variants**: Tests both `www.` and apex domain versions (`example.com` ↔ `www.example.com`)
+- **Trailing Slash Handling**: Tries both with and without trailing slashes
+- **Redirect Chain Tracking**: Records the full redirect path for analysis
+- **Caching**: Successful canonicalizations are cached to avoid repeated work
+
+#### How It Works
+When a URL returns a 404, the system automatically generates and tests variants in this order:
+1. `https://example.com/path` (HTTPS upgrade)
+2. `https://www.example.com/path` (HTTPS + www)
+3. `https://example.com/path/` (HTTPS + trailing slash)
+4. `https://www.example.com/path/` (HTTPS + www + trailing slash)
+5. `https://example.com/path` (apex domain if original had www)
+
+#### Example
+```javascript
+// Original failing URL
+const url = 'http://www.d2pbuyersguide.com/filter/all/page/1';
+
+// System automatically tries:
+// ✓ https://www.d2pbuyersguide.com/filter/all/page/1 (SUCCESS!)
+// Result: 404 → 200 with canonical URL
+```
+
+### 🔍 Intelligent Pagination Discovery
+
+Automatically discovers and extracts additional pages from directory sites:
+
+#### Discovery Modes
+- **Auto Mode** (default): Tries range-based discovery first, falls back to letter indexes
+- **Range Mode**: Discovers `/page/1`, `/page/2`, etc. by probing incrementally
+- **Letters Mode**: Tests letter-indexed routes like `/filter/a/page/1`, `/filter/b/page/1`
+
+#### Detection Methods
+1. **HTML Analysis**: Parses `rel="next"` links and pagination controls
+2. **Pattern Recognition**: Identifies common pagination selectors
+3. **Smart Probing**: Tests page ranges until consecutive 404s
+4. **Letter Indexing**: Tests alphabetic and numeric indexes (a-z, 0-9)
+
+#### Example Discovery
+```javascript
+// Input: Single URL
+'https://directory.com/filter/all/page/1'
+
+// Discovers:
+[
+  'https://directory.com/filter/all/page/1',   // Original
+  'https://directory.com/filter/all/page/2',   // Range discovery
+  'https://directory.com/filter/all/page/3',
+  // ... up to 50 pages
+  'https://directory.com/filter/a/page/1',     // Letter fallback
+  'https://directory.com/filter/b/page/1',
+  // ... for valid letters
+]
+```
+
+### 📊 Enhanced Error Taxonomy
+
+Replaces generic `client_error:unknown` with specific, actionable error categories:
+
+#### Specific Error Classes
+- **`http_404`**: Standard 404 Not Found (with canonicalization attempts)
+- **`http_403`**: Forbidden (may indicate rate limiting or blocking)
+- **`http_401`**: Unauthorized access
+- **`dns_error`**: Domain name resolution failed
+- **`ssl_error`**: Certificate or TLS connection issues
+- **`network_error`**: Connection refused, timeout, etc.
+- **`blocked_by_robots`**: Disallowed by robots.txt
+- **`anti_bot_challenge`**: Cloudflare or similar challenge detected
+- **`redirect_loop`**: Circular redirect detected
+
+#### Structured Error Data
+Each error includes:
+```json
+{
+  "error_class": "http_404",
+  "original_url": "http://example.com/page/1",
+  "resolved_url": "https://example.com/page/1", 
+  "attempts": 4,
+  "redirect_chain": [...],
+  "response_time_ms": 1250
+}
+```
+
+### 🧪 Testing & Validation
+
+#### Run the D2P Buyers Guide Replay Test
+Test the original failing URLs with the new normalization system:
+
+```bash
+# Quick test (10 URLs, conservative settings)
+./run-d2p-replay.sh 1 10 0.5
+
+# Full test (50 URLs, balanced settings) 
+./run-d2p-replay.sh 2 50 1
+
+# Aggressive test (all URLs, faster)
+./run-d2p-replay.sh 3 50 2
+```
+
+#### Expected Results
+- ✅ **Zero `unknown` errors** - All failures properly categorized
+- ✅ **HTTP → HTTPS canonicalization** - Failed HTTP URLs upgraded to HTTPS
+- ✅ **Structured NDJSON logs** - Machine-readable logs with full error context
+- ✅ **Pagination discovery** - Additional valid pages discovered automatically
+
+#### Unit Tests
+```bash
+# Run URL canonicalizer tests
+npm test tests/url-canonicalizer.test.js
+
+# Run D2P integration tests  
+npm test tests/d2p-integration.test.js
+```
+
+### 📈 Configuration Options
+
+Enable/disable features in your batch processor:
+
+```javascript
+const processor = new BatchProcessor({
+  enableUrlNormalization: true,      // Auto-retry with canonical URLs
+  enablePaginationDiscovery: true,   // Discover additional pages
+  enableStructuredLogging: true,     // NDJSON logs with error taxonomy
+  concurrency: 2,                    // Conservative concurrent requests
+  timeout: 15000                     // 15s timeout per request
+});
+```
+
+### 🎯 Use Cases
+
+This system is particularly effective for:
+- **Directory Sites**: Business directories, supplier catalogs, member listings
+- **Paginated Content**: Any site with `/page/N` or letter-indexed navigation
+- **Mixed Protocols**: Sites that serve both HTTP and HTTPS inconsistently  
+- **Domain Migrations**: Sites transitioning between www/apex domains
+- **Error Analysis**: Understanding and categorizing scraping failures
+
 ## Usage
 
 ### Bulk URL Upload (NEW!)
