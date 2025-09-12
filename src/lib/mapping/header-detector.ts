@@ -38,20 +38,20 @@ function normalizeHeader(header: string): string {
 function calculateSimilarity(str1: string, str2: string): number {
   const len1 = str1.length;
   const len2 = str2.length;
-  
+
   if (len1 === 0) return len2;
   if (len2 === 0) return len1;
-  
+
   const matrix: number[][] = [];
-  
+
   for (let i = 0; i <= len2; i++) {
     matrix[i] = [i];
   }
-  
+
   for (let j = 0; j <= len1; j++) {
     matrix[0][j] = j;
   }
-  
+
   for (let i = 1; i <= len2; i++) {
     for (let j = 1; j <= len1; j++) {
       if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
@@ -59,13 +59,13 @@ function calculateSimilarity(str1: string, str2: string): number {
       } else {
         matrix[i][j] = Math.min(
           matrix[i - 1][j - 1] + 1, // substitution
-          matrix[i][j - 1] + 1,     // insertion
-          matrix[i - 1][j] + 1      // deletion
+          matrix[i][j - 1] + 1, // insertion
+          matrix[i - 1][j] + 1 // deletion
         );
       }
     }
   }
-  
+
   const maxLen = Math.max(len1, len2);
   return (maxLen - matrix[len2][len1]) / maxLen;
 }
@@ -76,7 +76,7 @@ function calculateSimilarity(str1: string, str2: string): number {
 function findBestMatch(
   sourceHeader: string,
   fieldDefs: FieldDef[],
-  threshold: number = 0.6,
+  threshold: number = 0.6
 ): HeaderMatch | null {
   const normalizedSource = normalizeHeader(sourceHeader);
   let bestMatch: HeaderMatch | null = null;
@@ -85,7 +85,7 @@ function findBestMatch(
   for (const fieldDef of fieldDefs) {
     for (const candidateHeader of fieldDef.sourceHeaders) {
       const normalizedCandidate = normalizeHeader(candidateHeader);
-      
+
       // Exact match gets highest score
       if (normalizedSource === normalizedCandidate) {
         return {
@@ -95,10 +95,10 @@ function findBestMatch(
           fieldDef,
         };
       }
-      
+
       // Partial match using similarity
       const similarity = calculateSimilarity(normalizedSource, normalizedCandidate);
-      
+
       if (similarity > bestScore && similarity >= threshold) {
         bestScore = similarity;
         bestMatch = {
@@ -108,15 +108,18 @@ function findBestMatch(
           fieldDef,
         };
       }
-      
+
       // Check if source header contains candidate or vice versa
-      if (normalizedSource.includes(normalizedCandidate) || 
-          normalizedCandidate.includes(normalizedSource)) {
-        const containmentScore = Math.min(
-          normalizedCandidate.length / normalizedSource.length,
-          normalizedSource.length / normalizedCandidate.length
-        ) * 0.8; // Slightly lower than exact match
-        
+      if (
+        normalizedSource.includes(normalizedCandidate) ||
+        normalizedCandidate.includes(normalizedSource)
+      ) {
+        const containmentScore =
+          Math.min(
+            normalizedCandidate.length / normalizedSource.length,
+            normalizedSource.length / normalizedCandidate.length
+          ) * 0.8; // Slightly lower than exact match
+
         if (containmentScore > bestScore && containmentScore >= threshold) {
           bestScore = containmentScore;
           bestMatch = {
@@ -139,7 +142,7 @@ function findBestMatch(
 export function autoMapHeaders(
   sourceHeaders: string[],
   fieldDefs: FieldDef[],
-  confidenceThreshold: number = 0.6,
+  confidenceThreshold: number = 0.6
 ): AutoMappingResult {
   const matches: HeaderMatch[] = [];
   const unmappedHeaders: string[] = [];
@@ -148,7 +151,7 @@ export function autoMapHeaders(
   // First pass: find matches for each source header
   for (const sourceHeader of sourceHeaders) {
     const match = findBestMatch(sourceHeader, fieldDefs, confidenceThreshold);
-    
+
     if (match && !usedTargetFields.has(match.targetField)) {
       matches.push(match);
       usedTargetFields.add(match.targetField);
@@ -166,7 +169,7 @@ export function autoMapHeaders(
   // Calculate overall confidence
   const totalConfidence = matches.reduce((sum, match) => sum + match.confidence, 0);
   const averageConfidence = matches.length > 0 ? totalConfidence / matches.length : 0;
-  
+
   // Penalize for missing required fields
   const requiredFieldsPenalty = requiredFieldsMissing.length * 0.2;
   const overallConfidence = Math.max(0, averageConfidence - requiredFieldsPenalty);
@@ -186,7 +189,7 @@ export function suggestMappings(
   unmappedHeaders: string[],
   fieldDefs: FieldDef[],
   usedTargetFields: Set<string>,
-  threshold: number = 0.3, // Lower threshold for suggestions
+  threshold: number = 0.3 // Lower threshold for suggestions
 ): Array<{
   sourceHeader: string;
   suggestions: Array<{
@@ -232,7 +235,7 @@ export function suggestMappings(
  */
 export function validateMapping(
   mapping: Record<string, string>, // sourceHeader -> targetField
-  fieldDefs: FieldDef[],
+  fieldDefs: FieldDef[]
 ): {
   isValid: boolean;
   errors: string[];
@@ -285,7 +288,7 @@ export function validateMapping(
 export function calculateMappingConfidence(
   mapping: Record<string, string>,
   sourceHeaders: string[],
-  fieldDefs: FieldDef[],
+  fieldDefs: FieldDef[]
 ): number {
   const mappedCount = Object.values(mapping).filter(Boolean).length;
   const totalSourceHeaders = sourceHeaders.length;
@@ -296,12 +299,11 @@ export function calculateMappingConfidence(
 
   // Base score from mapping coverage
   const coverageScore = mappedCount / totalSourceHeaders;
-  
+
   // Bonus for mapping required fields
-  const requiredFieldsScore = requiredFieldsCount > 0 
-    ? requiredFieldsMapped / requiredFieldsCount 
-    : 1;
+  const requiredFieldsScore =
+    requiredFieldsCount > 0 ? requiredFieldsMapped / requiredFieldsCount : 1;
 
   // Combined score with weighting
-  return (coverageScore * 0.6) + (requiredFieldsScore * 0.4);
+  return coverageScore * 0.6 + requiredFieldsScore * 0.4;
 }

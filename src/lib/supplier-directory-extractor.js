@@ -10,42 +10,81 @@ const { JSDOM } = require('jsdom');
 const SUPPLIER_SELECTORS = {
   // Main content containers
   mainContent: [
-    '.main-content', '.content', '.directory-content', '.supplier-directory',
-    '[class*="directory"]', '[class*="supplier"]', '[class*="company"]',
-    'main', 'article', '[role="main"]', '[role="article"]'
+    '.main-content',
+    '.content',
+    '.directory-content',
+    '.supplier-directory',
+    '[class*="directory"]',
+    '[class*="supplier"]',
+    '[class*="company"]',
+    'main',
+    'article',
+    '[role="main"]',
+    '[role="article"]',
   ],
-  
+
   // Company listing tables
   companyTables: [
-    'table', '.table', '.data-table', '.company-table', '.supplier-table',
-    '.directory-table', '[class*="table"]', '[class*="listing"]',
-    '.view-all-companies', '.company-list', '.supplier-list'
+    'table',
+    '.table',
+    '.data-table',
+    '.company-table',
+    '.supplier-table',
+    '.directory-table',
+    '[class*="table"]',
+    '[class*="listing"]',
+    '.view-all-companies',
+    '.company-list',
+    '.supplier-list',
   ],
-  
+
   // Individual company rows
   companyRows: [
-    'tr', '.company-row', '.supplier-row', '.listing-row',
-    '[class*="company"]', '[class*="supplier"]', '[class*="listing"]'
+    'tr',
+    '.company-row',
+    '.supplier-row',
+    '.listing-row',
+    '[class*="company"]',
+    '[class*="supplier"]',
+    '[class*="listing"]',
   ],
-  
+
   // Company name selectors
   companyName: [
-    'td:first-child', '.company-name', '.supplier-name', '.name',
-    '[class*="name"]', 'strong', 'b', 'a'
+    'td:first-child',
+    '.company-name',
+    '.supplier-name',
+    '.name',
+    '[class*="name"]',
+    'strong',
+    'b',
+    'a',
   ],
-  
+
   // Contact information selectors
   contactInfo: [
-    'td:nth-child(2)', '.contact', '.address', '.contact-info',
-    '[class*="contact"]', '[class*="address"]', '[class*="info"]'
+    'td:nth-child(2)',
+    '.contact',
+    '.address',
+    '.contact-info',
+    '[class*="contact"]',
+    '[class*="address"]',
+    '[class*="info"]',
   ],
-  
+
   // Website selectors
   website: [
-    'td:last-child', '.website', '.url', '.web', '.site',
-    '[class*="website"]', '[class*="url"]', '[class*="web"]',
-    'a[href*="http"]', 'a[href*="www"]'
-  ]
+    'td:last-child',
+    '.website',
+    '.url',
+    '.web',
+    '.site',
+    '[class*="website"]',
+    '[class*="url"]',
+    '[class*="web"]',
+    'a[href*="http"]',
+    'a[href*="www"]',
+  ],
 };
 
 // Site-specific configurations for supplier directories
@@ -62,8 +101,8 @@ const SUPPLIER_SITE_CONFIGS = {
     dataPatterns: {
       companyName: /^[A-Z][A-Z\s&.,-]+$/,
       address: /^\d+.*(?:St|Ave|Rd|Blvd|Dr|Way|Ln|Ct|Pl|Pkwy)\.?\s+.*,\s*[A-Z]{2}\s+\d{5}/,
-      website: /^(www\.)?[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.[a-zA-Z]{2,}$/
-    }
+      website: /^(www\.)?[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.[a-zA-Z]{2,}$/,
+    },
   },
   'thomasnet.com': {
     name: 'ThomasNet Supplier Directory',
@@ -73,7 +112,7 @@ const SUPPLIER_SITE_CONFIGS = {
     nameColumn: 'name',
     contactColumn: 'address',
     websiteColumn: 'website',
-    excludeSelectors: ['.advertisement', '.ad', '.promoted']
+    excludeSelectors: ['.advertisement', '.ad', '.promoted'],
   },
   'globalspec.com': {
     name: 'GlobalSpec Supplier Directory',
@@ -83,24 +122,52 @@ const SUPPLIER_SITE_CONFIGS = {
     nameColumn: 'name',
     contactColumn: 'location',
     websiteColumn: 'website',
-    excludeSelectors: ['.advertisement', '.ad', '.sponsored']
-  }
+    excludeSelectors: ['.advertisement', '.ad', '.sponsored'],
+  },
 };
 
 // Keywords for supplier directory content validation
 const SUPPLIER_KEYWORDS = {
   general: [
-    'supplier', 'manufacturer', 'company', 'directory', 'listing',
-    'contact', 'address', 'website', 'phone', 'email', 'location'
+    'supplier',
+    'manufacturer',
+    'company',
+    'directory',
+    'listing',
+    'contact',
+    'address',
+    'website',
+    'phone',
+    'email',
+    'location',
   ],
   industry: [
-    'manufacturing', 'contract', 'fabrication', 'machining', 'assembly',
-    'injection', 'molding', 'stamping', 'coating', 'finishing', 'welding'
+    'manufacturing',
+    'contract',
+    'fabrication',
+    'machining',
+    'assembly',
+    'injection',
+    'molding',
+    'stamping',
+    'coating',
+    'finishing',
+    'welding',
   ],
   business: [
-    'inc', 'llc', 'corp', 'ltd', 'company', 'manufacturing', 'industries',
-    'solutions', 'services', 'technologies', 'systems', 'products'
-  ]
+    'inc',
+    'llc',
+    'corp',
+    'ltd',
+    'company',
+    'manufacturing',
+    'industries',
+    'solutions',
+    'services',
+    'technologies',
+    'systems',
+    'products',
+  ],
 };
 
 /**
@@ -117,14 +184,14 @@ class SupplierDirectoryExtractor {
   extractSupplierData(doc, url = '') {
     const siteConfig = this.getSiteConfig(url);
     const extractionResult = this.performSupplierExtraction(doc, siteConfig);
-    
+
     return {
       companies: extractionResult.companies,
       metadata: extractionResult.metadata,
       method: extractionResult.method,
       score: extractionResult.score,
       debug: extractionResult.debug,
-      validation: this.validateSupplierContent(extractionResult.companies)
+      validation: this.validateSupplierContent(extractionResult.companies),
     };
   }
 
@@ -135,7 +202,7 @@ class SupplierDirectoryExtractor {
     try {
       const urlObj = new URL(url);
       const hostname = urlObj.hostname.toLowerCase();
-      
+
       for (const [domain, config] of Object.entries(SUPPLIER_SITE_CONFIGS)) {
         if (hostname.includes(domain)) {
           return { ...config, domain };
@@ -144,7 +211,7 @@ class SupplierDirectoryExtractor {
     } catch (e) {
       // Invalid URL, use default config
     }
-    
+
     return SUPPLIER_SITE_CONFIGS['d2pbuyersguide.com']; // Default to D2P
   }
 
@@ -153,20 +220,20 @@ class SupplierDirectoryExtractor {
    */
   performSupplierExtraction(doc, siteConfig) {
     const docClone = doc.cloneNode(true);
-    
+
     try {
       // Phase 1: Clean document while preserving supplier content
       this.cleanDocumentForSuppliers(docClone, siteConfig);
-      
+
       // Phase 2: Extract company data
       const companies = this.extractCompanyData(docClone, siteConfig);
-      
+
       // Phase 3: Extract metadata
       const metadata = this.extractMetadata(docClone, siteConfig);
-      
+
       // Phase 4: Score and validate extraction
       const score = this.scoreExtraction(companies, metadata);
-      
+
       return {
         companies,
         metadata,
@@ -175,8 +242,8 @@ class SupplierDirectoryExtractor {
         debug: {
           companiesFound: companies.length,
           siteConfig: siteConfig.domain,
-          extractionMethod: 'table-based'
-        }
+          extractionMethod: 'table-based',
+        },
       };
     } finally {
       // Clean up DOM clone to prevent memory leaks
@@ -190,20 +257,27 @@ class SupplierDirectoryExtractor {
   cleanDocumentForSuppliers(docClone, siteConfig) {
     // Remove non-content elements but preserve supplier tables and data
     const removeSelectors = [
-      'script', 'style', 'noscript', 'iframe', 'object', 'embed',
+      'script',
+      'style',
+      'noscript',
+      'iframe',
+      'object',
+      'embed',
       // Navigation and UI elements
-      'nav:not([class*="content"]):not([id*="content"])', 
-      'footer:not([class*="content"]):not([id*="content"])', 
+      'nav:not([class*="content"]):not([id*="content"])',
+      'footer:not([class*="content"]):not([id*="content"])',
       'header:not([class*="content"]):not([id*="content"])',
       'aside:not([class*="content"]):not([class*="supplier"])',
       // Ads and social media
-      '[class*="advertisement"]', '[class*="ads"]', '[id*="ads"]',
-      '[class*="social"]:not([class*="content"])', 
+      '[class*="advertisement"]',
+      '[class*="ads"]',
+      '[id*="ads"]',
+      '[class*="social"]:not([class*="content"])',
       '[class*="share"]:not([class*="content"])',
       // Site-specific excludes
-      ...siteConfig.excludeSelectors
+      ...siteConfig.excludeSelectors,
     ];
-    
+
     removeSelectors.forEach(selector => {
       try {
         docClone.querySelectorAll(selector).forEach(el => el.remove());
@@ -218,10 +292,10 @@ class SupplierDirectoryExtractor {
    */
   extractCompanyData(docClone, siteConfig) {
     const companies = [];
-    
+
     // Find company tables
     const tables = this.findCompanyTables(docClone, siteConfig);
-    
+
     tables.forEach(table => {
       try {
         const tableCompanies = this.parseCompanyTable(table, siteConfig);
@@ -232,13 +306,13 @@ class SupplierDirectoryExtractor {
         }
       }
     });
-    
+
     // If no tables found, try alternative extraction methods
     if (companies.length === 0) {
       const alternativeCompanies = this.extractCompaniesAlternative(docClone, siteConfig);
       companies.push(...alternativeCompanies);
     }
-    
+
     return this.deduplicateCompanies(companies);
   }
 
@@ -247,7 +321,7 @@ class SupplierDirectoryExtractor {
    */
   findCompanyTables(docClone, siteConfig) {
     const tables = [];
-    
+
     // Try site-specific selector first
     if (siteConfig.companyTableSelector) {
       try {
@@ -257,7 +331,7 @@ class SupplierDirectoryExtractor {
         // Continue if selector fails
       }
     }
-    
+
     // Try general table selectors
     SUPPLIER_SELECTORS.companyTables.forEach(selector => {
       try {
@@ -267,7 +341,7 @@ class SupplierDirectoryExtractor {
         // Continue if selector fails
       }
     });
-    
+
     return tables;
   }
 
@@ -277,24 +351,28 @@ class SupplierDirectoryExtractor {
   parseCompanyTable(table, siteConfig) {
     const companies = [];
     const rows = table.querySelectorAll('tr');
-    
+
     // Skip header row if it exists
     let startRow = 0;
     if (rows.length > 0) {
       const firstRow = rows[0];
       const firstRowText = firstRow.textContent.toLowerCase();
-      if (firstRowText.includes('name') || firstRowText.includes('company') || 
-          firstRowText.includes('contact') || firstRowText.includes('website')) {
+      if (
+        firstRowText.includes('name') ||
+        firstRowText.includes('company') ||
+        firstRowText.includes('contact') ||
+        firstRowText.includes('website')
+      ) {
         startRow = 1;
       }
     }
-    
+
     for (let i = startRow; i < rows.length; i++) {
       const row = rows[i];
       const cells = row.querySelectorAll('td, th');
-      
+
       if (cells.length < 2) continue; // Need at least name and contact
-      
+
       try {
         const company = this.extractCompanyFromRow(cells, siteConfig);
         if (company && company.name) {
@@ -306,7 +384,7 @@ class SupplierDirectoryExtractor {
         }
       }
     }
-    
+
     return companies;
   }
 
@@ -318,49 +396,52 @@ class SupplierDirectoryExtractor {
       name: '',
       contact: '',
       website: '',
-      rawData: {}
+      rawData: {},
     };
-    
+
     // Extract name (usually first column)
-    const nameIndex = typeof siteConfig.nameColumn === 'number' 
-      ? siteConfig.nameColumn 
-      : this.findColumnIndex(cells, ['name', 'company', 'supplier']);
-    
+    const nameIndex =
+      typeof siteConfig.nameColumn === 'number'
+        ? siteConfig.nameColumn
+        : this.findColumnIndex(cells, ['name', 'company', 'supplier']);
+
     if (nameIndex >= 0 && cells[nameIndex]) {
       company.name = this.cleanText(cells[nameIndex].textContent);
     }
-    
+
     // Extract contact information (usually second column)
-    const contactIndex = typeof siteConfig.contactColumn === 'number' 
-      ? siteConfig.contactColumn 
-      : this.findColumnIndex(cells, ['contact', 'address', 'location', 'info']);
-    
+    const contactIndex =
+      typeof siteConfig.contactColumn === 'number'
+        ? siteConfig.contactColumn
+        : this.findColumnIndex(cells, ['contact', 'address', 'location', 'info']);
+
     if (contactIndex >= 0 && cells[contactIndex]) {
       company.contact = this.cleanText(cells[contactIndex].textContent);
     }
-    
+
     // Extract website (usually last column or third column)
-    const websiteIndex = typeof siteConfig.websiteColumn === 'number' 
-      ? siteConfig.websiteColumn 
-      : this.findColumnIndex(cells, ['website', 'url', 'web', 'site']);
-    
+    const websiteIndex =
+      typeof siteConfig.websiteColumn === 'number'
+        ? siteConfig.websiteColumn
+        : this.findColumnIndex(cells, ['website', 'url', 'web', 'site']);
+
     if (websiteIndex >= 0 && cells[websiteIndex]) {
       const websiteText = this.cleanText(cells[websiteIndex].textContent);
       const websiteLink = cells[websiteIndex].querySelector('a[href]');
-      
+
       if (websiteLink) {
         company.website = this.normalizeWebsite(websiteLink.href);
       } else if (websiteText) {
         company.website = this.normalizeWebsite(websiteText);
       }
     }
-    
+
     // Store raw data for debugging
     company.rawData = {
       cellCount: cells.length,
-      cellTexts: Array.from(cells).map(cell => this.cleanText(cell.textContent))
+      cellTexts: Array.from(cells).map(cell => this.cleanText(cell.textContent)),
     };
-    
+
     return company;
   }
 
@@ -382,12 +463,12 @@ class SupplierDirectoryExtractor {
    */
   extractCompaniesAlternative(docClone, siteConfig) {
     const companies = [];
-    
+
     // Look for company cards or individual listings
     const companyElements = docClone.querySelectorAll(
       '.company-card, .supplier-card, .listing-item, [class*="company"], [class*="supplier"]'
     );
-    
+
     companyElements.forEach(element => {
       try {
         const company = this.extractCompanyFromElement(element, siteConfig);
@@ -400,7 +481,7 @@ class SupplierDirectoryExtractor {
         }
       }
     });
-    
+
     return companies;
   }
 
@@ -412,9 +493,9 @@ class SupplierDirectoryExtractor {
       name: '',
       contact: '',
       website: '',
-      rawData: {}
+      rawData: {},
     };
-    
+
     // Extract name
     const nameSelectors = SUPPLIER_SELECTORS.companyName;
     for (const selector of nameSelectors) {
@@ -424,7 +505,7 @@ class SupplierDirectoryExtractor {
         break;
       }
     }
-    
+
     // Extract contact
     const contactSelectors = SUPPLIER_SELECTORS.contactInfo;
     for (const selector of contactSelectors) {
@@ -434,7 +515,7 @@ class SupplierDirectoryExtractor {
         break;
       }
     }
-    
+
     // Extract website
     const websiteSelectors = SUPPLIER_SELECTORS.website;
     for (const selector of websiteSelectors) {
@@ -454,7 +535,7 @@ class SupplierDirectoryExtractor {
         break;
       }
     }
-    
+
     return company;
   }
 
@@ -467,21 +548,25 @@ class SupplierDirectoryExtractor {
       description: '',
       totalCompanies: 0,
       siteName: siteConfig.name || 'Unknown',
-      extractedAt: new Date().toISOString()
+      extractedAt: new Date().toISOString(),
     };
-    
+
     // Extract page title
     const titleEl = docClone.querySelector('title, h1, .page-title');
     if (titleEl) {
       metadata.title = this.cleanText(titleEl.textContent);
     }
-    
+
     // Extract description
-    const descEl = docClone.querySelector('meta[name="description"], .description, .page-description');
+    const descEl = docClone.querySelector(
+      'meta[name="description"], .description, .page-description'
+    );
     if (descEl) {
-      metadata.description = this.cleanText(descEl.textContent || descEl.getAttribute('content') || '');
+      metadata.description = this.cleanText(
+        descEl.textContent || descEl.getAttribute('content') || ''
+      );
     }
-    
+
     return metadata;
   }
 
@@ -490,22 +575,22 @@ class SupplierDirectoryExtractor {
    */
   scoreExtraction(companies, metadata) {
     let score = 0;
-    
+
     // Base score for having companies
     score += Math.min(companies.length * 10, 100);
-    
+
     // Quality score based on data completeness
     const completeCompanies = companies.filter(c => c.name && c.contact && c.website);
     score += completeCompanies.length * 20;
-    
+
     // Bonus for having metadata
     if (metadata.title) score += 10;
     if (metadata.description) score += 10;
-    
+
     // Penalty for empty companies
     const emptyCompanies = companies.filter(c => !c.name);
     score -= emptyCompanies.length * 5;
-    
+
     return Math.max(0, Math.min(score, 200));
   }
 
@@ -514,7 +599,7 @@ class SupplierDirectoryExtractor {
    */
   cleanText(text) {
     if (!text) return '';
-    
+
     return text
       .replace(/[\r\n\t]+/g, ' ')
       .replace(/\s+/g, ' ')
@@ -526,17 +611,17 @@ class SupplierDirectoryExtractor {
    */
   normalizeWebsite(website) {
     if (!website) return '';
-    
+
     let url = website.trim();
-    
+
     // Add protocol if missing
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = 'https://' + url;
     }
-    
+
     // Remove www. if present (optional normalization)
     // url = url.replace(/^https?:\/\/www\./, 'https://');
-    
+
     return url;
   }
 
@@ -546,17 +631,17 @@ class SupplierDirectoryExtractor {
   deduplicateCompanies(companies) {
     const unique = [];
     const seen = new Set();
-    
+
     companies.forEach(company => {
       if (!company.name) return;
-      
+
       const normalizedName = company.name.toLowerCase().replace(/[^a-z0-9]/g, '');
       if (!seen.has(normalizedName)) {
         seen.add(normalizedName);
         unique.push(company);
       }
     });
-    
+
     return unique;
   }
 
@@ -567,30 +652,31 @@ class SupplierDirectoryExtractor {
     if (!companies || companies.length === 0) {
       return { isValid: false, score: 0, reasons: ['No companies found'] };
     }
-    
+
     const validationRules = {
       hasCompanies: companies => companies.length > 0,
       hasNames: companies => companies.some(c => c.name && c.name.length > 2),
       hasContactInfo: companies => companies.some(c => c.contact && c.contact.length > 5),
       hasWebsites: companies => companies.some(c => c.website && c.website.length > 5),
       validNames: companies => companies.filter(c => c.name && /^[A-Z]/.test(c.name)).length > 0,
-      validWebsites: companies => companies.filter(c => c.website && /https?:\/\//.test(c.website)).length > 0
+      validWebsites: companies =>
+        companies.filter(c => c.website && /https?:\/\//.test(c.website)).length > 0,
     };
-    
+
     const results = {};
     let score = 0;
-    
+
     Object.entries(validationRules).forEach(([rule, test]) => {
       const passed = test(companies);
       results[rule] = passed;
       if (passed) score += 1;
     });
-    
+
     const isValid = score >= 4; // Need at least 4 validation rules to pass
     const reasons = Object.entries(results)
       .filter(([_, passed]) => !passed)
       .map(([rule, _]) => rule);
-    
+
     return { isValid, score, results, reasons };
   }
 
@@ -603,12 +689,12 @@ class SupplierDirectoryExtractor {
       while (docClone.firstChild) {
         docClone.removeChild(docClone.firstChild);
       }
-      
+
       // Clear any remaining references
       if (docClone.textContent !== undefined) {
         docClone.textContent = '';
       }
-      
+
       // Force garbage collection hint (if available)
       if (typeof global !== 'undefined' && global.gc) {
         global.gc();
@@ -622,8 +708,8 @@ class SupplierDirectoryExtractor {
   }
 }
 
-module.exports = { 
-  SupplierDirectoryExtractor, 
-  SUPPLIER_SELECTORS, 
-  SUPPLIER_SITE_CONFIGS 
+module.exports = {
+  SupplierDirectoryExtractor,
+  SUPPLIER_SELECTORS,
+  SUPPLIER_SITE_CONFIGS,
 };

@@ -1,4 +1,4 @@
-const { z } = require('zod');
+import { z } from 'zod';
 
 const schema = z.object({
   HTTP_DEADLINE_MS: z.coerce.number().int().positive().default(10000),
@@ -28,7 +28,30 @@ const schema = z.object({
 
 const cfg = schema.parse(process.env);
 
-module.exports = {
+export interface HostLimit {
+  rps: number;
+  burst: number;
+}
+
+export interface Config {
+  DEFAULT_TIMEOUT_MS: number;
+  MAX_RETRIES: number;
+  RATE_LIMIT_PER_SEC: number;
+  MAX_CONCURRENCY: number;
+  CIRCUIT_BREAKER_THRESHOLD: number;
+  CIRCUIT_BREAKER_RESET_MS: number;
+  HOST_LIMITS: Record<string, HostLimit>;
+  RETRY_BUDGET_PER_BATCH: number;
+  BASE_BACKOFF_MS: number;
+  MAX_BACKOFF_MS: number;
+  JITTER_FACTOR: number;
+  CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS: number;
+  CONNECT_TIMEOUT_MS: number;
+  READ_TIMEOUT_MS: number;
+  INTER_REQUEST_DELAY_MS: number;
+}
+
+const config: Config = {
   DEFAULT_TIMEOUT_MS: cfg.HTTP_DEADLINE_MS,
   MAX_RETRIES: cfg.HTTP_MAX_RETRIES,
   RATE_LIMIT_PER_SEC: cfg.HTTP_RATE_LIMIT_PER_SEC,
@@ -39,12 +62,12 @@ module.exports = {
   HOST_LIMITS: {
     'www.pro-football-reference.com': {
       rps: cfg.HOST_LIMIT__www_pro_football_reference_com__RPS,
-      burst: cfg.HOST_LIMIT__www_pro_football_reference_com__BURST
+      burst: cfg.HOST_LIMIT__www_pro_football_reference_com__BURST,
     },
-    'default': {
+    default: {
       rps: cfg.HOST_LIMIT__DEFAULT__RPS,
-      burst: cfg.HOST_LIMIT__DEFAULT__BURST
-    }
+      burst: cfg.HOST_LIMIT__DEFAULT__BURST,
+    },
   },
   // Retry configuration
   RETRY_BUDGET_PER_BATCH: cfg.HTTP_RETRY_BUDGET_PER_BATCH,
@@ -59,3 +82,5 @@ module.exports = {
   // Inter-request delay
   INTER_REQUEST_DELAY_MS: cfg.HTTP_INTER_REQUEST_DELAY_MS,
 };
+
+export default config;

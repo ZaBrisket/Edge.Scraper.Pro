@@ -133,7 +133,8 @@ function autoMapHeaders(sourceHeaders, fieldDefs, confidenceThreshold = 0.6) {
 /**
  * Suggest possible mappings for unmapped headers
  */
-function suggestMappings(unmappedHeaders, fieldDefs, usedTargetFields, threshold = 0.3) {
+function suggestMappings(unmappedHeaders, fieldDefs, usedTargetFields, threshold = 0.3 // Lower threshold for suggestions
+) {
     return unmappedHeaders.map(sourceHeader => {
         const suggestions = [];
         for (const fieldDef of fieldDefs) {
@@ -211,10 +212,8 @@ function calculateMappingConfidence(mapping, sourceHeaders, fieldDefs) {
     // Base score from mapping coverage
     const coverageScore = mappedCount / totalSourceHeaders;
     // Bonus for mapping required fields
-    const requiredFieldsScore = requiredFieldsCount > 0
-        ? requiredFieldsMapped / requiredFieldsCount
-        : 1;
+    const requiredFieldsScore = requiredFieldsCount > 0 ? requiredFieldsMapped / requiredFieldsCount : 1;
     // Combined score with weighting
-    return (coverageScore * 0.6) + (requiredFieldsScore * 0.4);
+    return coverageScore * 0.6 + requiredFieldsScore * 0.4;
 }
 //# sourceMappingURL=header-detector.js.map

@@ -9,19 +9,21 @@ exports.applyTransforms = applyTransforms;
 exports.transformRow = transformRow;
 exports.validateTransforms = validateTransforms;
 exports.getAvailableTransforms = getAvailableTransforms;
+const logger_1 = require("../logger");
+const logger = (0, logger_1.createLogger)('transforms');
 /**
  * Registry of available transforms
  */
 exports.transforms = {
     // String transformations
-    trim: (value) => typeof value === 'string' ? value.trim() : value,
+    trim: (value) => (typeof value === 'string' ? value.trim() : value),
     titleCase: (value) => {
         if (typeof value !== 'string')
             return value;
         return value.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
     },
-    upperCase: (value) => typeof value === 'string' ? value.toUpperCase() : value,
-    toLowerCase: (value) => typeof value === 'string' ? value.toLowerCase() : value,
+    upperCase: (value) => (typeof value === 'string' ? value.toUpperCase() : value),
+    toLowerCase: (value) => (typeof value === 'string' ? value.toLowerCase() : value),
     // Numeric transformations
     parseInt: (value) => {
         if (typeof value === 'number')
@@ -111,19 +113,56 @@ exports.transforms = {
         if (typeof value !== 'string')
             return value;
         const stateMap = {
-            'alabama': 'AL', 'alaska': 'AK', 'arizona': 'AZ', 'arkansas': 'AR',
-            'california': 'CA', 'colorado': 'CO', 'connecticut': 'CT', 'delaware': 'DE',
-            'florida': 'FL', 'georgia': 'GA', 'hawaii': 'HI', 'idaho': 'ID',
-            'illinois': 'IL', 'indiana': 'IN', 'iowa': 'IA', 'kansas': 'KS',
-            'kentucky': 'KY', 'louisiana': 'LA', 'maine': 'ME', 'maryland': 'MD',
-            'massachusetts': 'MA', 'michigan': 'MI', 'minnesota': 'MN', 'mississippi': 'MS',
-            'missouri': 'MO', 'montana': 'MT', 'nebraska': 'NE', 'nevada': 'NV',
-            'new hampshire': 'NH', 'new jersey': 'NJ', 'new mexico': 'NM', 'new york': 'NY',
-            'north carolina': 'NC', 'north dakota': 'ND', 'ohio': 'OH', 'oklahoma': 'OK',
-            'oregon': 'OR', 'pennsylvania': 'PA', 'rhode island': 'RI', 'south carolina': 'SC',
-            'south dakota': 'SD', 'tennessee': 'TN', 'texas': 'TX', 'utah': 'UT',
-            'vermont': 'VT', 'virginia': 'VA', 'washington': 'WA', 'west virginia': 'WV',
-            'wisconsin': 'WI', 'wyoming': 'WY'
+            alabama: 'AL',
+            alaska: 'AK',
+            arizona: 'AZ',
+            arkansas: 'AR',
+            california: 'CA',
+            colorado: 'CO',
+            connecticut: 'CT',
+            delaware: 'DE',
+            florida: 'FL',
+            georgia: 'GA',
+            hawaii: 'HI',
+            idaho: 'ID',
+            illinois: 'IL',
+            indiana: 'IN',
+            iowa: 'IA',
+            kansas: 'KS',
+            kentucky: 'KY',
+            louisiana: 'LA',
+            maine: 'ME',
+            maryland: 'MD',
+            massachusetts: 'MA',
+            michigan: 'MI',
+            minnesota: 'MN',
+            mississippi: 'MS',
+            missouri: 'MO',
+            montana: 'MT',
+            nebraska: 'NE',
+            nevada: 'NV',
+            'new hampshire': 'NH',
+            'new jersey': 'NJ',
+            'new mexico': 'NM',
+            'new york': 'NY',
+            'north carolina': 'NC',
+            'north dakota': 'ND',
+            ohio: 'OH',
+            oklahoma: 'OK',
+            oregon: 'OR',
+            pennsylvania: 'PA',
+            'rhode island': 'RI',
+            'south carolina': 'SC',
+            'south dakota': 'SD',
+            tennessee: 'TN',
+            texas: 'TX',
+            utah: 'UT',
+            vermont: 'VT',
+            virginia: 'VA',
+            washington: 'WA',
+            'west virginia': 'WV',
+            wisconsin: 'WI',
+            wyoming: 'WY',
         };
         const normalized = value.toLowerCase().trim();
         return stateMap[normalized] || value.toUpperCase();
@@ -133,8 +172,19 @@ exports.transforms = {
         if (typeof value !== 'string')
             return value;
         const designators = [
-            'inc', 'incorporated', 'corp', 'corporation', 'ltd', 'limited',
-            'llc', 'llp', 'lp', 'co', 'company', 'group', 'holdings'
+            'inc',
+            'incorporated',
+            'corp',
+            'corporation',
+            'ltd',
+            'limited',
+            'llc',
+            'llp',
+            'lp',
+            'co',
+            'company',
+            'group',
+            'holdings',
         ];
         let cleaned = value.trim();
         for (const designator of designators) {
@@ -160,14 +210,18 @@ exports.transforms = {
 function applyTransform(transformName, value) {
     const transform = exports.transforms[transformName];
     if (!transform) {
-        console.warn(`Unknown transform: ${transformName}`);
+        logger.warn(`Unknown transform: ${transformName}`, { transformName });
         return value;
     }
     try {
         return transform(value);
     }
     catch (error) {
-        console.error(`Transform ${transformName} failed for value:`, value, error);
+        logger.error(`Transform ${transformName} failed for value:`, {
+            transformName,
+            value,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        });
         return value; // Return original value on error
     }
 }
@@ -232,14 +286,30 @@ function getAvailableTransforms() {
         { name: 'toLowerCase', description: 'Convert to lowercase', category: 'String' },
         { name: 'parseInt', description: 'Convert to integer', category: 'Numeric' },
         { name: 'parseFloat', description: 'Convert to decimal number', category: 'Numeric' },
-        { name: 'currencyToFloat', description: 'Parse currency values ($1.2M → 1200000)', category: 'Numeric' },
+        {
+            name: 'currencyToFloat',
+            description: 'Parse currency values ($1.2M → 1200000)',
+            category: 'Numeric',
+        },
         { name: 'normalizeUrl', description: 'Add https:// if missing', category: 'URL' },
         { name: 'parseDate', description: 'Convert to ISO date format', category: 'Date' },
         { name: 'normalizePhone', description: 'Format as (555) 123-4567', category: 'Contact' },
         { name: 'normalizeEmail', description: 'Lowercase and trim email', category: 'Contact' },
-        { name: 'normalizeState', description: 'Convert state names to abbreviations', category: 'Geographic' },
-        { name: 'removeCompanyDesignators', description: 'Remove Inc, Corp, LLC, etc.', category: 'Company' },
-        { name: 'sanitizeForExcel', description: 'Prevent CSV injection attacks', category: 'Security' },
+        {
+            name: 'normalizeState',
+            description: 'Convert state names to abbreviations',
+            category: 'Geographic',
+        },
+        {
+            name: 'removeCompanyDesignators',
+            description: 'Remove Inc, Corp, LLC, etc.',
+            category: 'Company',
+        },
+        {
+            name: 'sanitizeForExcel',
+            description: 'Prevent CSV injection attacks',
+            category: 'Security',
+        },
     ];
 }
 //# sourceMappingURL=transforms.js.map

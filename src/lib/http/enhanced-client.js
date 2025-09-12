@@ -12,26 +12,31 @@ const config = require('../config');
 const createLogger = require('./logging');
 
 // Input validation schemas
-const urlSchema = z.string().url().refine(
-  (url) => {
-    try {
-      const parsed = new URL(url);
-      return ['http:', 'https:'].includes(parsed.protocol);
-    } catch {
-      return false;
-    }
-  },
-  { message: 'URL must use http or https protocol' }
-);
+const urlSchema = z
+  .string()
+  .url()
+  .refine(
+    url => {
+      try {
+        const parsed = new URL(url);
+        return ['http:', 'https:'].includes(parsed.protocol);
+      } catch {
+        return false;
+      }
+    },
+    { message: 'URL must use http or https protocol' }
+  );
 
-const fetchOptionsSchema = z.object({
-  retries: z.number().int().min(0).max(10).optional(),
-  timeout: z.number().int().min(100).max(300000).optional(), // 100ms to 5 minutes
-  correlationId: z.string().uuid().optional(),
-  headers: z.record(z.string()).optional(),
-  method: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS']).optional(),
-  body: z.any().optional(),
-}).strict();
+const fetchOptionsSchema = z
+  .object({
+    retries: z.number().int().min(0).max(10).optional(),
+    timeout: z.number().int().min(100).max(300000).optional(), // 100ms to 5 minutes
+    correlationId: z.string().uuid().optional(),
+    headers: z.record(z.string()).optional(),
+    method: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS']).optional(),
+    body: z.any().optional(),
+  })
+  .strict();
 
 // Enhanced configuration with validation
 const ENHANCED_CONFIG = {
@@ -54,7 +59,7 @@ const ENHANCED_CONFIG = {
   // User agent
   USER_AGENT: 'EdgeScraper/2.0 (+https://github.com/ZaBrisket/Edge.Scraper.Pro)',
   // Inter-request delay (jitter)
-  INTER_REQUEST_DELAY_MS: config.INTER_REQUEST_DELAY_MS
+  INTER_REQUEST_DELAY_MS: config.INTER_REQUEST_DELAY_MS,
 };
 
 // Global state with thread-safety considerations
@@ -67,7 +72,7 @@ const metrics = {
   retries: { scheduled: 0, byReason: {} },
   circuitBreaker: { stateChanges: 0, byHost: {} },
   deferrals: { count: 0, byHost: {} },
-  errors: { total: 0, byType: {} }
+  errors: { total: 0, byType: {} },
 };
 
 // TTL cleanup for memory management
@@ -90,7 +95,7 @@ function cleanupExpiredEntries() {
   try {
     const now = Date.now();
     const logger = createLogger('cleanup');
-    
+
     // Clean up expired limiters
     for (const [host, timestamp] of limiterTimestamps.entries()) {
       if (now - timestamp > LIMITER_TTL_MS) {
@@ -107,7 +112,7 @@ function cleanupExpiredEntries() {
         }
       }
     }
-    
+
     // Clean up expired circuits
     for (const [host, timestamp] of circuitTimestamps.entries()) {
       if (now - timestamp > CIRCUIT_TTL_MS) {
@@ -124,32 +129,32 @@ function cleanupExpiredEntries() {
 
 // Graceful shutdown handler
 let isShuttingDown = false;
-const shutdownHandler = async (signal) => {
+const shutdownHandler = async signal => {
   if (isShuttingDown) return;
   isShuttingDown = true;
-  
+
   const logger = createLogger('shutdown');
   logger.info({ signal }, 'Graceful shutdown initiated');
-  
+
   // Stop accepting new requests
   if (cleanupInterval) {
     clearInterval(cleanupInterval);
     cleanupInterval = null;
   }
-  
+
   // Wait for active requests to complete (with timeout)
   const shutdownTimeout = setTimeout(() => {
     logger.warn('Shutdown timeout reached, forcing exit');
     process.exit(1);
   }, 30000); // 30 second timeout
-  
+
   try {
     // Wait for active requests
     while (activeRequests.size > 0) {
       logger.info({ activeRequests: activeRequests.size }, 'Waiting for active requests');
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
-    
+
     // Clean up all limiters
     for (const [host, limiter] of limiters.entries()) {
       try {
@@ -158,13 +163,13 @@ const shutdownHandler = async (signal) => {
         logger.error({ err, host }, 'Error stopping limiter during shutdown');
       }
     }
-    
+
     limiters.clear();
     circuits.clear();
     retryQueues.clear();
     limiterTimestamps.clear();
     circuitTimestamps.clear();
-    
+
     clearTimeout(shutdownTimeout);
     logger.info('Graceful shutdown completed');
     process.exit(0);
@@ -182,9 +187,9 @@ function validateUrl(input) {
     const url = typeof input === 'string' ? input : input.url || input.href;
     return urlSchema.parse(url);
   } catch (err) {
-    throw new ValidationError(`Invalid URL: ${err.message}`, { 
+    throw new ValidationError(`Invalid URL: ${err.message}`, {
       input: typeof input === 'string' ? input : JSON.stringify(input),
-      errors: err.errors 
+      errors: err.errors,
     });
   }
 }
@@ -193,9 +198,9 @@ function validateOptions(opts) {
   try {
     return fetchOptionsSchema.parse(opts);
   } catch (err) {
-    throw new ValidationError(`Invalid options: ${err.message}`, { 
+    throw new ValidationError(`Invalid options: ${err.message}`, {
       options: opts,
-      errors: err.errors 
+      errors: err.errors,
     });
   }
 }
@@ -211,7 +216,7 @@ function getLimiter(host) {
   if (!host || typeof host !== 'string') {
     throw new ValidationError('Invalid host for limiter', { host });
   }
-  
+
   if (!limiters.has(host)) {
     const limits = getHostLimits(host);
     const limiter = new Bottleneck({
@@ -222,13 +227,13 @@ function getLimiter(host) {
       highWater: Math.max(limits.burst * 2, 10), // Prevent memory issues
       strategy: Bottleneck.strategy.OVERFLOW, // Drop excess requests
     });
-    
+
     // Set up error handling
-    limiter.on('error', (error) => {
+    limiter.on('error', error => {
       const logger = createLogger('limiter');
       logger.error({ error, host }, 'Limiter error');
     });
-    
+
     limiters.set(host, limiter);
     limiterTimestamps.set(host, Date.now());
   } else {
@@ -242,7 +247,7 @@ function getCircuit(host) {
   if (!host || typeof host !== 'string') {
     throw new ValidationError('Invalid host for circuit', { host });
   }
-  
+
   if (!circuits.has(host)) {
     circuits.set(host, {
       state: 'closed',
@@ -262,12 +267,12 @@ function updateMetrics(type, host, status = null, reason = null) {
   try {
     metrics.requests.total++;
     metrics.requests.byHost[host] = (metrics.requests.byHost[host] || 0) + 1;
-    
+
     if (status) {
       const statusClass = Math.floor(status / 100) * 100;
       metrics.requests.byStatus[statusClass] = (metrics.requests.byStatus[statusClass] || 0) + 1;
     }
-    
+
     switch (type) {
       case 'rateLimit':
         metrics.rateLimits.hits++;
@@ -302,18 +307,18 @@ function calculateBackoff(attempt, retryAfter = null) {
   if (typeof attempt !== 'number' || attempt < 1) {
     throw new ValidationError('Invalid attempt number', { attempt });
   }
-  
+
   if (retryAfter !== null && (typeof retryAfter !== 'number' || retryAfter < 0)) {
     throw new ValidationError('Invalid retry-after value', { retryAfter });
   }
-  
+
   if (retryAfter) {
     // Use Retry-After header if present
     const baseDelay = Math.min(retryAfter * 1000, ENHANCED_CONFIG.MAX_BACKOFF_MS);
     const jitter = Math.random() * baseDelay * ENHANCED_CONFIG.JITTER_FACTOR;
     return Math.round(baseDelay + jitter);
   }
-  
+
   // Exponential backoff with jitter
   const baseDelay = Math.min(
     ENHANCED_CONFIG.BASE_BACKOFF_MS * Math.pow(2, attempt - 1),
@@ -326,29 +331,32 @@ function calculateBackoff(attempt, retryAfter = null) {
 async function scheduleRetry(host, url, attempt, retryAfter = null, correlationId) {
   const delay = calculateBackoff(attempt, retryAfter);
   const retryAt = Date.now() + delay;
-  
+
   updateMetrics('retry', host, null, '429');
-  
+
   const logger = createLogger(correlationId);
-  logger.info({
-    host,
-    url,
-    attempt,
-    retryAfter,
-    delay,
-    retryAt: new Date(retryAt).toISOString()
-  }, 'Retry scheduled for 429 response');
-  
+  logger.info(
+    {
+      host,
+      url,
+      attempt,
+      retryAfter,
+      delay,
+      retryAt: new Date(retryAt).toISOString(),
+    },
+    'Retry scheduled for 429 response'
+  );
+
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
-      fetchWithPolicy(url, { 
+      fetchWithPolicy(url, {
         retries: ENHANCED_CONFIG.MAX_RETRIES - attempt,
-        correlationId 
+        correlationId,
       })
         .then(resolve)
         .catch(reject);
     }, delay);
-    
+
     // Allow timer to be garbage collected if process exits
     timer.unref();
   });
@@ -360,19 +368,19 @@ async function fetchWithPolicy(input, opts = {}) {
   const options = validateOptions(opts);
   const parsedUrl = new URL(url);
   const host = parsedUrl.host;
-  
+
   // Check if shutting down
   if (isShuttingDown) {
     throw new NetworkError('Service is shutting down', { shuttingDown: true });
   }
-  
+
   const requestId = randomUUID();
   const correlationId = options.correlationId || requestId;
   const logger = createLogger(correlationId).child({ host, url, requestId });
-  
+
   // Track active request
   activeRequests.add(requestId);
-  
+
   try {
     const limiter = getLimiter(host);
     const circuit = getCircuit(host);
@@ -394,7 +402,9 @@ async function fetchWithPolicy(input, opts = {}) {
     if (circuit.state === 'half-open') {
       if (circuit.halfOpenCalls >= ENHANCED_CONFIG.CIRCUIT_BREAKER_HALF_OPEN_MAX_CALLS) {
         updateMetrics('error', host, null, 'circuit_half_open_limit');
-        throw new CircuitOpenError(`Circuit for ${host} is half-open and call limit reached`, { host });
+        throw new CircuitOpenError(`Circuit for ${host} is half-open and call limit reached`, {
+          host,
+        });
       }
       circuit.halfOpenCalls++;
     }
@@ -402,46 +412,46 @@ async function fetchWithPolicy(input, opts = {}) {
     const maxRetries = options.retries ?? ENHANCED_CONFIG.MAX_RETRIES;
     const timeout = options.timeout ?? ENHANCED_CONFIG.READ_TIMEOUT_MS;
 
-    const attemptFetch = async (attempt) => {
+    const attemptFetch = async attempt => {
       const controller = new AbortController();
       const timer = setTimeout(() => {
         controller.abort();
       }, timeout);
-      
+
       const headers = {
         'User-Agent': ENHANCED_CONFIG.USER_AGENT,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
         'Accept-Encoding': 'gzip, deflate',
-        'Connection': 'keep-alive',
+        Connection: 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
         'x-correlation-id': correlationId,
         'x-request-id': requestId,
-        ...(options.headers || {})
+        ...(options.headers || {}),
       };
 
       try {
         logger.info({ attempt, host }, 'outbound request');
-        
+
         // Add small random delay to smooth out requests
         if (attempt === 1 && ENHANCED_CONFIG.INTER_REQUEST_DELAY_MS > 0) {
           const jitter = Math.random() * ENHANCED_CONFIG.INTER_REQUEST_DELAY_MS;
           await new Promise(resolve => setTimeout(resolve, Math.round(jitter)));
         }
-        
-        const res = await fetch(url, { 
-          ...options, 
-          headers, 
-          signal: controller.signal 
+
+        const res = await fetch(url, {
+          ...options,
+          headers,
+          signal: controller.signal,
         });
-        
+
         updateMetrics('request', host, res.status);
-        
+
         // Handle 429 responses specially - DO NOT count as circuit breaker failure
         if (res.status === 429) {
           const retryAfter = res.headers.get('Retry-After');
           let retryAfterSeconds = null;
-          
+
           if (retryAfter) {
             // Parse Retry-After (can be seconds or HTTP date)
             const parsed = parseInt(retryAfter, 10);
@@ -451,34 +461,40 @@ async function fetchWithPolicy(input, opts = {}) {
               // Try parsing as date
               const retryDate = new Date(retryAfter);
               if (!isNaN(retryDate.getTime())) {
-                retryAfterSeconds = Math.max(0, Math.ceil((retryDate.getTime() - Date.now()) / 1000));
+                retryAfterSeconds = Math.max(
+                  0,
+                  Math.ceil((retryDate.getTime() - Date.now()) / 1000)
+                );
               }
             }
           }
-          
+
           updateMetrics('rateLimit', host);
           updateMetrics('deferral', host);
-          
-          logger.warn({
-            status: res.status,
-            retryAfter: retryAfterSeconds,
-            attempt
-          }, 'Rate limited - will retry');
-          
+
+          logger.warn(
+            {
+              status: res.status,
+              retryAfter: retryAfterSeconds,
+              attempt,
+            },
+            'Rate limited - will retry'
+          );
+
           // If we have retries left, schedule a retry
           if (attempt < maxRetries) {
             return await scheduleRetry(host, url, attempt, retryAfterSeconds, correlationId);
           } else {
             // No more retries, but this is not a fatal error
             updateMetrics('error', host, null, 'rate_limit_exhausted');
-            throw new RateLimitError('Rate limit exceeded after retries', { 
+            throw new RateLimitError('Rate limit exceeded after retries', {
               status: res.status,
               retryAfter: retryAfterSeconds,
-              attempts: attempt
+              attempts: attempt,
             });
           }
         }
-        
+
         // Handle 5xx responses - these count toward circuit breaker
         if (res.status >= 500) {
           circuit.failures++;
@@ -491,7 +507,7 @@ async function fetchWithPolicy(input, opts = {}) {
           updateMetrics('error', host, null, `http_${res.status}`);
           throw new NetworkError(`Upstream ${res.status}`, { status: res.status });
         }
-        
+
         // Success - reset circuit breaker
         if (circuit.state !== 'closed') {
           circuit.state = 'closed';
@@ -500,9 +516,8 @@ async function fetchWithPolicy(input, opts = {}) {
           updateMetrics('circuitChange', host);
           logger.info({ host }, 'Circuit breaker closed');
         }
-        
+
         return res;
-        
       } catch (err) {
         if (err.name === 'AbortError') {
           circuit.failures++;
@@ -514,7 +529,7 @@ async function fetchWithPolicy(input, opts = {}) {
           updateMetrics('error', host, null, 'timeout');
           throw new TimeoutError('Request timed out', { timeout });
         }
-        
+
         // Only count network errors and 5xx as circuit breaker failures
         if (err instanceof NetworkError) {
           circuit.failures++;
@@ -525,17 +540,17 @@ async function fetchWithPolicy(input, opts = {}) {
           }
           throw err;
         }
-        
+
         // Rate limit errors don't count toward circuit breaker
         if (err instanceof RateLimitError) {
           throw err;
         }
-        
+
         // Validation errors should bubble up
         if (err instanceof ValidationError) {
           throw err;
         }
-        
+
         updateMetrics('error', host, null, 'network_error');
         throw new NetworkError(err.message, { cause: err });
       } finally {
@@ -556,16 +571,16 @@ async function fetchWithPolicy(input, opts = {}) {
         ) {
           throw err;
         }
-        
+
         // Don't retry rate limit errors - they're handled internally
         if (err instanceof RateLimitError) {
           throw err;
         }
-        
+
         attempt++;
         const backoff = calculateBackoff(attempt);
         logger.info({ attempt, backoff, error: err.message }, 'Retrying after error');
-        await new Promise((r) => setTimeout(r, backoff));
+        await new Promise(r => setTimeout(r, backoff));
       }
     }
   } finally {
@@ -582,9 +597,9 @@ function getMetrics() {
       host,
       state: circuit.state,
       failures: circuit.failures,
-      ...(circuit.state === 'open' ? { openedAt: new Date(circuit.openedAt).toISOString() } : {})
+      ...(circuit.state === 'open' ? { openedAt: new Date(circuit.openedAt).toISOString() } : {}),
     })),
-    activeRequests: activeRequests.size
+    activeRequests: activeRequests.size,
   };
 }
 
@@ -613,10 +628,10 @@ function cleanup() {
   cleanupExpiredEntries();
 }
 
-module.exports = { 
-  fetchWithPolicy, 
-  getMetrics, 
+module.exports = {
+  fetchWithPolicy,
+  getMetrics,
   resetMetrics,
   cleanup,
-  ENHANCED_CONFIG 
+  ENHANCED_CONFIG,
 };

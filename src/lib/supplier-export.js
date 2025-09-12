@@ -19,9 +19,11 @@ class SupplierDataExporter {
    */
   export(companies, outputPath, options = {}) {
     const format = this.getFormatFromPath(outputPath);
-    
+
     if (!this.supportedFormats.includes(format)) {
-      throw new Error(`Unsupported format: ${format}. Supported formats: ${this.supportedFormats.join(', ')}`);
+      throw new Error(
+        `Unsupported format: ${format}. Supported formats: ${this.supportedFormats.join(', ')}`
+      );
     }
 
     // Ensure output directory exists
@@ -51,14 +53,12 @@ class SupplierDataExporter {
         exportedAt: new Date().toISOString(),
         totalCompanies: companies.length,
         format: 'json',
-        version: '1.0'
+        version: '1.0',
       },
-      companies: companies
+      companies: companies,
     };
 
-    const jsonString = options.pretty 
-      ? JSON.stringify(data, null, 2)
-      : JSON.stringify(data);
+    const jsonString = options.pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
 
     fs.writeFileSync(outputPath, jsonString, 'utf8');
   }
@@ -75,19 +75,19 @@ class SupplierDataExporter {
     }
 
     const csvLines = [];
-    
+
     // Add header
     csvLines.push('Name,Contact Information,Website');
-    
+
     // Add data rows
     companies.forEach(company => {
       const name = this.escapeCSV(company.name || '');
       const contact = this.escapeCSV(company.contact || '');
       const website = this.escapeCSV(company.website || '');
-      
+
       csvLines.push(`${name},${contact},${website}`);
     });
-    
+
     fs.writeFileSync(outputPath, csvLines.join('\n'), 'utf8');
   }
 
@@ -96,14 +96,19 @@ class SupplierDataExporter {
    */
   escapeCSV(value) {
     if (!value) return '';
-    
+
     // Escape quotes and wrap in quotes if contains comma, quote, or newline
     const escaped = value.replace(/"/g, '""');
-    
-    if (escaped.includes(',') || escaped.includes('"') || escaped.includes('\n') || escaped.includes('\r')) {
+
+    if (
+      escaped.includes(',') ||
+      escaped.includes('"') ||
+      escaped.includes('\n') ||
+      escaped.includes('\r')
+    ) {
       return `"${escaped}"`;
     }
-    
+
     return escaped;
   }
 
@@ -112,7 +117,7 @@ class SupplierDataExporter {
    */
   getFormatFromPath(filePath) {
     const ext = path.extname(filePath).toLowerCase();
-    
+
     switch (ext) {
       case '.json':
         return 'json';
@@ -128,18 +133,20 @@ class SupplierDataExporter {
    */
   exportBatchResults(batchResult, outputPath, options = {}) {
     const format = this.getFormatFromPath(outputPath);
-    
+
     // Extract companies from batch results
     const allCompanies = [];
-    
+
     if (batchResult.results) {
       batchResult.results.forEach(result => {
         if (result.success && result.result && result.result.companies) {
-          allCompanies.push(...result.result.companies.map(company => ({
-            ...company,
-            sourceUrl: result.url,
-            extractedAt: result.result.extractedAt
-          })));
+          allCompanies.push(
+            ...result.result.companies.map(company => ({
+              ...company,
+              sourceUrl: result.url,
+              extractedAt: result.result.extractedAt,
+            }))
+          );
         }
       });
     }
@@ -155,13 +162,13 @@ class SupplierDataExporter {
         totalCompanies: allCompanies.length,
         processingTime: batchResult.stats.processingTime,
         format: format,
-        version: '1.0'
+        version: '1.0',
       },
-      companies: allCompanies
+      companies: allCompanies,
     };
 
     if (format === 'json') {
-      const jsonString = options.pretty 
+      const jsonString = options.pretty
         ? JSON.stringify(exportData, null, 2)
         : JSON.stringify(exportData);
       fs.writeFileSync(outputPath, jsonString, 'utf8');
@@ -181,16 +188,19 @@ class SupplierDataExporter {
         totalUrls: batchResult.stats.totalUrls,
         successfulUrls: batchResult.stats.successfulUrls,
         failedUrls: batchResult.stats.failedUrls,
-        successRate: batchResult.stats.processedUrls > 0 
-          ? (batchResult.stats.successfulUrls / batchResult.stats.processedUrls * 100).toFixed(1) + '%'
-          : '0%',
+        successRate:
+          batchResult.stats.processedUrls > 0
+            ? ((batchResult.stats.successfulUrls / batchResult.stats.processedUrls) * 100).toFixed(
+                1
+              ) + '%'
+            : '0%',
         processingTime: batchResult.stats.processingTime,
         averageProcessingTime: batchResult.stats.averageProcessingTime,
-        throughput: batchResult.stats.throughput
+        throughput: batchResult.stats.throughput,
       },
       companies: this.extractCompanySummary(batchResult),
       errors: this.extractErrorSummary(batchResult),
-      recommendations: batchResult.errorReport?.recommendations || []
+      recommendations: batchResult.errorReport?.recommendations || [],
     };
 
     const jsonString = JSON.stringify(report, null, 2);
@@ -212,8 +222,8 @@ class SupplierDataExporter {
             companies: result.result.companies.map(c => ({
               name: c.name,
               hasContact: !!c.contact,
-              hasWebsite: !!c.website
-            }))
+              hasWebsite: !!c.website,
+            })),
           };
           totalCompanies += result.result.companies.length;
         }
@@ -223,9 +233,10 @@ class SupplierDataExporter {
     return {
       totalCompanies,
       companiesByUrl,
-      averageCompaniesPerUrl: batchResult.stats.successfulUrls > 0 
-        ? (totalCompanies / batchResult.stats.successfulUrls).toFixed(1)
-        : 0
+      averageCompaniesPerUrl:
+        batchResult.stats.successfulUrls > 0
+          ? (totalCompanies / batchResult.stats.successfulUrls).toFixed(1)
+          : 0,
     };
   }
 
@@ -241,12 +252,12 @@ class SupplierDataExporter {
         if (!result.success) {
           const category = result.errorCategory || 'unknown';
           errorsByCategory[category] = (errorsByCategory[category] || 0) + 1;
-          
+
           if (errorExamples.length < 10) {
             errorExamples.push({
               url: result.url,
               error: result.error,
-              category: result.errorCategory
+              category: result.errorCategory,
             });
           }
         }
@@ -256,7 +267,7 @@ class SupplierDataExporter {
     return {
       totalErrors: batchResult.stats.failedUrls,
       errorsByCategory,
-      errorExamples
+      errorExamples,
     };
   }
 }

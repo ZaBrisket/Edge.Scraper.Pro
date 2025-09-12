@@ -27,14 +27,17 @@ export interface PresignedDownloadData {
 export async function generatePresignedUpload(
   filename: string,
   contentType: string,
-  maxFileSize: number = 10 * 1024 * 1024, // 10MB default
+  maxFileSize: number = 10 * 1024 * 1024 // 10MB default
 ): Promise<PresignedUploadData> {
   const timestamp = Date.now();
-  const hash = createHash('md5').update(filename + timestamp).digest('hex').slice(0, 8);
+  const hash = createHash('md5')
+    .update(filename + timestamp)
+    .digest('hex')
+    .slice(0, 8);
   const s3Key = `uploads/${new Date().getFullYear()}/${new Date().getMonth() + 1}/${hash}-${filename}`;
-  
+
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-  
+
   const params = {
     Bucket: BUCKET,
     Key: s3Key,
@@ -65,7 +68,7 @@ export async function generatePresignedUpload(
  */
 export async function generatePresignedDownload(
   s3Key: string,
-  expiresInSeconds: number = 3600, // 1 hour default
+  expiresInSeconds: number = 3600 // 1 hour default
 ): Promise<PresignedDownloadData> {
   const downloadUrl = s3.getSignedUrl('getObject', {
     Bucket: BUCKET,
@@ -88,15 +91,17 @@ export async function uploadToS3(
   key: string,
   body: Buffer,
   contentType: string,
-  metadata?: Record<string, string>,
+  metadata?: Record<string, string>
 ): Promise<{ s3Key: string; etag: string }> {
-  const result = await s3.upload({
-    Bucket: BUCKET,
-    Key: key,
-    Body: body,
-    ContentType: contentType,
-    Metadata: metadata,
-  }).promise();
+  const result = await s3
+    .upload({
+      Bucket: BUCKET,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+      Metadata: metadata,
+    })
+    .promise();
 
   return {
     s3Key: result.Key,
@@ -109,10 +114,12 @@ export async function uploadToS3(
  */
 export async function objectExists(s3Key: string): Promise<boolean> {
   try {
-    await s3.headObject({
-      Bucket: BUCKET,
-      Key: s3Key,
-    }).promise();
+    await s3
+      .headObject({
+        Bucket: BUCKET,
+        Key: s3Key,
+      })
+      .promise();
     return true;
   } catch (error: any) {
     if (error.code === 'NotFound') {
@@ -131,10 +138,12 @@ export async function getObjectMetadata(s3Key: string): Promise<{
   lastModified: Date;
   etag: string;
 }> {
-  const result = await s3.headObject({
-    Bucket: BUCKET,
-    Key: s3Key,
-  }).promise();
+  const result = await s3
+    .headObject({
+      Bucket: BUCKET,
+      Key: s3Key,
+    })
+    .promise();
 
   return {
     contentType: result.ContentType || 'application/octet-stream',
@@ -148,10 +157,12 @@ export async function getObjectMetadata(s3Key: string): Promise<{
  * Delete an object from S3
  */
 export async function deleteFromS3(s3Key: string): Promise<void> {
-  await s3.deleteObject({
-    Bucket: BUCKET,
-    Key: s3Key,
-  }).promise();
+  await s3
+    .deleteObject({
+      Bucket: BUCKET,
+      Key: s3Key,
+    })
+    .promise();
 }
 
 /**
@@ -160,9 +171,12 @@ export async function deleteFromS3(s3Key: string): Promise<void> {
 export function generateArtifactKey(
   jobId: string,
   filename: string,
-  format: 'xlsx' | 'pdf',
+  format: 'xlsx' | 'pdf'
 ): string {
   const timestamp = Date.now();
-  const hash = createHash('md5').update(jobId + filename + timestamp).digest('hex').slice(0, 8);
+  const hash = createHash('md5')
+    .update(jobId + filename + timestamp)
+    .digest('hex')
+    .slice(0, 8);
   return `artifacts/${new Date().getFullYear()}/${new Date().getMonth() + 1}/${hash}-${jobId}.${format}`;
 }

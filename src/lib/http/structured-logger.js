@@ -1,6 +1,6 @@
 /**
  * Structured NDJSON Logger for EdgeScraperPro
- * 
+ *
  * Provides structured logging with:
  * - NDJSON format for easy parsing
  * - URL resolution tracking
@@ -24,13 +24,16 @@ class StructuredLogger {
       enableConsoleLogging: options.enableConsoleLogging !== false,
       maxLogFileSize: options.maxLogFileSize || 100 * 1024 * 1024, // 100MB
       rotateOnSize: options.rotateOnSize !== false,
-      ...options
+      ...options,
     };
 
     this.logger = createLogger('structured-logger');
     this.logFilePath = path.join(this.options.logDirectory, `${this.options.jobId}.log`);
-    this.summaryFilePath = path.join(this.options.logDirectory, `${this.options.jobId}-summary.json`);
-    
+    this.summaryFilePath = path.join(
+      this.options.logDirectory,
+      `${this.options.jobId}-summary.json`
+    );
+
     // Initialize counters for summary
     this.counters = {
       total_requests: 0,
@@ -42,7 +45,7 @@ class StructuredLogger {
       error_categories: {},
       response_times: [],
       start_time: Date.now(),
-      end_time: null
+      end_time: null,
     };
 
     // Ensure log directory exists
@@ -71,20 +74,20 @@ class StructuredLogger {
       timestamp,
       job_id: this.options.jobId,
       event_type: 'request',
-      ...event
+      ...event,
     };
 
     // Update counters
     this.counters.total_requests++;
-    
+
     if (event.success) {
       this.counters.successful_requests++;
     } else {
       this.counters.failed_requests++;
-      
+
       // Track error categories
       if (event.error_class) {
-        this.counters.error_categories[event.error_class] = 
+        this.counters.error_categories[event.error_class] =
           (this.counters.error_categories[event.error_class] || 0) + 1;
       }
     }
@@ -119,7 +122,7 @@ class StructuredLogger {
       timestamp,
       job_id: this.options.jobId,
       event_type: 'pagination_discovery',
-      ...event
+      ...event,
     };
 
     await this.writeLogEntry(logEntry);
@@ -135,7 +138,7 @@ class StructuredLogger {
       timestamp,
       job_id: this.options.jobId,
       event_type: 'canonicalization',
-      ...event
+      ...event,
     };
 
     await this.writeLogEntry(logEntry);
@@ -147,7 +150,7 @@ class StructuredLogger {
    */
   async logBatchSummary(summary) {
     this.counters.end_time = Date.now();
-    
+
     const timestamp = new Date().toISOString();
     const logEntry = {
       timestamp,
@@ -155,7 +158,7 @@ class StructuredLogger {
       event_type: 'batch_summary',
       duration_ms: this.counters.end_time - this.counters.start_time,
       ...this.counters,
-      ...summary
+      ...summary,
     };
 
     await this.writeLogEntry(logEntry);
@@ -176,7 +179,7 @@ class StructuredLogger {
       robots_allowed: fetchResult.robotsAllowed,
       canonicalized: !!fetchResult.canonicalizationResult?.success,
       pagination_discovered: false, // Will be updated if pagination is found
-      redirect_chain: []
+      redirect_chain: [],
     };
 
     // Add response details if available
@@ -195,9 +198,9 @@ class StructuredLogger {
         success: fetchResult.canonicalizationResult.success,
         attempts: fetchResult.canonicalizationResult.attempts?.length || 0,
         total_response_time_ms: fetchResult.canonicalizationResult.totalResponseTime,
-        redirect_chain: fetchResult.canonicalizationResult.redirectChain || []
+        redirect_chain: fetchResult.canonicalizationResult.redirectChain || [],
       };
-      
+
       // Merge redirect chains
       entry.redirect_chain = fetchResult.canonicalizationResult.redirectChain || [];
     }
@@ -231,38 +234,38 @@ class StructuredLogger {
     if (errorCode === 'ENOTFOUND' || errorCode === 'EAI_NODATA' || errorCode === 'EAI_NONAME') {
       return 'dns_error';
     }
-    
+
     // Network errors
     if (errorCode === 'ECONNREFUSED' || errorCode === 'ECONNRESET' || errorCode === 'ENETUNREACH') {
       return 'network_error';
     }
-    
+
     // Timeout errors
     if (errorCode === 'ETIMEDOUT' || error?.includes('timeout')) {
       return 'timeout_error';
     }
-    
+
     // SSL errors
     if (errorCode?.includes('CERT_') || error?.includes('certificate') || error?.includes('SSL')) {
       return 'ssl_error';
     }
-    
+
     // Robots blocking
     if (errorCode === 'BLOCKED_BY_ROBOTS') {
       return 'blocked_by_robots';
     }
-    
+
     // Specific HTTP status codes
     if (status === 404) return 'http_404';
     if (status === 403) return 'http_403';
     if (status === 401) return 'http_401';
     if (status === 429) return 'rate_limit';
     if (status === 503 && error?.includes('cloudflare')) return 'anti_bot_challenge';
-    
+
     // General categories
     if (status >= 500) return 'server_error';
     if (status >= 400) return 'client_error';
-    
+
     return 'unknown';
   }
 
@@ -276,19 +279,25 @@ class StructuredLogger {
     // Console logging
     if (this.options.enableConsoleLogging) {
       if (logEntry.event_type === 'request' && logEntry.success) {
-        this.logger.info({
-          url: logEntry.resolved_url,
-          status: logEntry.status_code,
-          time: logEntry.response_time_ms,
-          canonicalized: logEntry.canonicalized
-        }, 'Request successful');
+        this.logger.info(
+          {
+            url: logEntry.resolved_url,
+            status: logEntry.status_code,
+            time: logEntry.response_time_ms,
+            canonicalized: logEntry.canonicalized,
+          },
+          'Request successful'
+        );
       } else if (logEntry.event_type === 'request' && !logEntry.success) {
-        this.logger.error({
-          url: logEntry.original_url,
-          error: logEntry.error,
-          error_class: logEntry.error_class,
-          time: logEntry.response_time_ms
-        }, 'Request failed');
+        this.logger.error(
+          {
+            url: logEntry.original_url,
+            error: logEntry.error,
+            error_class: logEntry.error_class,
+            time: logEntry.response_time_ms,
+          },
+          'Request failed'
+        );
       }
     }
 
@@ -317,12 +326,15 @@ class StructuredLogger {
       const responseTimesMs = this.counters.response_times;
       const stats = {
         ...summary,
-        response_time_stats: responseTimesMs.length > 0 ? {
-          min: Math.min(...responseTimesMs),
-          max: Math.max(...responseTimesMs),
-          avg: responseTimesMs.reduce((a, b) => a + b, 0) / responseTimesMs.length,
-          median: responseTimesMs.sort()[Math.floor(responseTimesMs.length / 2)]
-        } : null
+        response_time_stats:
+          responseTimesMs.length > 0
+            ? {
+                min: Math.min(...responseTimesMs),
+                max: Math.max(...responseTimesMs),
+                avg: responseTimesMs.reduce((a, b) => a + b, 0) / responseTimesMs.length,
+                median: responseTimesMs.sort()[Math.floor(responseTimesMs.length / 2)],
+              }
+            : null,
       };
 
       await fs.writeFile(this.summaryFilePath, JSON.stringify(stats, null, 2));
@@ -338,7 +350,7 @@ class StructuredLogger {
   async checkAndRotateLog() {
     try {
       const stats = await fs.stat(this.logFilePath);
-      
+
       if (stats.size > this.options.maxLogFileSize) {
         const rotatedPath = `${this.logFilePath}.${Date.now()}`;
         await fs.rename(this.logFilePath, rotatedPath);
@@ -360,7 +372,7 @@ class StructuredLogger {
     return {
       ...this.counters,
       log_file: this.logFilePath,
-      summary_file: this.summaryFilePath
+      summary_file: this.summaryFilePath,
     };
   }
 
@@ -370,7 +382,7 @@ class StructuredLogger {
   async finalize() {
     const finalSummary = {
       job_completed: true,
-      final_stats: this.getStats()
+      final_stats: this.getStats(),
     };
 
     await this.logBatchSummary(finalSummary);

@@ -1,6 +1,6 @@
 /**
  * Pagination Discovery Module for EdgeScraperPro
- * 
+ *
  * Automatically discovers pagination patterns from directory sites:
  * - Detects rel="next" links and pagination controls
  * - Falls back to letter-indexed discovery (a-z, 0-9)
@@ -19,7 +19,44 @@ class PaginationDiscovery {
       paginationMode: options.paginationMode || 'auto', // 'auto', 'range', 'letters'
       maxConsecutive404s: options.maxConsecutive404s || 3,
       maxPagesToDiscover: options.maxPagesToDiscover || 100,
-      letterIndexes: options.letterIndexes || ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'],
+      letterIndexes: options.letterIndexes || [
+        '0',
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+        '6',
+        '7',
+        '8',
+        '9',
+        'a',
+        'b',
+        'c',
+        'd',
+        'e',
+        'f',
+        'g',
+        'h',
+        'i',
+        'j',
+        'k',
+        'l',
+        'm',
+        'n',
+        'o',
+        'p',
+        'q',
+        'r',
+        's',
+        't',
+        'u',
+        'v',
+        'w',
+        'x',
+        'y',
+        'z',
+      ],
       paginationSelectors: options.paginationSelectors || [
         'a[rel="next"]',
         'nav.pagination a',
@@ -29,11 +66,11 @@ class PaginationDiscovery {
         '[aria-label*="next"]',
         'a:contains("Next")',
         'a:contains("›")',
-        'a:contains("→")'
+        'a:contains("→")',
       ],
-      ...options
+      ...options,
     };
-    
+
     this.discoveryCache = new Map();
     this.cacheMaxAge = 15 * 60 * 1000; // 15 minutes
   }
@@ -53,7 +90,7 @@ class PaginationDiscovery {
         nextUrl: null,
         pageNumbers: [],
         totalPages: null,
-        currentPage: null
+        currentPage: null,
       };
 
       // Look for rel="next" links (most reliable)
@@ -68,47 +105,54 @@ class PaginationDiscovery {
       if (!paginationInfo.hasNext) {
         for (const selector of this.options.paginationSelectors) {
           const elements = document.querySelectorAll(selector);
-          
+
           for (const element of elements) {
             const text = element.textContent?.trim().toLowerCase();
             const href = element.href;
-            
+
             if (href && (text?.includes('next') || text === '›' || text === '→')) {
               paginationInfo.hasNext = true;
               paginationInfo.nextUrl = new URL(href, baseUrl).toString();
-              this.logger.debug({ 
-                selector, 
-                nextUrl: paginationInfo.nextUrl,
-                text 
-              }, 'Found next link via selector');
+              this.logger.debug(
+                {
+                  selector,
+                  nextUrl: paginationInfo.nextUrl,
+                  text,
+                },
+                'Found next link via selector'
+              );
               break;
             }
           }
-          
+
           if (paginationInfo.hasNext) break;
         }
       }
 
       // Extract page numbers from pagination controls
-      const paginationContainer = document.querySelector('.pagination, nav.pagination, ul.pagination');
+      const paginationContainer = document.querySelector(
+        '.pagination, nav.pagination, ul.pagination'
+      );
       if (paginationContainer) {
         const pageLinks = paginationContainer.querySelectorAll('a');
-        
+
         for (const link of pageLinks) {
           const text = link.textContent?.trim();
           const pageNum = parseInt(text);
-          
+
           if (!isNaN(pageNum) && pageNum > 0) {
             paginationInfo.pageNumbers.push(pageNum);
           }
         }
-        
+
         // Try to determine current page and total
         if (paginationInfo.pageNumbers.length > 0) {
           paginationInfo.totalPages = Math.max(...paginationInfo.pageNumbers);
-          
+
           // Look for current/active page indicator
-          const activePage = paginationContainer.querySelector('.active, .current, [aria-current="page"]');
+          const activePage = paginationContainer.querySelector(
+            '.active, .current, [aria-current="page"]'
+          );
           if (activePage) {
             const activePageNum = parseInt(activePage.textContent?.trim());
             if (!isNaN(activePageNum)) {
@@ -124,14 +168,16 @@ class PaginationDiscovery {
       if (pageOfMatch) {
         paginationInfo.currentPage = parseInt(pageOfMatch[1]);
         paginationInfo.totalPages = parseInt(pageOfMatch[2]);
-        this.logger.debug({ 
-          currentPage: paginationInfo.currentPage, 
-          totalPages: paginationInfo.totalPages 
-        }, 'Found page info from text');
+        this.logger.debug(
+          {
+            currentPage: paginationInfo.currentPage,
+            totalPages: paginationInfo.totalPages,
+          },
+          'Found page info from text'
+        );
       }
 
       return paginationInfo;
-      
     } catch (error) {
       this.logger.warn({ error: error.message, baseUrl }, 'Failed to extract pagination from HTML');
       return {
@@ -139,7 +185,7 @@ class PaginationDiscovery {
         nextUrl: null,
         pageNumbers: [],
         totalPages: null,
-        currentPage: null
+        currentPage: null,
       };
     }
   }
@@ -153,13 +199,16 @@ class PaginationDiscovery {
   async discoverPagination(baseUrl, fetchClient) {
     const cacheKey = this.extractUrlPattern(baseUrl);
     const cached = this.discoveryCache.get(cacheKey);
-    
-    if (cached && (Date.now() - cached.timestamp) < this.cacheMaxAge) {
+
+    if (cached && Date.now() - cached.timestamp < this.cacheMaxAge) {
       this.logger.debug({ baseUrl, pattern: cacheKey }, 'Using cached pagination discovery');
       return cached.result;
     }
 
-    this.logger.info({ baseUrl, mode: this.options.paginationMode }, 'Starting pagination discovery');
+    this.logger.info(
+      { baseUrl, mode: this.options.paginationMode },
+      'Starting pagination discovery'
+    );
 
     const result = {
       baseUrl,
@@ -170,14 +219,14 @@ class PaginationDiscovery {
       totalPages: null,
       letterIndexes: [],
       error: null,
-      discoveryTime: Date.now()
+      discoveryTime: Date.now(),
     };
 
     try {
       if (this.options.paginationMode === 'auto') {
         // Try range-based discovery first
         const rangeResult = await this.discoverRangePagination(baseUrl, fetchClient);
-        
+
         if (rangeResult.success && rangeResult.validUrls.length > 0) {
           Object.assign(result, rangeResult);
           result.mode = 'range';
@@ -200,20 +249,22 @@ class PaginationDiscovery {
       if (result.success) {
         this.discoveryCache.set(cacheKey, {
           result: { ...result },
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
 
-      this.logger.info({ 
-        baseUrl, 
-        mode: result.mode,
-        success: result.success,
-        validUrls: result.validUrls.length,
-        totalPages: result.totalPages 
-      }, 'Pagination discovery completed');
+      this.logger.info(
+        {
+          baseUrl,
+          mode: result.mode,
+          success: result.success,
+          validUrls: result.validUrls.length,
+          totalPages: result.totalPages,
+        },
+        'Pagination discovery completed'
+      );
 
       return result;
-
     } catch (error) {
       result.error = error.message;
       this.logger.error({ baseUrl, error: error.message }, 'Pagination discovery failed');
@@ -232,13 +283,13 @@ class PaginationDiscovery {
       success: false,
       validUrls: [],
       totalPages: null,
-      error: null
+      error: null,
     };
 
     try {
       // First, try to fetch the base URL to get pagination info
       let startUrl = baseUrl;
-      
+
       // If URL doesn't end with page number, try page/1
       const urlPattern = this.extractUrlPattern(baseUrl);
       if (!urlPattern.includes('/page/')) {
@@ -246,10 +297,10 @@ class PaginationDiscovery {
       }
 
       this.logger.debug({ startUrl }, 'Fetching first page for pagination analysis');
-      
+
       const response = await fetchClient(startUrl, {
         method: 'GET',
-        timeout: 10000
+        timeout: 10000,
       });
 
       if (!response.ok) {
@@ -259,24 +310,31 @@ class PaginationDiscovery {
 
       const html = await response.text();
       const paginationInfo = this.extractPaginationFromHtml(html, startUrl);
-      
+
       result.validUrls.push(startUrl);
 
       // If we found total pages, generate all URLs
       if (paginationInfo.totalPages && paginationInfo.totalPages > 1) {
         result.totalPages = paginationInfo.totalPages;
-        
+
         const basePattern = startUrl.replace(/\/page\/\d+/, '/page/');
-        for (let page = 2; page <= Math.min(paginationInfo.totalPages, this.options.maxPagesToDiscover); page++) {
+        for (
+          let page = 2;
+          page <= Math.min(paginationInfo.totalPages, this.options.maxPagesToDiscover);
+          page++
+        ) {
           result.validUrls.push(`${basePattern}${page}`);
         }
-        
+
         result.success = true;
-        this.logger.info({ 
-          totalPages: result.totalPages, 
-          generatedUrls: result.validUrls.length 
-        }, 'Generated URLs from total pages');
-        
+        this.logger.info(
+          {
+            totalPages: result.totalPages,
+            generatedUrls: result.validUrls.length,
+          },
+          'Generated URLs from total pages'
+        );
+
         return result;
       }
 
@@ -285,15 +343,16 @@ class PaginationDiscovery {
       let consecutive404s = 0;
       const basePattern = startUrl.replace(/\/page\/\d+/, '/page/');
 
-      while (consecutive404s < this.options.maxConsecutive404s && 
-             result.validUrls.length < this.options.maxPagesToDiscover) {
-        
+      while (
+        consecutive404s < this.options.maxConsecutive404s &&
+        result.validUrls.length < this.options.maxPagesToDiscover
+      ) {
         const pageUrl = `${basePattern}${currentPage}`;
-        
+
         try {
           const pageResponse = await fetchClient(pageUrl, {
             method: 'HEAD',
-            timeout: 5000
+            timeout: 5000,
           });
 
           if (pageResponse.ok) {
@@ -307,15 +366,21 @@ class PaginationDiscovery {
             // Non-404 error, treat as potential valid page
             result.validUrls.push(pageUrl);
             consecutive404s = 0;
-            this.logger.debug({ pageUrl, status: pageResponse.status }, 'Found page with non-200 status');
+            this.logger.debug(
+              { pageUrl, status: pageResponse.status },
+              'Found page with non-200 status'
+            );
           }
         } catch (error) {
           consecutive404s++;
-          this.logger.debug({ pageUrl, error: error.message, consecutive404s }, 'Page request failed');
+          this.logger.debug(
+            { pageUrl, error: error.message, consecutive404s },
+            'Page request failed'
+          );
         }
 
         currentPage++;
-        
+
         // Small delay to be respectful
         await new Promise(resolve => setTimeout(resolve, 100));
       }
@@ -326,7 +391,6 @@ class PaginationDiscovery {
       }
 
       return result;
-
     } catch (error) {
       result.error = error.message;
       return result;
@@ -335,7 +399,7 @@ class PaginationDiscovery {
 
   /**
    * Discover letter-based pagination (e.g., /filter/a/page/1, /filter/b/page/1)
-   * @param {string} baseUrl - Base URL to analyze  
+   * @param {string} baseUrl - Base URL to analyze
    * @param {object} fetchClient - HTTP client
    * @returns {Promise<object>} Discovery result
    */
@@ -344,13 +408,13 @@ class PaginationDiscovery {
       success: false,
       validUrls: [],
       letterIndexes: [],
-      error: null
+      error: null,
     };
 
     try {
       // Extract the pattern and replace 'all' with letter placeholders
       let basePattern = baseUrl;
-      
+
       // Common patterns to replace
       if (basePattern.includes('/filter/all/')) {
         basePattern = basePattern.replace('/filter/all/', '/filter/{letter}/');
@@ -366,19 +430,19 @@ class PaginationDiscovery {
       // Test each letter index
       for (const letter of this.options.letterIndexes) {
         const letterUrl = basePattern.replace('{letter}', letter);
-        
+
         try {
           const response = await fetchClient(letterUrl, {
             method: 'HEAD',
-            timeout: 5000
+            timeout: 5000,
           });
 
           if (response.ok) {
             result.validUrls.push(letterUrl);
             result.letterIndexes.push(letter);
-            
+
             this.logger.debug({ letter, letterUrl }, 'Found valid letter index');
-            
+
             // For each valid letter, try to discover its pagination
             if (letterUrl.includes('/page/')) {
               const letterPages = await this.discoverLetterPages(letterUrl, fetchClient);
@@ -391,10 +455,13 @@ class PaginationDiscovery {
 
         // Small delay between requests
         await new Promise(resolve => setTimeout(resolve, 150));
-        
+
         // Limit discovery to prevent excessive requests
         if (result.letterIndexes.length >= 10) {
-          this.logger.info({ foundLetters: result.letterIndexes.length }, 'Limiting letter discovery');
+          this.logger.info(
+            { foundLetters: result.letterIndexes.length },
+            'Limiting letter discovery'
+          );
           break;
         }
       }
@@ -404,7 +471,6 @@ class PaginationDiscovery {
       }
 
       return result;
-
     } catch (error) {
       result.error = error.message;
       return result;
@@ -419,21 +485,21 @@ class PaginationDiscovery {
    */
   async discoverLetterPages(letterUrl, fetchClient) {
     const additionalPages = [];
-    
+
     try {
       // Extract base pattern for this letter
       const basePattern = letterUrl.replace(/\/page\/\d+/, '/page/');
       let currentPage = 2;
       let consecutive404s = 0;
-      
+
       // Probe a few additional pages for each letter (limited to avoid spam)
       while (consecutive404s < 2 && additionalPages.length < 5) {
         const pageUrl = `${basePattern}${currentPage}`;
-        
+
         try {
           const response = await fetchClient(pageUrl, {
             method: 'HEAD',
-            timeout: 3000
+            timeout: 3000,
           });
 
           if (response.ok) {
@@ -478,7 +544,7 @@ class PaginationDiscovery {
   getStats() {
     return {
       cacheSize: this.discoveryCache.size,
-      cacheMaxAge: this.cacheMaxAge
+      cacheMaxAge: this.cacheMaxAge,
     };
   }
 

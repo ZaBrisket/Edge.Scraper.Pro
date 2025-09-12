@@ -1,6 +1,6 @@
 /**
  * Enhanced Fetch Client for EdgeScraperPro
- * 
+ *
  * Features:
  * - Browser-like headers with realistic User-Agent
  * - Robots.txt compliance checking
@@ -29,20 +29,20 @@ class EnhancedFetchClient {
       consecutiveErrorThreshold: options.consecutiveErrorThreshold || 3,
       rateLimitPerSecond: options.rateLimitPerSecond || 2,
       jitterMs: options.jitterMs || 500,
-      ...options
+      ...options,
     };
 
     // Initialize components
     this.canonicalizer = new UrlCanonicalizer({
       maxVariants: 4,
       preflightTimeout: 5000,
-      backoffDelays: [500, 1000, 2000]
+      backoffDelays: [500, 1000, 2000],
     });
 
     this.paginationDiscovery = new PaginationDiscovery({
       paginationMode: 'auto',
       maxConsecutive404s: 3,
-      maxPagesToDiscover: 50
+      maxPagesToDiscover: 50,
     });
 
     // Robots.txt cache
@@ -59,12 +59,14 @@ class EnhancedFetchClient {
 
     // Browser-like headers
     this.defaultHeaders = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 EdgeScraperPro/2.0',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 EdgeScraperPro/2.0',
+      Accept:
+        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.9',
       'Accept-Encoding': 'gzip, deflate, br',
       'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache',
+      Pragma: 'no-cache',
       'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
       'Sec-Ch-Ua-Mobile': '?0',
       'Sec-Ch-Ua-Platform': '"Windows"',
@@ -72,7 +74,7 @@ class EnhancedFetchClient {
       'Sec-Fetch-Mode': 'navigate',
       'Sec-Fetch-Site': 'none',
       'Sec-Fetch-User': '?1',
-      'Upgrade-Insecure-Requests': '1'
+      'Upgrade-Insecure-Requests': '1',
     };
   }
 
@@ -93,19 +95,23 @@ class EnhancedFetchClient {
 
       // Check cache first
       const cached = this.robotsCache.get(cacheKey);
-      if (cached && (Date.now() - cached.timestamp) < this.robotsCacheMaxAge) {
-        return this.isPathAllowed(cached.content, parsed.pathname, this.defaultHeaders['User-Agent']);
+      if (cached && Date.now() - cached.timestamp < this.robotsCacheMaxAge) {
+        return this.isPathAllowed(
+          cached.content,
+          parsed.pathname,
+          this.defaultHeaders['User-Agent']
+        );
       }
 
       // Fetch robots.txt
       this.logger.debug({ robotsUrl }, 'Fetching robots.txt');
-      
+
       const response = await this.baseFetch(robotsUrl, {
         method: 'GET',
         timeout: 5000,
         headers: {
-          'User-Agent': this.defaultHeaders['User-Agent']
-        }
+          'User-Agent': this.defaultHeaders['User-Agent'],
+        },
       });
 
       let robotsContent = '';
@@ -116,13 +122,15 @@ class EnhancedFetchClient {
       // Cache the result
       this.robotsCache.set(cacheKey, {
         content: robotsContent,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       return this.isPathAllowed(robotsContent, parsed.pathname, this.defaultHeaders['User-Agent']);
-
     } catch (error) {
-      this.logger.warn({ url, error: error.message }, 'Failed to check robots.txt, allowing by default');
+      this.logger.warn(
+        { url, error: error.message },
+        'Failed to check robots.txt, allowing by default'
+      );
       return true; // Allow by default if robots.txt check fails
     }
   }
@@ -140,14 +148,14 @@ class EnhancedFetchClient {
     const lines = robotsContent.split('\n').map(line => line.trim());
     let currentUserAgent = null;
     let isRelevantSection = false;
-    
+
     for (const line of lines) {
       if (line.startsWith('#') || !line) continue;
 
       if (line.toLowerCase().startsWith('user-agent:')) {
         const ua = line.substring(11).trim();
         currentUserAgent = ua;
-        isRelevantSection = (ua === '*' || userAgent.includes(ua));
+        isRelevantSection = ua === '*' || userAgent.includes(ua);
         continue;
       }
 
@@ -223,22 +231,23 @@ class EnhancedFetchClient {
         signal: controller.signal,
         headers: {
           ...this.defaultHeaders,
-          ...options.headers
-        }
+          ...options.headers,
+        },
       });
 
       clearTimeout(timeoutId);
       return response;
-
     } catch (error) {
       clearTimeout(timeoutId);
-      
+
       if (error.name === 'AbortError') {
-        const timeoutError = new Error(`Request timeout after ${options.timeout || this.options.timeout}ms`);
+        const timeoutError = new Error(
+          `Request timeout after ${options.timeout || this.options.timeout}ms`
+        );
         timeoutError.code = 'ETIMEDOUT';
         throw timeoutError;
       }
-      
+
       throw error;
     }
   }
@@ -256,7 +265,9 @@ class EnhancedFetchClient {
 
     // Check consecutive error threshold
     if (!this.shouldContinueRequests(hostname)) {
-      const error = new Error(`Skipping request due to ${this.options.consecutiveErrorThreshold} consecutive errors`);
+      const error = new Error(
+        `Skipping request due to ${this.options.consecutiveErrorThreshold} consecutive errors`
+      );
       error.code = 'CONSECUTIVE_ERRORS';
       throw error;
     }
@@ -282,20 +293,20 @@ class EnhancedFetchClient {
       // Add referer header
       const requestHeaders = {
         ...options.headers,
-        'Referer': `${parsed.protocol}//${parsed.host}/`
+        Referer: `${parsed.protocol}//${parsed.host}/`,
       };
 
       // First attempt with original URL
       this.logger.debug({ url }, 'Attempting original URL');
-      
+
       response = await this.baseFetch(url, {
         ...options,
-        headers: requestHeaders
+        headers: requestHeaders,
       });
 
       if (response.ok) {
         this.recordRequestResult(hostname, true);
-        
+
         return {
           response,
           originalUrl,
@@ -303,42 +314,51 @@ class EnhancedFetchClient {
           canonicalizationResult,
           robotsAllowed: true,
           responseTime: Date.now() - startTime,
-          fromCache: false
+          fromCache: false,
         };
       }
 
       // If we get a 404 and canonicalization is enabled, try variants
       if (response.status === 404 && this.options.enableCanonicalization) {
-        this.logger.info({ url, status: response.status }, 'Original URL failed, attempting canonicalization');
-        
-        canonicalizationResult = await this.canonicalizer.canonicalizeUrl(url, (variantUrl, variantOptions) => {
-          return this.baseFetch(variantUrl, {
-            ...options,
-            ...variantOptions,
-            headers: {
-              ...requestHeaders,
-              'Referer': `${new URL(variantUrl).protocol}//${new URL(variantUrl).host}/`
-            }
-          });
-        });
+        this.logger.info(
+          { url, status: response.status },
+          'Original URL failed, attempting canonicalization'
+        );
 
-      if (canonicalizationResult.success) {
-        resolvedUrl = canonicalizationResult.canonicalUrl;
-          
+        canonicalizationResult = await this.canonicalizer.canonicalizeUrl(
+          url,
+          (variantUrl, variantOptions) => {
+            return this.baseFetch(variantUrl, {
+              ...options,
+              ...variantOptions,
+              headers: {
+                ...requestHeaders,
+                Referer: `${new URL(variantUrl).protocol}//${new URL(variantUrl).host}/`,
+              },
+            });
+          }
+        );
+
+        if (canonicalizationResult.success) {
+          resolvedUrl = canonicalizationResult.canonicalUrl;
+
           // Fetch the canonical URL
           response = await this.baseFetch(resolvedUrl, {
             ...options,
             headers: {
               ...requestHeaders,
-              'Referer': `${new URL(resolvedUrl).protocol}//${new URL(resolvedUrl).host}/`
-            }
+              Referer: `${new URL(resolvedUrl).protocol}//${new URL(resolvedUrl).host}/`,
+            },
           });
 
-          this.logger.info({ 
-            originalUrl, 
-            resolvedUrl, 
-            attempts: canonicalizationResult.attempts.length 
-          }, 'URL canonicalization successful');
+          this.logger.info(
+            {
+              originalUrl,
+              resolvedUrl,
+              attempts: canonicalizationResult.attempts.length,
+            },
+            'URL canonicalization successful'
+          );
         }
       }
 
@@ -355,7 +375,7 @@ class EnhancedFetchClient {
             const dom = new JSDOM(html);
             response = new Response(html, {
               status: 200,
-              headers: { 'Content-Type': 'text/html' }
+              headers: { 'Content-Type': 'text/html' },
             });
             this.recordRequestResult(hostname, true);
             return {
@@ -367,10 +387,13 @@ class EnhancedFetchClient {
               robotsAllowed: true,
               responseTime: Date.now() - startTime,
               fromCache: false,
-              renderedViaBrowser: true
+              renderedViaBrowser: true,
             };
           } catch (browserError) {
-            this.logger.error({ url: resolvedUrl, error: browserError.message }, 'Headless browser render failed');
+            this.logger.error(
+              { url: resolvedUrl, error: browserError.message },
+              'Headless browser render failed'
+            );
           }
         }
       }
@@ -385,18 +408,17 @@ class EnhancedFetchClient {
         canonicalizationResult,
         robotsAllowed: true,
         responseTime: Date.now() - startTime,
-        fromCache: false
+        fromCache: false,
       };
-
     } catch (error) {
       this.recordRequestResult(hostname, false);
-      
+
       // Enhance error with additional context
       error.originalUrl = originalUrl;
       error.resolvedUrl = resolvedUrl;
       error.canonicalizationResult = canonicalizationResult;
       error.responseTime = Date.now() - startTime;
-      
+
       throw error;
     }
   }
@@ -419,23 +441,23 @@ class EnhancedFetchClient {
         failed: 0,
         canonicalized: 0,
         robotsBlocked: 0,
-        paginationDiscovered: 0
-      }
+        paginationDiscovered: 0,
+      },
     };
 
     for (const url of urls) {
       try {
         this.logger.info({ url }, 'Processing URL');
-        
+
         const result = await this.enhancedFetch(url, options);
         results.responses.push({
           url,
           success: true,
-          ...result
+          ...result,
         });
-        
+
         results.summary.successful++;
-        
+
         if (result.canonicalizationResult?.success) {
           results.summary.canonicalized++;
         }
@@ -445,7 +467,7 @@ class EnhancedFetchClient {
           try {
             const html = await result.response.text();
             const paginationResult = await this.paginationDiscovery.discoverPagination(
-              result.resolvedUrl, 
+              result.resolvedUrl,
               (paginationUrl, paginationOptions) => this.baseFetch(paginationUrl, paginationOptions)
             );
 
@@ -453,21 +475,26 @@ class EnhancedFetchClient {
               results.discoveredUrls.push(...paginationResult.validUrls);
               results.paginationResults.push(paginationResult);
               results.summary.paginationDiscovered++;
-              
-              this.logger.info({ 
-                url: result.resolvedUrl,
-                discoveredUrls: paginationResult.validUrls.length,
-                mode: paginationResult.mode 
-              }, 'Pagination discovery successful');
+
+              this.logger.info(
+                {
+                  url: result.resolvedUrl,
+                  discoveredUrls: paginationResult.validUrls.length,
+                  mode: paginationResult.mode,
+                },
+                'Pagination discovery successful'
+              );
             }
           } catch (paginationError) {
-            this.logger.warn({ 
-              url, 
-              error: paginationError.message 
-            }, 'Pagination discovery failed');
+            this.logger.warn(
+              {
+                url,
+                error: paginationError.message,
+              },
+              'Pagination discovery failed'
+            );
           }
         }
-
       } catch (error) {
         results.responses.push({
           url,
@@ -478,11 +505,11 @@ class EnhancedFetchClient {
           originalUrl: error.originalUrl,
           resolvedUrl: error.resolvedUrl,
           canonicalizationResult: error.canonicalizationResult,
-          responseTime: error.responseTime
+          responseTime: error.responseTime,
         });
-        
+
         results.summary.failed++;
-        
+
         if (error.code === 'BLOCKED_BY_ROBOTS') {
           results.summary.robotsBlocked++;
         }
@@ -502,7 +529,7 @@ class EnhancedFetchClient {
       robotsCacheSize: this.robotsCache.size,
       consecutiveErrors: Object.fromEntries(this.consecutiveErrors),
       canonicalizer: this.canonicalizer.getStats(),
-      paginationDiscovery: this.paginationDiscovery.getStats()
+      paginationDiscovery: this.paginationDiscovery.getStats(),
     };
   }
 

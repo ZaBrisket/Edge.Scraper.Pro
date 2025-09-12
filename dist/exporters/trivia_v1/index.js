@@ -39,6 +39,8 @@ exports.exportTriviaDataset = exportTriviaDataset;
 const fs = __importStar(require("fs"));
 const team_map_1 = require("../team_map");
 const validate_1 = require("./validate");
+const logger_1 = require("../../lib/logger");
+const logger = (0, logger_1.createLogger)('trivia-exporter');
 const DEFAULT_OPTIONS = {
     seasonMin: 1997,
     seasonMax: 2024,
@@ -46,7 +48,7 @@ const DEFAULT_OPTIONS = {
     requireGMin: 1,
     dropSummaryRows: true,
     strict: false,
-    verbose: false
+    verbose: false,
 };
 /**
  * Create a unique slug from a player name
@@ -124,12 +126,12 @@ function determinePlayerPosition(seasons) {
 function isSummaryRow(season) {
     if (typeof season.Season === 'string') {
         const seasonStr = season.Season.toLowerCase();
-        return seasonStr.includes('career') ||
+        return (seasonStr.includes('career') ||
             seasonStr.includes('avg') ||
             seasonStr.includes('yrs') ||
             seasonStr.includes('2tm') ||
             seasonStr.includes('3tm') ||
-            seasonStr.includes('4tm');
+            seasonStr.includes('4tm'));
     }
     return false;
 }
@@ -165,7 +167,7 @@ function parseAwards(awardsStr) {
         { pattern: /opoy/i, award: 'OPOY' },
         { pattern: /dpoy/i, award: 'DPOY' },
         { pattern: /roy/i, award: 'ROY' },
-        { pattern: /comeback/i, award: 'Comeback Player' }
+        { pattern: /comeback/i, award: 'Comeback Player' },
     ];
     for (const { pattern, award } of awardPatterns) {
         if (pattern.test(str)) {
@@ -207,7 +209,7 @@ function processSeasonRow(rawSeason, playerId, playerPos, options) {
         G: games,
         GS: coerceToNumber(rawSeason.GS),
         Awards: parseAwards(rawSeason.Awards),
-        multi_team: isMultiTeam
+        multi_team: isMultiTeam,
     };
     return baseRow;
 }
@@ -237,7 +239,7 @@ function addPositionStats(baseRow, rawSeason) {
                 'NY/A': coerceToNumber(rawSeason['NY/A']),
                 'ANY/A': coerceToNumber(rawSeason['ANY/A']),
                 '4QC': coerceToNumber(rawSeason['4QC']),
-                GWD: coerceToNumber(rawSeason.GWD)
+                GWD: coerceToNumber(rawSeason.GWD),
             };
         case 'RB':
             return {
@@ -260,7 +262,7 @@ function addPositionStats(baseRow, rawSeason) {
                 'Y/Tch': coerceToNumber(rawSeason['Y/Tch']),
                 YScm: coerceToNumber(rawSeason.YScm),
                 RRTD: coerceToNumber(rawSeason.RRTD),
-                Fmb: coerceToNumber(rawSeason.Fmb)
+                Fmb: coerceToNumber(rawSeason.Fmb),
             };
         case 'WR':
         case 'TE':
@@ -278,7 +280,7 @@ function addPositionStats(baseRow, rawSeason) {
                 // Optional rushing stats
                 Att: rawSeason.Att ? coerceToNumber(rawSeason.Att) : undefined,
                 Yds: rawSeason.Yds ? coerceToNumber(rawSeason.Yds) : undefined,
-                TD: rawSeason.TD ? coerceToNumber(rawSeason.TD) : undefined
+                TD: rawSeason.TD ? coerceToNumber(rawSeason.TD) : undefined,
             };
         default:
             throw new Error(`Unknown position: ${pos}`);
@@ -290,7 +292,7 @@ function addPositionStats(baseRow, rawSeason) {
 async function buildTriviaDataset(rawDataPath, options = {}) {
     const opts = { ...DEFAULT_OPTIONS, ...options };
     if (opts.verbose) {
-        console.log('Loading raw data from:', rawDataPath);
+        logger.info('Loading raw data from:', { rawDataPath });
     }
     // Load and validate input file
     if (!fs.existsSync(rawDataPath)) {
@@ -309,7 +311,9 @@ async function buildTriviaDataset(rawDataPath, options = {}) {
     const teSeasons = [];
     const eligibility = [];
     if (opts.verbose) {
-        console.log(`Processing ${rawData.players.length} players...`);
+        logger.info(`Processing ${rawData.players.length} players...`, {
+            playerCount: rawData.players.length,
+        });
     }
     for (const rawPlayer of rawData.players) {
         try {
@@ -317,7 +321,7 @@ async function buildTriviaDataset(rawDataPath, options = {}) {
             const primaryPos = determinePlayerPosition(rawPlayer.statistics.seasons);
             if (!primaryPos || !opts.positions.includes(primaryPos)) {
                 if (opts.verbose) {
-                    console.log(`Skipping player ${rawPlayer.profile.name}: position ${primaryPos} not in allowed positions`);
+                    logger.debug(`Skipping player ${rawPlayer.profile.name}: position ${primaryPos} not in allowed positions`, { playerName: rawPlayer.profile.name, position: primaryPos });
                 }
                 continue;
             }
@@ -331,7 +335,7 @@ async function buildTriviaDataset(rawDataPath, options = {}) {
                 pos: primaryPos,
                 college: rawPlayer.profile.personal?.college || null,
                 birthdate: parseBirthdate(rawPlayer.profile.personal?.birthDate, rawPlayer.profile.personal?.birthPlace),
-                fun_fact: null
+                fun_fact: null,
             };
             // Process seasons
             const validSeasons = [];
@@ -353,7 +357,9 @@ async function buildTriviaDataset(rawDataPath, options = {}) {
             // Skip players with no valid seasons
             if (validSeasons.length === 0) {
                 if (opts.verbose) {
-                    console.log(`Skipping player ${player.full_name}: no valid seasons`);
+                    logger.debug(`Skipping player ${player.full_name}: no valid seasons`, {
+                        playerName: player.full_name,
+                    });
                 }
                 continue;
             }
@@ -387,12 +393,15 @@ async function buildTriviaDataset(rawDataPath, options = {}) {
                 player_id: playerId,
                 rookie_year: rookieYear === Infinity ? opts.seasonMin : rookieYear,
                 seasons_with_G_ge_1: seasonsWithGames,
-                eligible_flag: true
+                eligible_flag: true,
             });
         }
         catch (error) {
             if (opts.verbose) {
-                console.error(`Error processing player ${rawPlayer.profile.name}:`, error);
+                logger.error(`Error processing player ${rawPlayer.profile.name}:`, {
+                    playerName: rawPlayer.profile.name,
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                });
             }
             if (opts.strict) {
                 throw error;
@@ -416,7 +425,7 @@ async function buildTriviaDataset(rawDataPath, options = {}) {
     const dataset = {
         schema: {
             name: 'trivia_v1',
-            version: '1.0.0'
+            version: '1.0.0',
         },
         players,
         qb_seasons: qbSeasons,
@@ -425,15 +434,16 @@ async function buildTriviaDataset(rawDataPath, options = {}) {
         te_seasons: teSeasons,
         eligibility,
         daily_picks: {},
-        generated_at: new Date().toISOString()
+        generated_at: new Date().toISOString(),
     };
     if (opts.verbose) {
-        console.log(`Generated dataset with:`);
-        console.log(`  Players: ${players.length}`);
-        console.log(`  QB seasons: ${qbSeasons.length}`);
-        console.log(`  RB seasons: ${rbSeasons.length}`);
-        console.log(`  WR seasons: ${wrSeasons.length}`);
-        console.log(`  TE seasons: ${teSeasons.length}`);
+        logger.info(`Generated dataset with:`, {
+            players: players.length,
+            qbSeasons: qbSeasons.length,
+            rbSeasons: rbSeasons.length,
+            wrSeasons: wrSeasons.length,
+            teSeasons: teSeasons.length,
+        });
     }
     return dataset;
 }
@@ -447,20 +457,20 @@ async function exportTriviaDataset(rawDataPath, outputPath, options = {}) {
     if (validate) {
         const validationResult = (0, validate_1.validateTriviaDataset)(dataset, {
             strict: buildOptions.strict,
-            verbose: buildOptions.verbose
+            verbose: buildOptions.verbose,
         });
         if (!validationResult.valid) {
             throw new Error(`Dataset validation failed:\n${validationResult.errors.join('\n')}`);
         }
         if (buildOptions.verbose) {
-            console.log('Dataset validation passed');
+            logger.info('Dataset validation passed');
         }
     }
     // Write output
     const jsonContent = pretty ? JSON.stringify(dataset, null, 2) : JSON.stringify(dataset);
     fs.writeFileSync(outputPath, jsonContent);
     if (buildOptions.verbose) {
-        console.log(`Dataset exported to: ${outputPath}`);
+        logger.info(`Dataset exported to: ${outputPath}`, { outputPath });
     }
 }
 //# sourceMappingURL=index.js.map
