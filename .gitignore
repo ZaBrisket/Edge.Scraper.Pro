@@ -4,3 +4,39 @@ node_modules/
 .netlify
 
 /src/generated/prisma
+
+# Runtime-generated files
+logs/*.log
+logs/*.json
+logs/*-summary.json
+*.log
+*-summary.json
+diagnostic-results-*.json
+test-results*.json
+test-export.json
+test-urls.json
+debug-*.html
+
+# Build outputs
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+test-output/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

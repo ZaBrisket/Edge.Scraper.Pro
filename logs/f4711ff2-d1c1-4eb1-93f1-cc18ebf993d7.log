@@ -1,1 +1,0 @@
-{"timestamp":"2025-09-12T02:34:10.627Z","job_id":"f4711ff2-d1c1-4eb1-93f1-cc18ebf993d7","event_type":"request","original_url":"http://example.com/","resolved_url":"http://example.com/","success":true,"status_code":200,"response_time_ms":285,"canonicalized":false,"pagination_discovered":false,"robots_blocked":false,"redirect_chain":[]}
