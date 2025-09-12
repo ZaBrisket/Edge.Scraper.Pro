@@ -273,7 +273,7 @@ class BatchProcessor {
                 this.results.push({
                     url,
                     success: true,
-                    data: extractedData,
+                    result: extractedData,
                     responseTime: Date.now() - startTime,
                     canonicalized: fetchResult.canonicalized,
                     paginationDiscovered: fetchResult.paginationDiscovered,

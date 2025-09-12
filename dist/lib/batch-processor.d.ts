@@ -84,7 +84,7 @@ export interface BatchResult {
     results: Array<{
         url: string;
         success: boolean;
-        data?: any;
+        result?: any;
         error?: string;
         category?: ErrorCategory;
         responseTime?: number;

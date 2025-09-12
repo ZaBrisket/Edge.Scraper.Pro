@@ -125,9 +125,9 @@ export interface BatchResult {
   results: Array<{
     url: string;
     success: boolean;
-    data?: any;
+    result?: any;
     error?: string;
-    category?: ErrorCategory;
+    errorCategory?: ErrorCategory;
     responseTime?: number;
     canonicalized?: boolean;
     paginationDiscovered?: boolean;
@@ -389,7 +389,7 @@ export class BatchProcessor {
         this.results.push({
           url,
           success: true,
-          data: extractedData,
+          result: extractedData,
           responseTime: Date.now() - startTime,
           canonicalized: fetchResult.canonicalized,
           paginationDiscovered: fetchResult.paginationDiscovered,
@@ -438,7 +438,7 @@ export class BatchProcessor {
       url,
       success: false,
       error: lastError!.message,
-      category: errorCategory,
+      errorCategory,
       responseTime: Date.now() - startTime,
     });
 

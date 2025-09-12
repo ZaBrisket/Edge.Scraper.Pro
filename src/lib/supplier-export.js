@@ -160,7 +160,7 @@ class SupplierDataExporter {
         successfulUrls: batchResult.stats.successfulUrls,
         failedUrls: batchResult.stats.failedUrls,
         totalCompanies: allCompanies.length,
-        processingTime: batchResult.stats.processingTime,
+        processingTime: batchResult.stats.duration ? `${Math.round(batchResult.stats.duration / 1000)}s` : 'N/A',
         format: format,
         version: '1.0',
       },
@@ -194,9 +194,10 @@ class SupplierDataExporter {
                 1
               ) + '%'
             : '0%',
-        processingTime: batchResult.stats.processingTime,
-        averageProcessingTime: batchResult.stats.averageProcessingTime,
-        throughput: batchResult.stats.throughput,
+        processingTime: batchResult.stats.duration ? `${Math.round(batchResult.stats.duration / 1000)}s` : 'N/A',
+        averageProcessingTime: batchResult.summary?.averageResponseTime ? `${Math.round(batchResult.summary.averageResponseTime)}ms` : 'N/A',
+        throughput: batchResult.stats.duration && batchResult.stats.processedUrls > 0 ? 
+          `${(batchResult.stats.processedUrls / (batchResult.stats.duration / 1000)).toFixed(2)} URLs/s` : 'N/A',
       },
       companies: this.extractCompanySummary(batchResult),
       errors: this.extractErrorSummary(batchResult),
