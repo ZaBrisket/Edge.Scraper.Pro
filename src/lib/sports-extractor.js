@@ -230,7 +230,8 @@ class SportsContentExtractor {
       const hostname = urlObj.hostname.toLowerCase();
 
       for (const [domain, config] of Object.entries(SITE_CONFIGS)) {
-        if (hostname.includes(domain)) {
+        // Use exact suffix match to prevent subdomain attacks
+        if (hostname === domain || hostname.endsWith('.' + domain)) {
           return { ...config, domain };
         }
       }

@@ -74,9 +74,14 @@ class PFRValidator {
         return result;
       }
 
-      // Check if it's a sports reference domain
-      const hostname = url.hostname.toLowerCase().replace('www.', '');
-      if (!VALID_SPORTS_DOMAINS.includes(hostname)) {
+      // Check if it's a sports reference domain with exact suffix match to prevent subdomain attacks
+      const hostname = url.hostname.toLowerCase();
+      const isValidDomain = VALID_SPORTS_DOMAINS.some(domain => {
+        // Allow exact match or subdomain (e.g., www.example.com or sub.example.com)
+        return hostname === domain || hostname.endsWith('.' + domain);
+      });
+      
+      if (!isValidDomain) {
         result.category = VALIDATION_CATEGORIES.WRONG_DOMAIN;
         result.error = `Invalid domain: ${hostname}. Expected one of: ${VALID_SPORTS_DOMAINS.join(', ')}`;
         this.validationCache.set(urlString, result);

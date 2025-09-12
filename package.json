@@ -49,6 +49,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "next": "^15.5.3",
+    "node-fetch": "^2.7.0",
     "pino": "^8.15.0",
     "playwright": "^1.55.0",
     "react": "^19.1.1",
