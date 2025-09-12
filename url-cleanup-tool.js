@@ -84,9 +84,14 @@ class URLCleanupTool {
                 return { valid: false, error: 'Invalid protocol' };
             }
 
-            // Check domain
-            const hostname = urlObj.hostname.toLowerCase().replace('www.', '');
-            if (!this.validDomains.some(domain => hostname.includes(domain))) {
+            // Check domain with exact suffix match to prevent subdomain attacks
+            const hostname = urlObj.hostname.toLowerCase();
+            const isValidDomain = this.validDomains.some(domain => {
+                // Allow exact match or subdomain (e.g., www.example.com or sub.example.com)
+                return hostname === domain || hostname.endsWith('.' + domain);
+            });
+            
+            if (!isValidDomain) {
                 return { valid: false, error: 'Unsupported domain' };
             }
 
