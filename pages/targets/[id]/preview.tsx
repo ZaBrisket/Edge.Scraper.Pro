@@ -3,7 +3,6 @@ import { useRouter } from 'next/router';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import Head from 'next/head';
 import PreviewTable from '../../../components/targets/PreviewTable';
-import ExportButtons from '../../../components/targets/ExportButtons';
 import JobStatus from '../../../components/targets/JobStatus';
 
 export default function DatasetPreview() {
@@ -60,7 +59,7 @@ export default function DatasetPreview() {
 
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: data => {
       setActiveJobs(prev => [...prev, data.jobId]);
     },
   });
@@ -80,7 +79,7 @@ export default function DatasetPreview() {
   // Auto-select first template
   useState(() => {
     if (templates?.templates?.length > 0 && !selectedTemplate) {
-      const sourceScrubTemplate = templates.templates.find((t: any) => 
+      const sourceScrubTemplate = templates.templates.find((t: any) =>
         t.sourceHint?.toLowerCase().includes('sourcescrub')
       );
       setSelectedTemplate(sourceScrubTemplate?.id || templates.templates[0].id);
@@ -134,12 +133,16 @@ export default function DatasetPreview() {
                     </div>
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Estimated Rows</dt>
-                      <dd className="text-sm text-gray-900">{dataset?.rowsEstimated?.toLocaleString()}</dd>
+                      <dd className="text-sm text-gray-900">
+                        {dataset?.rowsEstimated?.toLocaleString()}
+                      </dd>
                     </div>
                     <div>
                       <dt className="text-sm font-medium text-gray-500">File Size</dt>
                       <dd className="text-sm text-gray-900">
-                        {dataset?.fileSize ? `${(dataset.fileSize / 1024 / 1024).toFixed(2)} MB` : 'N/A'}
+                        {dataset?.fileSize
+                          ? `${(dataset.fileSize / 1024 / 1024).toFixed(2)} MB`
+                          : 'N/A'}
                       </dd>
                     </div>
                     <div>
@@ -166,7 +169,7 @@ export default function DatasetPreview() {
                     </label>
                     <select
                       value={selectedTemplate}
-                      onChange={(e) => setSelectedTemplate(e.target.value)}
+                      onChange={e => setSelectedTemplate(e.target.value)}
                       className="w-full"
                     >
                       <option value="">Select template...</option>
@@ -187,7 +190,7 @@ export default function DatasetPreview() {
                     >
                       {exportMutation.isPending ? 'Exporting...' : 'Export Excel (XLSX)'}
                     </button>
-                    
+
                     <button
                       onClick={() => handleExport('pdf')}
                       disabled={!selectedTemplate || exportMutation.isPending}

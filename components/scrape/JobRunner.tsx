@@ -53,7 +53,7 @@ export default function JobRunner({ mode, input, onComplete, onError }: JobRunne
 
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: data => {
       setJobId(data.jobId);
       setIsStarted(true);
     },
@@ -67,7 +67,7 @@ export default function JobRunner({ mode, input, onComplete, onError }: JobRunne
     queryKey: ['jobStatus', jobId],
     queryFn: async () => {
       if (!jobId) throw new Error('No job ID');
-      
+
       const response = await fetch(`/api/scrape/status/${jobId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch job status');
@@ -75,13 +75,8 @@ export default function JobRunner({ mode, input, onComplete, onError }: JobRunne
       return response.json();
     },
     enabled: !!jobId && isStarted,
-    refetchInterval: (data) => {
-      // Stop polling when job is complete or failed
-      if (data?.status === 'completed' || data?.status === 'failed') {
-        return false;
-      }
-      return 1000; // Poll every second
-    },
+    refetchInterval: 1000, // Poll every second
+    refetchIntervalInBackground: false,
   });
 
   // Handle job completion
@@ -133,9 +128,24 @@ export default function JobRunner({ mode, input, onComplete, onError }: JobRunne
           >
             {startJobMutation.isPending ? (
               <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
                 </svg>
                 Starting...
               </>
@@ -152,34 +162,29 @@ export default function JobRunner({ mode, input, onComplete, onError }: JobRunne
     <div className="bg-white shadow rounded-lg p-6">
       <div className="mb-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900">
-            Processing Job
-          </h3>
+          <h3 className="text-lg font-medium text-gray-900">Processing Job</h3>
           <div className="flex items-center space-x-2">
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              jobStatus?.status === 'running'
-                ? 'bg-blue-100 text-blue-800'
-                : jobStatus?.status === 'completed'
-                ? 'bg-green-100 text-green-800'
-                : jobStatus?.status === 'failed'
-                ? 'bg-red-100 text-red-800'
-                : 'bg-gray-100 text-gray-800'
-            }`}>
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                jobStatus?.status === 'running'
+                  ? 'bg-blue-100 text-blue-800'
+                  : jobStatus?.status === 'completed'
+                    ? 'bg-green-100 text-green-800'
+                    : jobStatus?.status === 'failed'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-gray-100 text-gray-800'
+              }`}
+            >
               {jobStatus?.status || 'pending'}
             </span>
             {jobStatus?.status === 'running' && (
-              <button
-                onClick={handleCancel}
-                className="text-sm text-red-600 hover:text-red-800"
-              >
+              <button onClick={handleCancel} className="text-sm text-red-600 hover:text-red-800">
                 Cancel
               </button>
             )}
           </div>
         </div>
-        {jobId && (
-          <p className="text-sm text-gray-500 font-mono">Job ID: {jobId}</p>
-        )}
+        {jobId && <p className="text-sm text-gray-500 font-mono">Job ID: {jobId}</p>}
       </div>
 
       {jobStatus?.progress && (
@@ -189,9 +194,7 @@ export default function JobRunner({ mode, input, onComplete, onError }: JobRunne
             <span>
               {jobStatus.progress.completed} / {jobStatus.progress.total} URLs
               {jobStatus.progress.errors > 0 && (
-                <span className="text-red-600 ml-2">
-                  ({jobStatus.progress.errors} errors)
-                </span>
+                <span className="text-red-600 ml-2">({jobStatus.progress.errors} errors)</span>
               )}
             </span>
           </div>
@@ -204,9 +207,7 @@ export default function JobRunner({ mode, input, onComplete, onError }: JobRunne
           <div className="flex justify-between text-xs text-gray-500 mt-1">
             <span>{jobStatus.progress.percentage}% complete</span>
             {jobStatus.startTime && (
-              <span>
-                Started: {new Date(jobStatus.startTime).toLocaleTimeString()}
-              </span>
+              <span>Started: {new Date(jobStatus.startTime).toLocaleTimeString()}</span>
             )}
           </div>
         </div>
@@ -227,9 +228,7 @@ export default function JobRunner({ mode, input, onComplete, onError }: JobRunne
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-green-800">
-                  Job Completed Successfully
-                </h3>
+                <h3 className="text-sm font-medium text-green-800">Job Completed Successfully</h3>
                 <div className="mt-2 text-sm text-green-700">
                   <p>
                     Processed {jobStatus.result.summary?.total || 0} URLs with{' '}
@@ -237,10 +236,13 @@ export default function JobRunner({ mode, input, onComplete, onError }: JobRunne
                   </p>
                   {jobStatus.endTime && (
                     <p className="mt-1">
-                      Duration: {Math.round(
-                        (new Date(jobStatus.endTime).getTime() - 
-                         new Date(jobStatus.startTime).getTime()) / 1000
-                      )}s
+                      Duration:{' '}
+                      {Math.round(
+                        (new Date(jobStatus.endTime).getTime() -
+                          new Date(jobStatus.startTime).getTime()) /
+                          1000
+                      )}
+                      s
                     </p>
                   )}
                 </div>
@@ -255,16 +257,22 @@ export default function JobRunner({ mode, input, onComplete, onError }: JobRunne
               <div className="text-sm text-blue-700 space-y-1">
                 <div className="flex justify-between">
                   <span>Source URLs (submitted):</span>
-                  <span className="font-medium">{jobStatus.result.urlPreservation.sourceUrls?.length || 0}</span>
+                  <span className="font-medium">
+                    {jobStatus.result.urlPreservation.sourceUrls?.length || 0}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>URLs processed:</span>
-                  <span className="font-medium">{jobStatus.result.urlPreservation.processedUrls?.length || 0}</span>
+                  <span className="font-medium">
+                    {jobStatus.result.urlPreservation.processedUrls?.length || 0}
+                  </span>
                 </div>
                 {jobStatus.result.urlPreservation.discoveredUrls?.length > 0 && (
                   <div className="flex justify-between">
                     <span>URLs discovered (pagination):</span>
-                    <span className="font-medium text-green-600">{jobStatus.result.urlPreservation.discoveredUrls.length}</span>
+                    <span className="font-medium text-green-600">
+                      {jobStatus.result.urlPreservation.discoveredUrls.length}
+                    </span>
                   </div>
                 )}
               </div>

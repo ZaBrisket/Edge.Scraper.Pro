@@ -41,13 +41,8 @@ export default function JobStatus({ jobId, onComplete }: JobStatusProps) {
       }
       return response.json();
     },
-    refetchInterval: (data) => {
-      // Stop polling when job is complete or failed
-      if (data?.status === 'completed' || data?.status === 'failed') {
-        return false;
-      }
-      return 2000; // Poll every 2 seconds
-    },
+    refetchInterval: 2000, // Poll every 2 seconds
+    refetchIntervalInBackground: false,
   });
 
   // Handle job completion
@@ -100,21 +95,31 @@ export default function JobStatus({ jobId, onComplete }: JobStatusProps) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'queued': return 'text-yellow-600 bg-yellow-100';
-      case 'processing': return 'text-blue-600 bg-blue-100';
-      case 'completed': return 'text-green-600 bg-green-100';
-      case 'failed': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case 'queued':
+        return 'text-yellow-600 bg-yellow-100';
+      case 'processing':
+        return 'text-blue-600 bg-blue-100';
+      case 'completed':
+        return 'text-green-600 bg-green-100';
+      case 'failed':
+        return 'text-red-600 bg-red-100';
+      default:
+        return 'text-gray-600 bg-gray-100';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'queued': return '⏳';
-      case 'processing': return '⚙️';
-      case 'completed': return '✅';
-      case 'failed': return '❌';
-      default: return '❓';
+      case 'queued':
+        return '⏳';
+      case 'processing':
+        return '⚙️';
+      case 'completed':
+        return '✅';
+      case 'failed':
+        return '❌';
+      default:
+        return '❓';
     }
   };
 
@@ -126,16 +131,14 @@ export default function JobStatus({ jobId, onComplete }: JobStatusProps) {
           <div className="flex items-center space-x-3">
             <span className="text-2xl">{getStatusIcon(job.status)}</span>
             <div>
-              <h4 className="font-semibold">
-                {job.format.toUpperCase()} Export
-              </h4>
-              <p className="text-sm text-gray-600">
-                Job ID: {job.id.slice(-8)}
-              </p>
+              <h4 className="font-semibold">{job.format.toUpperCase()} Export</h4>
+              <p className="text-sm text-gray-600">Job ID: {job.id.slice(-8)}</p>
             </div>
           </div>
-          
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(job.status)}`}>
+
+          <span
+            className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(job.status)}`}
+          >
             {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
           </span>
         </div>
@@ -148,10 +151,7 @@ export default function JobStatus({ jobId, onComplete }: JobStatusProps) {
               <span>{job.progress}%</span>
             </div>
             <div className="progress">
-              <div 
-                className="progress-bar" 
-                style={{ width: `${job.progress}%` }}
-              ></div>
+              <div className="progress-bar" style={{ width: `${job.progress}%` }}></div>
             </div>
             {job.estimatedCompletionTime && (
               <p className="text-xs text-gray-500 mt-1">
@@ -189,7 +189,10 @@ export default function JobStatus({ jobId, onComplete }: JobStatusProps) {
             <h5 className="font-medium text-gray-700 mb-2">Downloads</h5>
             <div className="space-y-2">
               {job.artifacts.map(artifact => (
-                <div key={artifact.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                <div
+                  key={artifact.id}
+                  className="flex items-center justify-between bg-gray-50 rounded-lg p-3"
+                >
                   <div>
                     <div className="font-medium text-gray-900">{artifact.filename}</div>
                     <div className="text-sm text-gray-600">
@@ -240,11 +243,15 @@ export default function JobStatus({ jobId, onComplete }: JobStatusProps) {
                   <span className="text-gray-500 whitespace-nowrap">
                     {new Date(log.createdAt).toLocaleTimeString()}
                   </span>
-                  <span className={`px-1 rounded text-xs ${
-                    log.level === 'error' ? 'bg-red-100 text-red-800' :
-                    log.level === 'warn' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-blue-100 text-blue-800'
-                  }`}>
+                  <span
+                    className={`px-1 rounded text-xs ${
+                      log.level === 'error'
+                        ? 'bg-red-100 text-red-800'
+                        : log.level === 'warn'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-blue-100 text-blue-800'
+                    }`}
+                  >
                     {log.level}
                   </span>
                   <span className="text-gray-700">{log.message}</span>

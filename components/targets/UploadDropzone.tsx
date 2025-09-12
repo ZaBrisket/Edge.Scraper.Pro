@@ -83,7 +83,7 @@ export default function UploadDropzone({ onUploadComplete }: UploadDropzoneProps
 
       // Step 3: Commit upload
       const commitData = await commitMutation.mutateAsync(presignData.s3Key);
-      
+
       setUploadState({ status: 'success', progress: 100 });
 
       // Call completion handler
@@ -94,10 +94,10 @@ export default function UploadDropzone({ onUploadComplete }: UploadDropzoneProps
       });
     } catch (error: any) {
       console.error('Upload error:', error);
-      setUploadState({ 
-        status: 'error', 
-        progress: 0, 
-        error: error.message || 'Upload failed' 
+      setUploadState({
+        status: 'error',
+        progress: 0,
+        error: error.message || 'Upload failed',
       });
     }
   };
@@ -115,14 +115,14 @@ export default function UploadDropzone({ onUploadComplete }: UploadDropzoneProps
     const validTypes = [
       'text/csv',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-excel'
+      'application/vnd.ms-excel',
     ];
 
     if (!validTypes.includes(file.type)) {
       setUploadState({
         status: 'error',
         progress: 0,
-        error: 'Please upload a CSV or Excel file (.csv, .xlsx, .xls)'
+        error: 'Please upload a CSV or Excel file (.csv, .xlsx, .xls)',
       });
       return;
     }
@@ -132,7 +132,7 @@ export default function UploadDropzone({ onUploadComplete }: UploadDropzoneProps
       setUploadState({
         status: 'error',
         progress: 0,
-        error: 'File size must be less than 10MB'
+        error: 'File size must be less than 10MB',
       });
       return;
     }
@@ -191,15 +191,9 @@ export default function UploadDropzone({ onUploadComplete }: UploadDropzoneProps
           {uploadState.status === 'idle' && (
             <>
               <div className="text-4xl mb-4">📁</div>
-              <h3 className="text-lg font-semibold mb-2">
-                Drop your target list here
-              </h3>
-              <p className="text-gray-600 mb-4">
-                or click to browse files
-              </p>
-              <p className="text-sm text-gray-500">
-                Supports CSV and Excel files (max 10MB)
-              </p>
+              <h3 className="text-lg font-semibold mb-2">Drop your target list here</h3>
+              <p className="text-gray-600 mb-4">or click to browse files</p>
+              <p className="text-sm text-gray-500">Supports CSV and Excel files (max 10MB)</p>
             </>
           )}
 
@@ -210,16 +204,12 @@ export default function UploadDropzone({ onUploadComplete }: UploadDropzoneProps
                 {uploadState.status === 'uploading' ? 'Uploading...' : 'Processing...'}
               </h3>
               <div className="progress mb-4">
-                <div 
-                  className="progress-bar" 
-                  style={{ width: `${uploadState.progress}%` }}
-                ></div>
+                <div className="progress-bar" style={{ width: `${uploadState.progress}%` }}></div>
               </div>
               <p className="text-sm text-gray-500">
-                {uploadState.status === 'uploading' 
+                {uploadState.status === 'uploading'
                   ? 'Uploading file to secure storage...'
-                  : 'Analyzing file structure and detecting columns...'
-                }
+                  : 'Analyzing file structure and detecting columns...'}
               </p>
             </>
           )}
@@ -227,9 +217,7 @@ export default function UploadDropzone({ onUploadComplete }: UploadDropzoneProps
           {uploadState.status === 'success' && (
             <>
               <div className="text-4xl mb-4">✅</div>
-              <h3 className="text-lg font-semibold mb-2 text-green-600">
-                Upload Complete!
-              </h3>
+              <h3 className="text-lg font-semibold mb-2 text-green-600">Upload Complete!</h3>
               <p className="text-sm text-gray-600">
                 File processed successfully. Moving to column mapping...
               </p>
@@ -239,16 +227,9 @@ export default function UploadDropzone({ onUploadComplete }: UploadDropzoneProps
           {uploadState.status === 'error' && (
             <>
               <div className="text-4xl mb-4">❌</div>
-              <h3 className="text-lg font-semibold mb-2 text-red-600">
-                Upload Failed
-              </h3>
-              <p className="text-sm text-red-600 mb-4">
-                {uploadState.error}
-              </p>
-              <button 
-                onClick={resetUpload}
-                className="btn-primary"
-              >
+              <h3 className="text-lg font-semibold mb-2 text-red-600">Upload Failed</h3>
+              <p className="text-sm text-red-600 mb-4">{uploadState.error}</p>
+              <button onClick={resetUpload} className="btn-primary">
                 Try Again
               </button>
             </>

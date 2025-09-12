@@ -19,11 +19,7 @@ export function initializeModes(): void {
     logger.info('Initializing modes...');
 
     // Register all available modes
-    const modes = [
-      new SupplierDirectoryMode(),
-      new NewsArticlesMode(),
-      new SportsMode(),
-    ];
+    const modes = [new SupplierDirectoryMode(), new NewsArticlesMode(), new SportsMode()];
 
     let registeredCount = 0;
     for (const mode of modes) {
@@ -48,7 +44,6 @@ export function initializeModes(): void {
       registeredModes: registeredCount,
       failedModes: modes.length - registeredCount,
     });
-
   } catch (error) {
     logger.error('Mode initialization failed', {
       error: error instanceof Error ? error.message : 'Unknown error',

@@ -76,7 +76,15 @@ export default function NewsScrapePage() {
     } else {
       // Convert to CSV
       const articles = result.articles || [];
-      const headers = ['URL', 'Title', 'Author', 'Publish Date', 'Excerpt', 'Word Count', 'Category'];
+      const headers = [
+        'URL',
+        'Title',
+        'Author',
+        'Publish Date',
+        'Excerpt',
+        'Word Count',
+        'Category',
+      ];
       const rows = articles.map((article: any) => [
         article.url,
         article.title || '',
@@ -88,7 +96,7 @@ export default function NewsScrapePage() {
       ]);
 
       content = [headers, ...rows]
-        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        .map(row => row.map((cell: any) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
         .join('\n');
       filename = `news-articles-${Date.now()}.csv`;
       mimeType = 'text/csv';
@@ -113,11 +121,7 @@ export default function NewsScrapePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Input Form */}
           <div className="lg:col-span-2">
-            <TaskForm
-              taskName="news"
-              onSubmit={handleSubmit}
-              isSubmitting={!!jobInput}
-            >
+            <TaskForm taskName="news" onSubmit={handleSubmit} isSubmitting={!!jobInput}>
               <div>
                 <label htmlFor="urls" className="block text-sm font-medium text-gray-700">
                   URLs (one per line)
@@ -128,7 +132,7 @@ export default function NewsScrapePage() {
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono"
                   placeholder="https://www.bbc.com/news/world-12345678&#10;https://www.cnn.com/2024/01/15/politics/news-story/&#10;https://www.reuters.com/world/article-title-2024-01-15/"
                   value={urls}
-                  onChange={(e) => setUrls(e.target.value)}
+                  onChange={e => setUrls(e.target.value)}
                   disabled={!!jobInput}
                 />
                 <p className="mt-2 text-sm text-gray-500">
@@ -146,7 +150,9 @@ export default function NewsScrapePage() {
                         type="checkbox"
                         className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                         checked={options.extractContent}
-                        onChange={(e) => setOptions(prev => ({ ...prev, extractContent: e.target.checked }))}
+                        onChange={e =>
+                          setOptions(prev => ({ ...prev, extractContent: e.target.checked }))
+                        }
                         disabled={!!jobInput}
                       />
                       <span className="ml-2 text-sm text-gray-700">Extract full content</span>
@@ -158,7 +164,9 @@ export default function NewsScrapePage() {
                         type="checkbox"
                         className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                         checked={options.extractImages}
-                        onChange={(e) => setOptions(prev => ({ ...prev, extractImages: e.target.checked }))}
+                        onChange={e =>
+                          setOptions(prev => ({ ...prev, extractImages: e.target.checked }))
+                        }
                         disabled={!!jobInput}
                       />
                       <span className="ml-2 text-sm text-gray-700">Extract images</span>
@@ -168,7 +176,10 @@ export default function NewsScrapePage() {
 
                 {options.extractContent && (
                   <div className="mt-3">
-                    <label htmlFor="maxContentLength" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="maxContentLength"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Max content length (characters)
                     </label>
                     <input
@@ -178,7 +189,12 @@ export default function NewsScrapePage() {
                       max="50000"
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       value={options.maxContentLength}
-                      onChange={(e) => setOptions(prev => ({ ...prev, maxContentLength: parseInt(e.target.value) }))}
+                      onChange={e =>
+                        setOptions(prev => ({
+                          ...prev,
+                          maxContentLength: parseInt(e.target.value),
+                        }))
+                      }
                       disabled={!!jobInput}
                     />
                   </div>
@@ -192,7 +208,9 @@ export default function NewsScrapePage() {
                     id="dateFormat"
                     className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     value={options.dateFormat}
-                    onChange={(e) => setOptions(prev => ({ ...prev, dateFormat: e.target.value as any }))}
+                    onChange={e =>
+                      setOptions(prev => ({ ...prev, dateFormat: e.target.value as any }))
+                    }
                     disabled={!!jobInput}
                   >
                     <option value="iso">ISO 8601 (2024-01-15T10:30:00Z)</option>
@@ -207,7 +225,10 @@ export default function NewsScrapePage() {
                 <h4 className="text-md font-medium text-gray-900 mb-3">Performance Settings</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="concurrency" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="concurrency"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Concurrent requests
                     </label>
                     <input
@@ -217,7 +238,9 @@ export default function NewsScrapePage() {
                       max="20"
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       value={options.concurrency}
-                      onChange={(e) => setOptions(prev => ({ ...prev, concurrency: parseInt(e.target.value) }))}
+                      onChange={e =>
+                        setOptions(prev => ({ ...prev, concurrency: parseInt(e.target.value) }))
+                      }
                       disabled={!!jobInput}
                     />
                   </div>
@@ -232,7 +255,9 @@ export default function NewsScrapePage() {
                       max="10000"
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       value={options.delayMs}
-                      onChange={(e) => setOptions(prev => ({ ...prev, delayMs: parseInt(e.target.value) }))}
+                      onChange={e =>
+                        setOptions(prev => ({ ...prev, delayMs: parseInt(e.target.value) }))
+                      }
                       disabled={!!jobInput}
                     />
                   </div>
@@ -252,13 +277,7 @@ export default function NewsScrapePage() {
               />
             )}
 
-            {result && (
-              <TaskResults
-                result={result}
-                taskName="news"
-                onDownload={downloadResults}
-              />
-            )}
+            {result && <TaskResults result={result} taskName="news" onDownload={downloadResults} />}
           </div>
         </div>
       </div>

@@ -20,7 +20,7 @@ export default function TabNavigation() {
   return (
     <div className="border-b border-gray-200">
       <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-        {tabs.map((tab) => {
+        {tabs.map(tab => {
           const isActive = currentPath === tab.href;
           return (
             <Link

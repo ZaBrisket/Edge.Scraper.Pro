@@ -46,11 +46,11 @@ interface PreviewData {
   unmappedHeaders: string[];
 }
 
-export default function PreviewTable({ 
-  datasetId, 
-  templateId, 
+export default function PreviewTable({
+  datasetId,
+  templateId,
   customMapping,
-  sampleSize = 50 
+  sampleSize = 50,
 }: PreviewTableProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -107,7 +107,7 @@ export default function PreviewTable({
 
   if (!data) return null;
 
-  const targetColumns = data.columns.target.filter(col => 
+  const targetColumns = data.columns.target.filter(col =>
     Object.values(data.mapping).includes(col.name)
   );
 
@@ -122,24 +122,27 @@ export default function PreviewTable({
             ~{data.dataset.rowsEstimated?.toLocaleString()} rows
           </p>
         </div>
-        
+
         <div className="bg-green-50 rounded-lg p-4">
           <h4 className="font-semibold text-green-900">Template</h4>
           <p className="text-green-800">{data.template.name}</p>
           <p className="text-sm text-green-700">v{data.template.version}</p>
         </div>
-        
+
         <div className="bg-purple-50 rounded-lg p-4">
           <h4 className="font-semibold text-purple-900">Mapping Quality</h4>
           <div className="flex items-center space-x-2">
-            <span className={`badge ${
-              data.mappingStats.mappingComplete ? 'badge-success' : 'badge-warning'
-            }`}>
+            <span
+              className={`badge ${
+                data.mappingStats.mappingComplete ? 'badge-success' : 'badge-warning'
+              }`}
+            >
               {data.mappingStats.mappedHeaders}/{data.mappingStats.totalHeaders} mapped
             </span>
           </div>
           <p className="text-sm text-purple-700">
-            {data.mappingStats.requiredFieldsMapped}/{data.mappingStats.requiredFieldsTotal} required
+            {data.mappingStats.requiredFieldsMapped}/{data.mappingStats.requiredFieldsTotal}{' '}
+            required
           </p>
         </div>
       </div>
@@ -171,12 +174,9 @@ export default function PreviewTable({
             Showing transformed data as it will appear in the final export
           </p>
         </div>
-        
+
         <div className="card-body p-0">
-          <div 
-            ref={parentRef}
-            className="h-96 overflow-auto"
-          >
+          <div ref={parentRef} className="h-96 overflow-auto">
             <div
               style={{
                 height: `${rowVirtualizer.getTotalSize()}px`,
@@ -187,7 +187,7 @@ export default function PreviewTable({
               {/* Table header */}
               <div className="sticky top-0 z-10 bg-gray-50 border-b">
                 <div className="flex">
-                  {targetColumns.map((column) => (
+                  {targetColumns.map(column => (
                     <div
                       key={column.name}
                       className="flex-1 min-w-32 px-4 py-3 text-sm font-medium text-gray-900 border-r"
@@ -209,9 +209,9 @@ export default function PreviewTable({
               </div>
 
               {/* Virtual rows */}
-              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              {rowVirtualizer.getVirtualItems().map(virtualRow => {
                 const row = data.sampleRows.transformed[virtualRow.index];
-                
+
                 return (
                   <div
                     key={virtualRow.index}
@@ -227,20 +227,16 @@ export default function PreviewTable({
                       virtualRow.index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                     } border-b hover:bg-blue-50`}
                   >
-                    {targetColumns.map((column) => (
-                      <div
-                        key={column.name}
-                        className="flex-1 min-w-32 px-4 py-3 text-sm border-r"
-                      >
+                    {targetColumns.map(column => (
+                      <div key={column.name} className="flex-1 min-w-32 px-4 py-3 text-sm border-r">
                         <div className="truncate" title={row[column.name]?.toString()}>
-                          {row[column.name] !== null && row[column.name] !== undefined
-                            ? row[column.name].toString()
-                            : (
-                              <span className="text-gray-400 italic">
-                                {column.defaultValue || 'N/A'}
-                              </span>
-                            )
-                          }
+                          {row[column.name] !== null && row[column.name] !== undefined ? (
+                            row[column.name].toString()
+                          ) : (
+                            <span className="text-gray-400 italic">
+                              {column.defaultValue || 'N/A'}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -260,21 +256,19 @@ export default function PreviewTable({
           </div>
           <div className="text-sm text-gray-600">Sample Rows</div>
         </div>
-        
+
         <div className="bg-gray-50 rounded-lg p-3">
-          <div className="text-2xl font-bold text-gray-900">
-            {targetColumns.length}
-          </div>
+          <div className="text-2xl font-bold text-gray-900">{targetColumns.length}</div>
           <div className="text-sm text-gray-600">Mapped Fields</div>
         </div>
-        
+
         <div className="bg-gray-50 rounded-lg p-3">
           <div className="text-2xl font-bold text-gray-900">
             {data.mappingStats.requiredFieldsMapped}
           </div>
           <div className="text-sm text-gray-600">Required Fields</div>
         </div>
-        
+
         <div className="bg-gray-50 rounded-lg p-3">
           <div className="text-2xl font-bold text-gray-900">
             {Math.round((data.mappingStats.mappedHeaders / data.mappingStats.totalHeaders) * 100)}%

@@ -24,7 +24,7 @@ export default function TaskForm({ taskName, onSubmit, isSubmitting, children }:
         <h3 className="text-lg font-medium text-gray-900 mb-4">
           {taskName.charAt(0).toUpperCase() + taskName.slice(1)} URLs
         </h3>
-        
+
         {children}
 
         <div className="mt-6">

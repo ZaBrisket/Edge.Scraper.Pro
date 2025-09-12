@@ -86,7 +86,7 @@ export default function CompaniesScrapePage() {
       ]);
 
       content = [headers, ...rows]
-        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        .map(row => row.map((cell: any) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
         .join('\n');
       filename = `companies-${Date.now()}.csv`;
       mimeType = 'text/csv';
@@ -111,11 +111,7 @@ export default function CompaniesScrapePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Input Form */}
           <div className="lg:col-span-2">
-            <TaskForm
-              taskName="companies"
-              onSubmit={handleSubmit}
-              isSubmitting={!!jobInput}
-            >
+            <TaskForm taskName="companies" onSubmit={handleSubmit} isSubmitting={!!jobInput}>
               <div>
                 <label htmlFor="urls" className="block text-sm font-medium text-gray-700">
                   Directory URLs (one per line)
@@ -126,7 +122,7 @@ export default function CompaniesScrapePage() {
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono"
                   placeholder="https://www.d2pbuyersguide.com/filter/all/page/1&#10;https://directory.example.com/suppliers&#10;https://business-directory.com/companies"
                   value={urls}
-                  onChange={(e) => setUrls(e.target.value)}
+                  onChange={e => setUrls(e.target.value)}
                   disabled={!!jobInput}
                 />
                 <p className="mt-2 text-sm text-gray-500">
@@ -144,10 +140,17 @@ export default function CompaniesScrapePage() {
                         type="checkbox"
                         className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                         checked={options.enablePaginationDiscovery}
-                        onChange={(e) => setOptions(prev => ({ ...prev, enablePaginationDiscovery: e.target.checked }))}
+                        onChange={e =>
+                          setOptions(prev => ({
+                            ...prev,
+                            enablePaginationDiscovery: e.target.checked,
+                          }))
+                        }
                         disabled={!!jobInput}
                       />
-                      <span className="ml-2 text-sm text-gray-700">Enable pagination discovery</span>
+                      <span className="ml-2 text-sm text-gray-700">
+                        Enable pagination discovery
+                      </span>
                     </label>
                   </div>
                   <div>
@@ -156,7 +159,12 @@ export default function CompaniesScrapePage() {
                         type="checkbox"
                         className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                         checked={options.enableUrlNormalization}
-                        onChange={(e) => setOptions(prev => ({ ...prev, enableUrlNormalization: e.target.checked }))}
+                        onChange={e =>
+                          setOptions(prev => ({
+                            ...prev,
+                            enableUrlNormalization: e.target.checked,
+                          }))
+                        }
                         disabled={!!jobInput}
                       />
                       <span className="ml-2 text-sm text-gray-700">Enable URL normalization</span>
@@ -165,14 +173,19 @@ export default function CompaniesScrapePage() {
                 </div>
 
                 <div className="mt-3">
-                  <label htmlFor="extractionDepth" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="extractionDepth"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Extraction Depth
                   </label>
                   <select
                     id="extractionDepth"
                     className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     value={options.extractionDepth}
-                    onChange={(e) => setOptions(prev => ({ ...prev, extractionDepth: e.target.value as any }))}
+                    onChange={e =>
+                      setOptions(prev => ({ ...prev, extractionDepth: e.target.value as any }))
+                    }
                     disabled={!!jobInput}
                   >
                     <option value="basic">Basic (company name, contact info)</option>
@@ -186,7 +199,10 @@ export default function CompaniesScrapePage() {
                 <h4 className="text-md font-medium text-gray-900 mb-3">Performance Settings</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="concurrency" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="concurrency"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Concurrent requests
                     </label>
                     <input
@@ -196,7 +212,9 @@ export default function CompaniesScrapePage() {
                       max="20"
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       value={options.concurrency}
-                      onChange={(e) => setOptions(prev => ({ ...prev, concurrency: parseInt(e.target.value) }))}
+                      onChange={e =>
+                        setOptions(prev => ({ ...prev, concurrency: parseInt(e.target.value) }))
+                      }
                       disabled={!!jobInput}
                     />
                   </div>
@@ -211,7 +229,9 @@ export default function CompaniesScrapePage() {
                       max="10000"
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       value={options.delayMs}
-                      onChange={(e) => setOptions(prev => ({ ...prev, delayMs: parseInt(e.target.value) }))}
+                      onChange={e =>
+                        setOptions(prev => ({ ...prev, delayMs: parseInt(e.target.value) }))
+                      }
                       disabled={!!jobInput}
                     />
                   </div>
@@ -232,11 +252,7 @@ export default function CompaniesScrapePage() {
             )}
 
             {result && (
-              <TaskResults
-                result={result}
-                taskName="companies"
-                onDownload={downloadResults}
-              />
+              <TaskResults result={result} taskName="companies" onDownload={downloadResults} />
             )}
           </div>
         </div>

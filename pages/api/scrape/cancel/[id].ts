@@ -37,8 +37,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Only allow cancellation of running jobs
     if (job.status !== 'running' && job.status !== 'pending') {
-      return res.status(400).json({ 
-        error: `Cannot cancel job with status: ${job.status}` 
+      return res.status(400).json({
+        error: `Cannot cancel job with status: ${job.status}`,
       });
     }
 
@@ -53,11 +53,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       cancelledAt: job.endTime,
     });
 
-    res.status(200).json({ 
+    res.status(200).json({
       message: 'Job cancelled successfully',
       jobId: id,
     });
-
   } catch (error) {
     logger.error('Cancel API error', {
       error: error instanceof Error ? error.message : 'Unknown error',
