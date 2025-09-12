@@ -4,7 +4,7 @@ const { s3, BUCKET } = require('./utils/s3');
 const csv = require('csv-parser');
 const ExcelJS = require('exceljs');
 const { z } = require('zod');
-const { ValidationUtils, schemas } = require('../../src/lib/validation');
+const { ValidationUtils, schemas } = require('../../dist/lib/validation');
 
 const prisma = new PrismaClient();
 
@@ -195,7 +195,7 @@ exports.handler = async (event, context) => {
     
     if (!validatedData.customMapping) {
       // Auto-map headers using the template
-      const { autoMapHeaders } = require('../../src/lib/mapping/header-detector');
+      const { autoMapHeaders } = require('../../dist/lib/mapping/header-detector');
       const autoMappingResult = autoMapHeaders(detectedHeaders, template.fieldDefs);
       
       // Convert matches to mapping object

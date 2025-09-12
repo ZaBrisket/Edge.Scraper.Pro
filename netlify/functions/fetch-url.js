@@ -6,10 +6,10 @@
 const dns = require('dns').promises;
 const { URL } = require('url');
 const net = require('net');
-const { fetchWithPolicy } = require('../../src/lib/http/client');
-const { getCorrelationId } = require('../../src/lib/http/correlation');
-const { AuthService, Permission } = require('../../src/lib/auth');
-const { ValidationUtils } = require('../../src/lib/validation');
+const { fetchWithPolicy } = require('../../dist/lib/http/client');
+const { getCorrelationId } = require('../../dist/lib/http/correlation');
+const { AuthService, Permission } = require('../../dist/lib/auth');
+const { ValidationUtils } = require('../../dist/lib/validation');
 
 // Cache for resolved hostnames
 const hostCache = new Map();

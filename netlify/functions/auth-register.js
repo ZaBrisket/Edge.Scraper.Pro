@@ -3,8 +3,8 @@
  * Handles user registration
  */
 
-const { AuthService } = require('../../src/lib/auth');
-const { ValidationUtils, schemas } = require('../../src/lib/validation');
+const { AuthService } = require('../../dist/lib/auth');
+const { ValidationUtils, schemas } = require('../../dist/lib/validation');
 
 exports.handler = async (event, context) => {
   // CORS headers

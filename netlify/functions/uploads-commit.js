@@ -3,7 +3,7 @@ const { objectExists, getObjectMetadata, s3, BUCKET } = require('./utils/s3');
 const csv = require('csv-parser');
 const ExcelJS = require('exceljs');
 const { z } = require('zod');
-const { ValidationUtils, schemas } = require('../../src/lib/validation');
+const { ValidationUtils, schemas } = require('../../dist/lib/validation');
 
 const prisma = new PrismaClient();
 

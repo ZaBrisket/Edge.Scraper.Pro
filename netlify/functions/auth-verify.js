@@ -3,7 +3,7 @@
  * Verifies JWT token and returns user info
  */
 
-const { AuthService } = require('../../src/lib/auth');
+const { AuthService } = require('../../dist/lib/auth');
 
 exports.handler = async (event, context) => {
   // CORS headers
