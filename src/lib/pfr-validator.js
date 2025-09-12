@@ -1,6 +1,6 @@
 /**
  * PFR (Pro Football Reference) URL Validator Module
- * 
+ *
  * Validates and sanitizes Pro Football Reference player URLs
  * Provides categorized validation results for batch processing
  */
@@ -13,7 +13,7 @@ const VALID_SPORTS_DOMAINS = [
   'basketball-reference.com',
   'baseball-reference.com',
   'hockey-reference.com',
-  'sports-reference.com'
+  'sports-reference.com',
 ];
 
 // Player URL patterns by sport
@@ -21,7 +21,7 @@ const PLAYER_URL_PATTERNS = {
   'pro-football-reference.com': /^\/players\/[A-Z]\/[A-Za-z]{4}[A-Z][a-z]\d{2}\.htm$/,
   'basketball-reference.com': /^\/players\/[a-z]\/[a-z]+\d{2}\.html$/,
   'baseball-reference.com': /^\/players\/[a-z]\/[a-z]+\d{2}\.shtml$/,
-  'hockey-reference.com': /^\/players\/[a-z]\/[a-z]+\d{2}\.html$/
+  'hockey-reference.com': /^\/players\/[a-z]\/[a-z]+\d{2}\.html$/,
 };
 
 // PFR player slug format: 4 letters from last name + 2 letters from first name + 2 digit disambiguator
@@ -35,7 +35,7 @@ const VALIDATION_CATEGORIES = {
   NON_PLAYER: 'non_player',
   WRONG_DOMAIN: 'wrong_domain',
   INVALID_SLUG: 'invalid_slug',
-  DUPLICATE: 'duplicate'
+  DUPLICATE: 'duplicate',
 };
 
 class PFRValidator {
@@ -59,13 +59,13 @@ class PFRValidator {
       isValid: false,
       category: VALIDATION_CATEGORIES.MALFORMED,
       error: null,
-      normalized: null
+      normalized: null,
     };
 
     try {
       // Attempt to parse URL
       const url = new URL(urlString);
-      
+
       // Check protocol first
       if (!['http:', 'https:'].includes(url.protocol)) {
         result.category = VALIDATION_CATEGORIES.MALFORMED;
@@ -73,7 +73,7 @@ class PFRValidator {
         this.validationCache.set(urlString, result);
         return result;
       }
-      
+
       // Check if it's a sports reference domain
       const hostname = url.hostname.toLowerCase().replace('www.', '');
       if (!VALID_SPORTS_DOMAINS.includes(hostname)) {
@@ -94,8 +94,12 @@ class PFRValidator {
 
       if (!pattern.test(url.pathname)) {
         // Check if it's some other type of page
-        if (url.pathname.includes('/teams/') || url.pathname.includes('/years/') || 
-            url.pathname.includes('/coaches/') || url.pathname.includes('/officials/')) {
+        if (
+          url.pathname.includes('/teams/') ||
+          url.pathname.includes('/years/') ||
+          url.pathname.includes('/coaches/') ||
+          url.pathname.includes('/officials/')
+        ) {
           result.category = VALIDATION_CATEGORIES.NON_PLAYER;
           result.error = 'URL is not a player page';
         } else {
@@ -108,7 +112,9 @@ class PFRValidator {
 
       // Extract and validate player slug for PFR
       if (hostname === 'pro-football-reference.com') {
-        const slugMatch = url.pathname.match(/\/players\/[A-Z]\/([A-Za-z]{4}[A-Z][a-z]\d{2})\.htm$/);
+        const slugMatch = url.pathname.match(
+          /\/players\/[A-Z]\/([A-Za-z]{4}[A-Z][a-z]\d{2})\.htm$/
+        );
         if (slugMatch) {
           const slug = slugMatch[1];
           if (!PFR_PLAYER_SLUG_REGEX.test(slug)) {
@@ -125,7 +131,6 @@ class PFRValidator {
       result.category = VALIDATION_CATEGORIES.VALID;
       result.normalized = this.normalizeURL(url);
       result.error = null;
-
     } catch (error) {
       result.category = VALIDATION_CATEGORIES.MALFORMED;
       result.error = `Failed to parse URL: ${error.message}`;
@@ -143,15 +148,24 @@ class PFRValidator {
   normalizeURL(url) {
     // Remove hash
     url.hash = '';
-    
+
     // Remove common tracking parameters
     const trackingParams = [
-      'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-      'gclid', 'fbclid', 'msclkid', 'dclid', 'ref', 'source'
+      'utm_source',
+      'utm_medium',
+      'utm_campaign',
+      'utm_term',
+      'utm_content',
+      'gclid',
+      'fbclid',
+      'msclkid',
+      'dclid',
+      'ref',
+      'source',
     ];
-    
+
     trackingParams.forEach(param => url.searchParams.delete(param));
-    
+
     return url.href;
   }
 
@@ -168,14 +182,14 @@ class PFRValidator {
         malformed: [],
         non_player: [],
         wrong_domain: [],
-        invalid_slug: []
+        invalid_slug: [],
       },
       duplicates: [],
       summary: {
         validCount: 0,
         invalidCount: 0,
-        duplicateCount: 0
-      }
+        duplicateCount: 0,
+      },
     };
 
     const seen = new Map(); // Track first occurrence of each normalized URL
@@ -184,24 +198,24 @@ class PFRValidator {
     urls.forEach((url, index) => {
       originalOrder.set(url, index);
       const validation = this.validateURL(url);
-      
+
       if (validation.isValid) {
         const normalized = validation.normalized;
-        
+
         // Check for duplicates
         if (seen.has(normalized)) {
           results.duplicates.push({
             url: url,
             normalized: normalized,
             firstOccurrence: seen.get(normalized),
-            index: index
+            index: index,
           });
           results.summary.duplicateCount++;
         } else {
           seen.set(normalized, url);
           results.valid.push({
             ...validation,
-            index: index
+            index: index,
           });
           results.summary.validCount++;
         }
@@ -211,7 +225,7 @@ class PFRValidator {
         if (results.invalid[category]) {
           results.invalid[category].push({
             ...validation,
-            index: index
+            index: index,
           });
         }
         results.summary.invalidCount++;
@@ -235,7 +249,7 @@ class PFRValidator {
    */
   generateReport(batchResult) {
     const lines = [];
-    
+
     lines.push('=== PFR URL Validation Report ===');
     lines.push(`Total URLs: ${batchResult.total}`);
     lines.push(`Valid URLs: ${batchResult.summary.validCount}`);
@@ -247,7 +261,7 @@ class PFRValidator {
     if (batchResult.duplicates.length > 0) {
       lines.push('DUPLICATES FOUND:');
       const duplicateGroups = new Map();
-      
+
       batchResult.duplicates.forEach(dup => {
         if (!duplicateGroups.has(dup.normalized)) {
           duplicateGroups.set(dup.normalized, []);
@@ -263,16 +277,17 @@ class PFRValidator {
     }
 
     // Report invalid URLs by category
-    const invalidCategories = Object.entries(batchResult.invalid)
-      .filter(([_, urls]) => urls.length > 0);
+    const invalidCategories = Object.entries(batchResult.invalid).filter(
+      ([_, urls]) => urls.length > 0
+    );
 
     if (invalidCategories.length > 0) {
       lines.push('INVALID URLS:');
-      
+
       invalidCategories.forEach(([category, urls]) => {
         const categoryName = category.replace(/_/g, ' ').toUpperCase();
         lines.push(`  ${categoryName} (${urls.length}):`);
-        
+
         urls.forEach(({ url, error }) => {
           lines.push(`    - ${url}`);
           if (error) lines.push(`      Error: ${error}`);
@@ -290,21 +305,27 @@ class PFRValidator {
    */
   generateHTMLReport(batchResult) {
     const html = [];
-    
+
     html.push('<div class="validation-report">');
     html.push('<h3>URL Validation Report</h3>');
     html.push('<div class="validation-summary">');
     html.push(`<div>Total URLs: <strong>${batchResult.total}</strong></div>`);
-    html.push(`<div>Valid URLs: <strong style="color: green">${batchResult.summary.validCount}</strong></div>`);
-    html.push(`<div>Invalid URLs: <strong style="color: red">${batchResult.summary.invalidCount}</strong></div>`);
-    html.push(`<div>Duplicate URLs: <strong style="color: orange">${batchResult.summary.duplicateCount}</strong></div>`);
+    html.push(
+      `<div>Valid URLs: <strong style="color: green">${batchResult.summary.validCount}</strong></div>`
+    );
+    html.push(
+      `<div>Invalid URLs: <strong style="color: red">${batchResult.summary.invalidCount}</strong></div>`
+    );
+    html.push(
+      `<div>Duplicate URLs: <strong style="color: orange">${batchResult.summary.duplicateCount}</strong></div>`
+    );
     html.push('</div>');
 
     // Report duplicates
     if (batchResult.duplicates.length > 0) {
       html.push('<div class="validation-section">');
       html.push('<h4>Duplicates Found:</h4>');
-      
+
       const duplicateGroups = new Map();
       batchResult.duplicates.forEach(dup => {
         if (!duplicateGroups.has(dup.normalized)) {
@@ -323,7 +344,13 @@ class PFRValidator {
         // Also show the first occurrence
         const firstOccurrence = batchResult.valid.find(v => v.normalized === normalized);
         if (firstOccurrence) {
-          html.push('<li><em>First occurrence: ' + this.escapeHtml(firstOccurrence.url) + ' (position ' + (firstOccurrence.index + 1) + ')</em></li>');
+          html.push(
+            '<li><em>First occurrence: ' +
+              this.escapeHtml(firstOccurrence.url) +
+              ' (position ' +
+              (firstOccurrence.index + 1) +
+              ')</em></li>'
+          );
         }
         html.push('</ul>');
       });
@@ -332,19 +359,20 @@ class PFRValidator {
     }
 
     // Report invalid URLs by category
-    const invalidCategories = Object.entries(batchResult.invalid)
-      .filter(([_, urls]) => urls.length > 0);
+    const invalidCategories = Object.entries(batchResult.invalid).filter(
+      ([_, urls]) => urls.length > 0
+    );
 
     if (invalidCategories.length > 0) {
       html.push('<div class="validation-section">');
       html.push('<h4>Invalid URLs:</h4>');
-      
+
       invalidCategories.forEach(([category, urls]) => {
         const categoryName = category.replace(/_/g, ' ').toUpperCase();
         html.push('<div class="validation-category">');
         html.push(`<h5>${categoryName} (${urls.length})</h5>`);
         html.push('<ul>');
-        
+
         urls.forEach(({ url, error, index }) => {
           html.push('<li class="invalid-url">');
           html.push(this.escapeHtml(url) + ' (position ' + (index + 1) + ')');
@@ -353,16 +381,16 @@ class PFRValidator {
           }
           html.push('</li>');
         });
-        
+
         html.push('</ul>');
         html.push('</div>');
       });
-      
+
       html.push('</div>');
     }
 
     html.push('</div>');
-    
+
     return html.join('\n');
   }
 
@@ -400,5 +428,5 @@ const validator = new PFRValidator();
 module.exports = {
   PFRValidator,
   validator,
-  VALIDATION_CATEGORIES
+  VALIDATION_CATEGORIES,
 };

@@ -22,9 +22,13 @@ const BUCKET = process.env.S3_BUCKET || 'edge-scraper-pro-artifacts';
 /**
  * Generate a presigned POST URL for file uploads
  */
-async function generatePresignedUpload(filename, contentType, maxFileSize = 10 * 1024 * 1024) {
+async function generatePresignedUpload(filename, contentType, maxFileSize = 10 * 1024 * 1024 // 10MB default
+) {
     const timestamp = Date.now();
-    const hash = (0, crypto_1.createHash)('md5').update(filename + timestamp).digest('hex').slice(0, 8);
+    const hash = (0, crypto_1.createHash)('md5')
+        .update(filename + timestamp)
+        .digest('hex')
+        .slice(0, 8);
     const s3Key = `uploads/${new Date().getFullYear()}/${new Date().getMonth() + 1}/${hash}-${filename}`;
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
     const params = {
@@ -52,7 +56,8 @@ async function generatePresignedUpload(filename, contentType, maxFileSize = 10 *
 /**
  * Generate a presigned GET URL for file downloads
  */
-async function generatePresignedDownload(s3Key, expiresInSeconds = 3600) {
+async function generatePresignedDownload(s3Key, expiresInSeconds = 3600 // 1 hour default
+) {
     const downloadUrl = s3.getSignedUrl('getObject', {
         Bucket: BUCKET,
         Key: s3Key,
@@ -68,13 +73,15 @@ async function generatePresignedDownload(s3Key, expiresInSeconds = 3600) {
  * Upload a file directly to S3 (for server-side use)
  */
 async function uploadToS3(key, body, contentType, metadata) {
-    const result = await s3.upload({
+    const result = await s3
+        .upload({
         Bucket: BUCKET,
         Key: key,
         Body: body,
         ContentType: contentType,
         Metadata: metadata,
-    }).promise();
+    })
+        .promise();
     return {
         s3Key: result.Key,
         etag: result.ETag || '',
@@ -85,10 +92,12 @@ async function uploadToS3(key, body, contentType, metadata) {
  */
 async function objectExists(s3Key) {
     try {
-        await s3.headObject({
+        await s3
+            .headObject({
             Bucket: BUCKET,
             Key: s3Key,
-        }).promise();
+        })
+            .promise();
         return true;
     }
     catch (error) {
@@ -102,10 +111,12 @@ async function objectExists(s3Key) {
  * Get object metadata from S3
  */
 async function getObjectMetadata(s3Key) {
-    const result = await s3.headObject({
+    const result = await s3
+        .headObject({
         Bucket: BUCKET,
         Key: s3Key,
-    }).promise();
+    })
+        .promise();
     return {
         contentType: result.ContentType || 'application/octet-stream',
         contentLength: result.ContentLength || 0,
@@ -117,17 +128,22 @@ async function getObjectMetadata(s3Key) {
  * Delete an object from S3
  */
 async function deleteFromS3(s3Key) {
-    await s3.deleteObject({
+    await s3
+        .deleteObject({
         Bucket: BUCKET,
         Key: s3Key,
-    }).promise();
+    })
+        .promise();
 }
 /**
  * Generate a unique S3 key for artifacts
  */
 function generateArtifactKey(jobId, filename, format) {
     const timestamp = Date.now();
-    const hash = (0, crypto_1.createHash)('md5').update(jobId + filename + timestamp).digest('hex').slice(0, 8);
+    const hash = (0, crypto_1.createHash)('md5')
+        .update(jobId + filename + timestamp)
+        .digest('hex')
+        .slice(0, 8);
     return `artifacts/${new Date().getFullYear()}/${new Date().getMonth() + 1}/${hash}-${jobId}.${format}`;
 }
 //# sourceMappingURL=s3.js.map

@@ -30,11 +30,11 @@ export declare const LoginSchema: z.ZodObject<{
     email: z.ZodString;
     password: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    email: string;
     password: string;
+    email: string;
 }, {
-    email: string;
     password: string;
+    email: string;
 }>;
 export declare const RegisterSchema: z.ZodObject<{
     email: z.ZodString;
@@ -42,14 +42,14 @@ export declare const RegisterSchema: z.ZodObject<{
     name: z.ZodString;
     role: z.ZodDefault<z.ZodOptional<z.ZodNativeEnum<typeof UserRole>>>;
 }, "strip", z.ZodTypeAny, {
-    email: string;
     password: string;
     name: string;
+    email: string;
     role: UserRole;
 }, {
-    email: string;
     password: string;
     name: string;
+    email: string;
     role?: UserRole | undefined;
 }>;
 export declare const ChangePasswordSchema: z.ZodObject<{
@@ -68,8 +68,8 @@ export declare class AuthService {
      */
     static register(data: z.infer<typeof RegisterSchema>): Promise<{
         id: string;
-        email: string;
         name: string | null;
+        email: string;
         role: string;
         createdAt: Date;
     }>;
@@ -113,8 +113,8 @@ export declare class AuthService {
      */
     static getUserById(userId: string): Promise<{
         id: string;
-        email: string;
         name: string | null;
+        email: string;
         role: string;
         createdAt: Date;
         updatedAt: Date;
@@ -127,8 +127,8 @@ export declare class AuthService {
         email?: string;
     }): Promise<{
         id: string;
-        email: string;
         name: string | null;
+        email: string;
         role: string;
         updatedAt: Date;
     }>;

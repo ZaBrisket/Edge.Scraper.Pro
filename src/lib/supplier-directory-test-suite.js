@@ -14,7 +14,7 @@ class SupplierDirectoryTestSuite {
       passed: 0,
       failed: 0,
       total: 0,
-      details: []
+      details: [],
     };
   }
 
@@ -23,7 +23,7 @@ class SupplierDirectoryTestSuite {
    */
   async runAllTests() {
     console.log('🧪 Starting Supplier Directory Extractor Test Suite\n');
-    
+
     // Test cases
     this.addTest('Basic Table Extraction', () => this.testBasicTableExtraction());
     this.addTest('D2P Directory Format', () => this.testD2PDirectoryFormat());
@@ -33,12 +33,12 @@ class SupplierDirectoryTestSuite {
     this.addTest('Website Normalization', () => this.testWebsiteNormalization());
     this.addTest('Data Validation', () => this.testDataValidation());
     this.addTest('Deduplication', () => this.testDeduplication());
-    
+
     // Run all tests
     for (const test of this.tests) {
       await this.runTest(test);
     }
-    
+
     this.printResults();
     return this.results;
   }
@@ -56,7 +56,7 @@ class SupplierDirectoryTestSuite {
   async runTest(test) {
     this.results.total++;
     console.log(`Running: ${test.name}...`);
-    
+
     try {
       await test.testFunction();
       this.results.passed++;
@@ -64,10 +64,10 @@ class SupplierDirectoryTestSuite {
       console.log(`✅ ${test.name} - PASSED\n`);
     } catch (error) {
       this.results.failed++;
-      this.results.details.push({ 
-        name: test.name, 
-        status: 'FAILED', 
-        error: error.message 
+      this.results.details.push({
+        name: test.name,
+        status: 'FAILED',
+        error: error.message,
       });
       console.log(`❌ ${test.name} - FAILED: ${error.message}\n`);
     }
@@ -102,23 +102,23 @@ class SupplierDirectoryTestSuite {
         </body>
       </html>
     `;
-    
+
     const dom = new JSDOM(html);
     const result = this.extractor.extractSupplierData(dom.window.document);
-    
+
     if (result.companies.length !== 2) {
       throw new Error(`Expected 2 companies, got ${result.companies.length}`);
     }
-    
+
     const company1 = result.companies[0];
     if (company1.name !== 'ACME Manufacturing') {
       throw new Error(`Expected 'ACME Manufacturing', got '${company1.name}'`);
     }
-    
+
     if (!company1.contact.includes('123 Main St')) {
       throw new Error(`Expected contact info, got '${company1.contact}'`);
     }
-    
+
     if (company1.website !== 'https://www.acme.com') {
       throw new Error(`Expected 'https://www.acme.com', got '${company1.website}'`);
     }
@@ -153,27 +153,30 @@ class SupplierDirectoryTestSuite {
         </body>
       </html>
     `;
-    
+
     const dom = new JSDOM(html);
-    const result = this.extractor.extractSupplierData(dom.window.document, 'https://www.d2pbuyersguide.com');
-    
+    const result = this.extractor.extractSupplierData(
+      dom.window.document,
+      'https://www.d2pbuyersguide.com'
+    );
+
     if (result.companies.length !== 3) {
       throw new Error(`Expected 3 companies, got ${result.companies.length}`);
     }
-    
+
     const company1 = result.companies[0];
     if (company1.name !== 'ACCUMOLD') {
       throw new Error(`Expected 'ACCUMOLD', got '${company1.name}'`);
     }
-    
+
     if (!company1.contact.includes('1711 SE Oralabor Rd')) {
       throw new Error(`Expected address, got '${company1.contact}'`);
     }
-    
+
     if (company1.website !== 'https://www.accu-mold.com') {
       throw new Error(`Expected 'https://www.accu-mold.com', got '${company1.website}'`);
     }
-    
+
     // Test validation
     if (!result.validation.isValid) {
       throw new Error(`Validation failed: ${result.validation.reasons.join(', ')}`);
@@ -202,19 +205,19 @@ class SupplierDirectoryTestSuite {
         </body>
       </html>
     `;
-    
+
     const dom = new JSDOM(html);
     const result = this.extractor.extractSupplierData(dom.window.document);
-    
+
     if (result.companies.length !== 2) {
       throw new Error(`Expected 2 companies, got ${result.companies.length}`);
     }
-    
+
     const company1 = result.companies[0];
     if (company1.name !== 'Tech Solutions LLC') {
       throw new Error(`Expected 'Tech Solutions LLC', got '${company1.name}'`);
     }
-    
+
     // The extractor should extract the href, not the text
     if (!company1.website.includes('techsolutions.com')) {
       throw new Error(`Expected website to contain 'techsolutions.com', got '${company1.website}'`);
@@ -234,14 +237,14 @@ class SupplierDirectoryTestSuite {
         </body>
       </html>
     `;
-    
+
     const dom = new JSDOM(html);
     const result = this.extractor.extractSupplierData(dom.window.document);
-    
+
     if (result.companies.length !== 0) {
       throw new Error(`Expected 0 companies, got ${result.companies.length}`);
     }
-    
+
     if (result.validation.isValid) {
       throw new Error('Expected validation to fail for empty content');
     }
@@ -271,15 +274,15 @@ class SupplierDirectoryTestSuite {
         </body>
       </html>
     `;
-    
+
     const dom = new JSDOM(html);
     const result = this.extractor.extractSupplierData(dom.window.document);
-    
+
     // Should still extract what it can
     if (result.companies.length === 0) {
       throw new Error('Expected to extract at least some data from malformed HTML');
     }
-    
+
     // First company should have name and contact
     const company1 = result.companies[0];
     if (!company1.name || !company1.contact) {
@@ -296,13 +299,15 @@ class SupplierDirectoryTestSuite {
       { input: 'example.com', expected: 'https://example.com' },
       { input: 'https://www.example.com', expected: 'https://www.example.com' },
       { input: 'http://example.com', expected: 'http://example.com' },
-      { input: '  www.example.com  ', expected: 'https://www.example.com' }
+      { input: '  www.example.com  ', expected: 'https://www.example.com' },
     ];
-    
+
     for (const testCase of testCases) {
       const normalized = this.extractor.normalizeWebsite(testCase.input);
       if (normalized !== testCase.expected) {
-        throw new Error(`Expected '${testCase.expected}', got '${normalized}' for input '${testCase.input}'`);
+        throw new Error(
+          `Expected '${testCase.expected}', got '${normalized}' for input '${testCase.input}'`
+        );
       }
     }
   }
@@ -313,19 +318,19 @@ class SupplierDirectoryTestSuite {
   async testDataValidation() {
     const validCompanies = [
       { name: 'ACME Corp', contact: '123 Main St, City, ST 12345', website: 'https://acme.com' },
-      { name: 'Best Inc', contact: '456 Oak Ave, Town, ST 67890', website: 'https://best.com' }
+      { name: 'Best Inc', contact: '456 Oak Ave, Town, ST 67890', website: 'https://best.com' },
     ];
-    
+
     const invalidCompanies = [
       { name: '', contact: '', website: '' },
-      { name: '', contact: '', website: '' }
+      { name: '', contact: '', website: '' },
     ];
-    
+
     const validResult = this.extractor.validateSupplierContent(validCompanies);
     if (!validResult.isValid) {
       throw new Error(`Valid companies should pass validation: ${validResult.reasons.join(', ')}`);
     }
-    
+
     const invalidResult = this.extractor.validateSupplierContent(invalidCompanies);
     // Empty companies should fail validation
     if (invalidResult.isValid) {
@@ -341,15 +346,17 @@ class SupplierDirectoryTestSuite {
       { name: 'ACME Corp', contact: '123 Main St', website: 'https://acme.com' },
       { name: 'ACME Corp', contact: '123 Main St', website: 'https://acme.com' },
       { name: 'Best Inc', contact: '456 Oak Ave', website: 'https://best.com' },
-      { name: 'acme corp', contact: '123 Main St', website: 'https://acme.com' }
+      { name: 'acme corp', contact: '123 Main St', website: 'https://acme.com' },
     ];
-    
+
     const deduplicated = this.extractor.deduplicateCompanies(duplicateCompanies);
-    
+
     if (deduplicated.length !== 2) {
-      throw new Error(`Expected 2 unique companies after deduplication, got ${deduplicated.length}`);
+      throw new Error(
+        `Expected 2 unique companies after deduplication, got ${deduplicated.length}`
+      );
     }
-    
+
     const names = deduplicated.map(c => c.name);
     if (!names.includes('ACME Corp') || !names.includes('Best Inc')) {
       throw new Error('Expected to keep one instance of each unique company');
@@ -365,8 +372,10 @@ class SupplierDirectoryTestSuite {
     console.log(`Total Tests: ${this.results.total}`);
     console.log(`Passed: ${this.results.passed}`);
     console.log(`Failed: ${this.results.failed}`);
-    console.log(`Success Rate: ${((this.results.passed / this.results.total) * 100).toFixed(1)}%\n`);
-    
+    console.log(
+      `Success Rate: ${((this.results.passed / this.results.total) * 100).toFixed(1)}%\n`
+    );
+
     if (this.results.failed > 0) {
       console.log('❌ Failed Tests:');
       this.results.details
@@ -376,7 +385,7 @@ class SupplierDirectoryTestSuite {
         });
       console.log('');
     }
-    
+
     if (this.results.passed === this.results.total) {
       console.log('🎉 All tests passed!');
     } else {

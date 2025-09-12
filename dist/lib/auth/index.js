@@ -47,28 +47,24 @@ const ROLE_PERMISSIONS = {
         Permission.READ_TARGETS,
         Permission.WRITE_TARGETS,
         Permission.READ_EXPORTS,
-        Permission.WRITE_EXPORTS
+        Permission.WRITE_EXPORTS,
     ],
-    [UserRole.READONLY]: [
-        Permission.READ_SCRAPING,
-        Permission.READ_TARGETS,
-        Permission.READ_EXPORTS
-    ]
+    [UserRole.READONLY]: [Permission.READ_SCRAPING, Permission.READ_TARGETS, Permission.READ_EXPORTS],
 };
 // Authentication schemas
 exports.LoginSchema = zod_1.z.object({
     email: zod_1.z.string().email('Invalid email format'),
-    password: zod_1.z.string().min(8, 'Password must be at least 8 characters')
+    password: zod_1.z.string().min(8, 'Password must be at least 8 characters'),
 });
 exports.RegisterSchema = zod_1.z.object({
     email: zod_1.z.string().email('Invalid email format'),
     password: zod_1.z.string().min(8, 'Password must be at least 8 characters'),
     name: zod_1.z.string().min(2, 'Name must be at least 2 characters'),
-    role: zod_1.z.nativeEnum(UserRole).optional().default(UserRole.USER)
+    role: zod_1.z.nativeEnum(UserRole).optional().default(UserRole.USER),
 });
 exports.ChangePasswordSchema = zod_1.z.object({
     currentPassword: zod_1.z.string().min(1, 'Current password is required'),
-    newPassword: zod_1.z.string().min(8, 'New password must be at least 8 characters')
+    newPassword: zod_1.z.string().min(8, 'New password must be at least 8 characters'),
 });
 // Authentication service class
 class AuthService {
@@ -79,7 +75,7 @@ class AuthService {
         const validatedData = exports.RegisterSchema.parse(data);
         // Check if user already exists
         const existingUser = await prisma.user.findUnique({
-            where: { email: validatedData.email }
+            where: { email: validatedData.email },
         });
         if (existingUser) {
             throw new Error('User with this email already exists');
@@ -92,15 +88,15 @@ class AuthService {
                 email: validatedData.email,
                 name: validatedData.name,
                 password: hashedPassword,
-                role: validatedData.role
+                role: validatedData.role,
             },
             select: {
                 id: true,
                 email: true,
                 name: true,
                 role: true,
-                createdAt: true
-            }
+                createdAt: true,
+            },
         });
         return user;
     }
@@ -111,7 +107,7 @@ class AuthService {
         const validatedData = exports.LoginSchema.parse(data);
         // Find user
         const user = await prisma.user.findUnique({
-            where: { email: validatedData.email }
+            where: { email: validatedData.email },
         });
         if (!user) {
             throw new Error('Invalid email or password');
@@ -127,7 +123,7 @@ class AuthService {
             userId: user.id,
             email: user.email,
             role: user.role,
-            permissions
+            permissions,
         };
         const token = jsonwebtoken_1.default.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
         return {
@@ -137,8 +133,8 @@ class AuthService {
                 email: user.email,
                 name: user.name,
                 role: user.role,
-                permissions
-            }
+                permissions,
+            },
         };
     }
     /**
@@ -178,7 +174,7 @@ class AuthService {
         const validatedData = exports.ChangePasswordSchema.parse(data);
         // Get user
         const user = await prisma.user.findUnique({
-            where: { id: userId }
+            where: { id: userId },
         });
         if (!user) {
             throw new Error('User not found');
@@ -193,7 +189,7 @@ class AuthService {
         // Update password
         await prisma.user.update({
             where: { id: userId },
-            data: { password: hashedPassword }
+            data: { password: hashedPassword },
         });
         return { success: true };
     }
@@ -209,8 +205,8 @@ class AuthService {
                 name: true,
                 role: true,
                 createdAt: true,
-                updatedAt: true
-            }
+                updatedAt: true,
+            },
         });
         if (!user) {
             throw new Error('User not found');
@@ -225,15 +221,15 @@ class AuthService {
             where: { id: userId },
             data: {
                 ...(data.name && { name: data.name }),
-                ...(data.email && { email: data.email })
+                ...(data.email && { email: data.email }),
             },
             select: {
                 id: true,
                 email: true,
                 name: true,
                 role: true,
-                updatedAt: true
-            }
+                updatedAt: true,
+            },
         });
         return user;
     }

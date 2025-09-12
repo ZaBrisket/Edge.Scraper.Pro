@@ -1,19 +1,43 @@
 #!/usr/bin/env node
 
-const { Command } = require('commander');
-const path = require('path');
-const fs = require('fs');
+import { Command } from 'commander';
+import * as path from 'path';
+import * as fs from 'fs';
+import { createLogger } from '../src/lib/logger';
 
 // Import the trivia exporter (will need to compile TypeScript first)
-const { exportTriviaDataset } = require('../dist/exporters/trivia_v1/index');
+import { exportTriviaDataset } from '../src/exporters/trivia_v1/index';
 
 // Import batch processor and extractors
-const { BatchProcessor } = require('../src/lib/batch-processor');
-const { SupplierDirectoryExtractor } = require('../src/lib/supplier-directory-extractor');
-const { SupplierDirectoryTestSuite } = require('../src/lib/supplier-directory-test-suite');
-const { SupplierDataExporter } = require('../src/lib/supplier-export');
+import { BatchProcessor } from '../src/lib/batch-processor';
+import { SupplierDirectoryExtractor } from '../src/lib/supplier-directory-extractor';
+import { SupplierDirectoryTestSuite } from '../src/lib/supplier-directory-test-suite';
+import { SupplierDataExporter } from '../src/lib/supplier-export';
 
 const program = new Command();
+const logger = createLogger('cli');
+
+interface ExportOptions {
+  seasonMin: number;
+  seasonMax: number;
+  positions: string[];
+  requireGMin: number;
+  dropSummaryRows: boolean;
+  pretty: boolean;
+  strict: boolean;
+  verbose: boolean;
+  validate: boolean;
+}
+
+interface ScrapeOptions {
+  urls: string;
+  mode: 'supplier-directory' | 'sports' | 'general';
+  output: string;
+  concurrency: number;
+  delay: number;
+  timeout: number;
+  verbose: boolean;
+}
 
 program
   .name('edge-scraper')
@@ -38,12 +62,12 @@ program
   .action(async (options) => {
     try {
       if (options.mode !== 'trivia_v1') {
-        console.error(`Unsupported export mode: ${options.mode}`);
+        logger.error(`Unsupported export mode: ${options.mode}`);
         process.exit(1);
       }
 
       // Parse options
-      const exportOptions = {
+      const exportOptions: ExportOptions = {
         seasonMin: parseInt(options.seasonMin),
         seasonMax: parseInt(options.seasonMax),
         positions: options.positions.split(',').map(p => p.trim()),
@@ -56,7 +80,7 @@ program
       };
 
       if (options.verbose) {
-        console.log('Export options:', exportOptions);
+        logger.info('Export options', exportOptions);
       }
 
       // Resolve paths
@@ -72,12 +96,13 @@ program
       // Run export
       await exportTriviaDataset(inputPath, outputPath, exportOptions);
 
-      console.log(`Successfully exported ${options.mode} dataset to ${outputPath}`);
+      logger.info(`Successfully exported ${options.mode} dataset to ${outputPath}`);
 
     } catch (error) {
-      console.error('Export failed:', error.message);
-      if (options.verbose) {
-        console.error(error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Export failed', { error: errorMessage });
+      if (options.verbose && error instanceof Error) {
+        logger.error('Stack trace', { stack: error.stack });
       }
       process.exit(1);
     }
@@ -87,20 +112,20 @@ program
   .command('scrape')
   .description('Scrape websites and extract data')
   .option('--urls <file>', 'file containing URLs to scrape (one per line)', 'urls.txt')
-  .option('--mode <mode>', 'extraction mode', 'supplier-directory', 'supplier-directory|sports|general')
+  .option('--mode <mode>', 'extraction mode', 'supplier-directory')
   .option('--output <file>', 'output file path', 'scraped-data.json')
   .option('--concurrency <number>', 'number of concurrent requests', '3')
   .option('--delay <ms>', 'delay between requests in milliseconds', '1000')
   .option('--timeout <ms>', 'request timeout in milliseconds', '30000')
   .option('--verbose', 'verbose output', false)
-  .action(async (options) => {
+  .action(async (options: ScrapeOptions) => {
     try {
-      console.log('🚀 Starting web scraping...\n');
+      logger.info('🚀 Starting web scraping...');
       
       // Read URLs from file
       const urlsPath = path.resolve(options.urls);
       if (!fs.existsSync(urlsPath)) {
-        console.error(`URLs file not found: ${urlsPath}`);
+        logger.error(`URLs file not found: ${urlsPath}`);
         process.exit(1);
       }
       
@@ -110,14 +135,15 @@ program
         .filter(url => url.length > 0);
       
       if (urls.length === 0) {
-        console.error('No URLs found in file');
+        logger.error('No URLs found in file');
         process.exit(1);
       }
       
-      console.log(`Found ${urls.length} URLs to process`);
-      console.log(`Extraction mode: ${options.mode}`);
-      console.log(`Concurrency: ${options.concurrency}`);
-      console.log(`Delay: ${options.delay}ms\n`);
+      logger.info(`Found ${urls.length} URLs to process`, {
+        extractionMode: options.mode,
+        concurrency: options.concurrency,
+        delay: options.delay
+      });
       
       // Create batch processor
       const processor = new BatchProcessor({
@@ -127,7 +153,12 @@ program
         extractionMode: options.mode,
         onProgress: (progress) => {
           if (options.verbose) {
-            console.log(`Progress: ${progress.completed}/${progress.total} (${progress.percentage}%)`);
+            logger.info(`Progress: ${progress.completed}/${progress.total} (${progress.percentage}%)`, {
+              completed: progress.completed,
+              total: progress.total,
+              percentage: progress.percentage,
+              errors: progress.errors
+            });
           }
         }
       });
@@ -160,24 +191,25 @@ program
       exporter.createSummaryReport(result, summaryPath);
       
       // Print summary
-      console.log('\n📊 Scraping Complete!');
-      console.log('====================');
-      console.log(`Total URLs: ${result.stats.totalUrls}`);
-      console.log(`Processed: ${result.stats.processedUrls}`);
-      console.log(`Successful: ${result.stats.successfulUrls}`);
-      console.log(`Failed: ${result.stats.failedUrls}`);
-      console.log(`Duration: ${Math.round(duration / 1000)}s`);
-      console.log(`Results saved to: ${outputPath}`);
-      console.log(`Summary report: ${summaryPath}`);
+      logger.info('📊 Scraping Complete!', {
+        totalUrls: result.stats.totalUrls,
+        processedUrls: result.stats.processedUrls,
+        successfulUrls: result.stats.successfulUrls,
+        failedUrls: result.stats.failedUrls,
+        duration: Math.round(duration / 1000),
+        resultsPath: outputPath,
+        summaryPath: summaryPath
+      });
       
       if (result.stats.failedUrls > 0) {
-        console.log(`\n⚠️  ${result.stats.failedUrls} URLs failed. Check the summary report for details.`);
+        logger.warn(`⚠️  ${result.stats.failedUrls} URLs failed. Check the summary report for details.`);
       }
       
     } catch (error) {
-      console.error('Scraping failed:', error.message);
-      if (options.verbose) {
-        console.error(error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Scraping failed', { error: errorMessage });
+      if (options.verbose && error instanceof Error) {
+        logger.error('Stack trace', { stack: error.stack });
       }
       process.exit(1);
     }
@@ -189,7 +221,7 @@ program
   .option('--verbose', 'verbose output', false)
   .action(async (options) => {
     try {
-      console.log('🧪 Running Supplier Directory Tests...\n');
+      logger.info('🧪 Running Supplier Directory Tests...');
       
       const testSuite = new SupplierDirectoryTestSuite();
       const results = await testSuite.runAllTests();
@@ -199,9 +231,10 @@ program
       }
       
     } catch (error) {
-      console.error('Tests failed:', error.message);
-      if (options.verbose) {
-        console.error(error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Tests failed', { error: errorMessage });
+      if (options.verbose && error instanceof Error) {
+        logger.error('Stack trace', { stack: error.stack });
       }
       process.exit(1);
     }

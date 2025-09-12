@@ -16,7 +16,7 @@ class SportsDataExporter {
    */
   exportSportsData(scrapeResults, format = 'enhanced-csv') {
     const processedResults = this.processScrapeResults(scrapeResults);
-    
+
     switch (format.toLowerCase()) {
       case 'enhanced-csv':
         return this.exportEnhancedCSV(processedResults);
@@ -46,15 +46,17 @@ class SportsDataExporter {
         const processed = {
           ...result,
           sportsData: result.extractionDebug?.structuredData || {},
-          sportsValidation: result.extractionDebug?.sportsValidation || {}
+          sportsValidation: result.extractionDebug?.sportsValidation || {},
         };
-        
+
         // Extract additional structured data if available
         if (result.extractionDebug?.structuredData) {
           processed.hasStructuredData = true;
-          processed.structuredDataQuality = this.assessStructuredDataQuality(result.extractionDebug.structuredData);
+          processed.structuredDataQuality = this.assessStructuredDataQuality(
+            result.extractionDebug.structuredData
+          );
         }
-        
+
         return processed;
       });
   }
@@ -64,41 +66,62 @@ class SportsDataExporter {
    */
   exportEnhancedCSV(processedResults) {
     const headers = [
-      'url', 'success', 'error',
+      'url',
+      'success',
+      'error',
       // Player Information
-      'player_name', 'position', 'jersey_number', 'height', 'weight',
-      'birth_date', 'birth_place', 'college',
+      'player_name',
+      'position',
+      'jersey_number',
+      'height',
+      'weight',
+      'birth_date',
+      'birth_place',
+      'college',
       // Draft Information
-      'draft_year', 'draft_team', 'draft_round', 'draft_pick',
+      'draft_year',
+      'draft_team',
+      'draft_round',
+      'draft_pick',
       // Data Quality Metrics
-      'content_length', 'extraction_method', 'sports_validation_score',
-      'has_structured_data', 'structured_data_quality',
+      'content_length',
+      'extraction_method',
+      'sports_validation_score',
+      'has_structured_data',
+      'structured_data_quality',
       // Achievements
-      'achievements_count', 'top_achievements',
+      'achievements_count',
+      'top_achievements',
       // Statistics Summary
-      'career_stats_available', 'season_stats_count', 'playoff_stats_available',
+      'career_stats_available',
+      'season_stats_count',
+      'playoff_stats_available',
       // Original Data
-      'title', 'author', 'published_at', 'description', 'text'
+      'title',
+      'author',
+      'published_at',
+      'description',
+      'text',
     ];
-    
+
     // Pre-allocate array for better performance
     const rows = new Array(processedResults.length);
-    
+
     for (let i = 0; i < processedResults.length; i++) {
       const result = processedResults[i];
       const player = result.sportsData?.player || {};
       const stats = result.sportsData?.statistics || {};
       const achievements = result.sportsData?.achievements || [];
-      
+
       // Use array for row data instead of object destructuring
       const row = new Array(25); // Pre-allocate with known column count
       let colIndex = 0;
-      
+
       // Basic info
       row[colIndex++] = result.url;
       row[colIndex++] = result.success;
       row[colIndex++] = result.error || '';
-      
+
       // Player Information
       row[colIndex++] = player.name || '';
       row[colIndex++] = player.position || '';
@@ -108,39 +131,39 @@ class SportsDataExporter {
       row[colIndex++] = player.birthDate || '';
       row[colIndex++] = player.birthPlace || '';
       row[colIndex++] = player.college || '';
-      
+
       // Draft Information
       row[colIndex++] = player.draft?.year || '';
       row[colIndex++] = player.draft?.team || '';
       row[colIndex++] = player.draft?.round || '';
       row[colIndex++] = player.draft?.pick || '';
-      
+
       // Data Quality Metrics
       row[colIndex++] = result.text?.length || 0;
       row[colIndex++] = result.extractionDebug?.selectedMethod || '';
       row[colIndex++] = result.sportsValidation?.score || 0;
       row[colIndex++] = result.hasStructuredData || false;
       row[colIndex++] = result.structuredDataQuality || 0;
-      
+
       // Achievements (optimized join)
       row[colIndex++] = achievements.length;
       row[colIndex++] = achievements.length > 0 ? achievements.slice(0, 3).join('; ') : '';
-      
+
       // Statistics Summary
       row[colIndex++] = Object.keys(stats.career || {}).length > 0;
       row[colIndex++] = stats.seasons?.length || 0;
       row[colIndex++] = Object.keys(stats.playoffs || {}).length > 0;
-      
+
       // Original Data
       row[colIndex++] = result.metadata?.title || '';
       row[colIndex++] = result.metadata?.author || '';
       row[colIndex++] = result.metadata?.published_at || '';
       row[colIndex++] = result.metadata?.description || '';
       row[colIndex++] = result.text || '';
-      
+
       rows[i] = row;
     }
-    
+
     return this.arrayToCSV([headers, ...rows]);
   }
 
@@ -155,22 +178,22 @@ class SportsDataExporter {
         successfulCount++;
       }
     }
-    
+
     const structuredData = {
       exportInfo: {
         timestamp: new Date().toISOString(),
         totalPlayers: processedResults.length,
         successfulExtractions: successfulCount,
-        format: 'structured-json'
+        format: 'structured-json',
       },
-      players: new Array(processedResults.length)
+      players: new Array(processedResults.length),
     };
-    
+
     // Pre-allocate and populate players array
     for (let i = 0; i < processedResults.length; i++) {
       structuredData.players[i] = this.createPlayerObject(processedResults[i]);
     }
-    
+
     return JSON.stringify(structuredData, null, 2);
   }
 
@@ -186,16 +209,16 @@ class SportsDataExporter {
       metadata: {
         exported_at: new Date().toISOString(),
         total_records: processedResults.length,
-        schema_version: '1.0'
-      }
+        schema_version: '1.0',
+      },
     };
-    
+
     processedResults.forEach((result, index) => {
       const playerId = `player_${index + 1}`;
       const player = result.sportsData?.player || {};
       const stats = result.sportsData?.statistics || {};
       const achievements = result.sportsData?.achievements || [];
-      
+
       // Players table
       database.players.push({
         id: playerId,
@@ -209,9 +232,9 @@ class SportsDataExporter {
         college: player.college || null,
         source_url: result.url,
         extraction_success: result.success,
-        extraction_date: new Date().toISOString()
+        extraction_date: new Date().toISOString(),
       });
-      
+
       // Draft information
       if (player.draft) {
         database.draft_info.push({
@@ -219,48 +242,48 @@ class SportsDataExporter {
           draft_year: player.draft.year,
           draft_team: player.draft.team,
           draft_round: player.draft.round,
-          draft_pick: player.draft.pick
+          draft_pick: player.draft.pick,
         });
       }
-      
+
       // Statistics
       if (stats.career && Object.keys(stats.career).length > 0) {
         database.statistics.push({
           player_id: playerId,
           stat_type: 'career',
-          data: stats.career
+          data: stats.career,
         });
       }
-      
+
       if (stats.seasons && stats.seasons.length > 0) {
         stats.seasons.forEach((season, seasonIndex) => {
           database.statistics.push({
             player_id: playerId,
             stat_type: 'season',
             season_index: seasonIndex,
-            data: season
+            data: season,
           });
         });
       }
-      
+
       if (stats.playoffs && Object.keys(stats.playoffs).length > 0) {
         database.statistics.push({
           player_id: playerId,
           stat_type: 'playoffs',
-          data: stats.playoffs
+          data: stats.playoffs,
         });
       }
-      
+
       // Achievements
       achievements.forEach((achievement, achIndex) => {
         database.achievements.push({
           player_id: playerId,
           achievement_index: achIndex,
-          achievement: achievement
+          achievement: achievement,
         });
       });
     });
-    
+
     return JSON.stringify(database, null, 2);
   }
 
@@ -272,18 +295,29 @@ class SportsDataExporter {
       metadata: {
         format: 'excel-compatible',
         sheets: ['Players', 'Statistics', 'Achievements', 'Raw_Data'],
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       },
-      sheets: {}
+      sheets: {},
     };
-    
+
     // Players sheet
     const playersHeaders = [
-      'ID', 'Name', 'Position', 'Jersey', 'Height', 'Weight', 
-      'Birth Date', 'Birth Place', 'College', 'Draft Year', 
-      'Draft Team', 'Draft Round', 'Draft Pick', 'Source URL'
+      'ID',
+      'Name',
+      'Position',
+      'Jersey',
+      'Height',
+      'Weight',
+      'Birth Date',
+      'Birth Place',
+      'College',
+      'Draft Year',
+      'Draft Team',
+      'Draft Round',
+      'Draft Pick',
+      'Source URL',
     ];
-    
+
     const playersData = processedResults.map((result, index) => {
       const player = result.sportsData?.player || {};
       return [
@@ -300,77 +334,87 @@ class SportsDataExporter {
         player.draft?.team || '',
         player.draft?.round || '',
         player.draft?.pick || '',
-        result.url
+        result.url,
       ];
     });
-    
+
     workbook.sheets.Players = {
       headers: playersHeaders,
-      data: playersData
+      data: playersData,
     };
-    
+
     // Statistics sheet
-    const statisticsHeaders = [
-      'Player_ID', 'Player_Name', 'Stat_Type', 'Season', 'Data'
-    ];
-    
+    const statisticsHeaders = ['Player_ID', 'Player_Name', 'Stat_Type', 'Season', 'Data'];
+
     const statisticsData = [];
     processedResults.forEach((result, index) => {
       const playerId = `P${index + 1}`;
       const playerName = result.sportsData?.player?.name || '';
       const stats = result.sportsData?.statistics || {};
-      
+
       if (stats.career && Object.keys(stats.career).length > 0) {
-        statisticsData.push([
-          playerId, playerName, 'Career', 'All', JSON.stringify(stats.career)
-        ]);
+        statisticsData.push([playerId, playerName, 'Career', 'All', JSON.stringify(stats.career)]);
       }
-      
+
       if (stats.seasons) {
         stats.seasons.forEach((season, seasonIndex) => {
           statisticsData.push([
-            playerId, playerName, 'Season', seasonIndex + 1, JSON.stringify(season)
+            playerId,
+            playerName,
+            'Season',
+            seasonIndex + 1,
+            JSON.stringify(season),
           ]);
         });
       }
-      
+
       if (stats.playoffs && Object.keys(stats.playoffs).length > 0) {
         statisticsData.push([
-          playerId, playerName, 'Playoffs', 'All', JSON.stringify(stats.playoffs)
+          playerId,
+          playerName,
+          'Playoffs',
+          'All',
+          JSON.stringify(stats.playoffs),
         ]);
       }
     });
-    
+
     workbook.sheets.Statistics = {
       headers: statisticsHeaders,
-      data: statisticsData
+      data: statisticsData,
     };
-    
+
     // Achievements sheet
     const achievementsHeaders = ['Player_ID', 'Player_Name', 'Achievement'];
     const achievementsData = [];
-    
+
     processedResults.forEach((result, index) => {
       const playerId = `P${index + 1}`;
       const playerName = result.sportsData?.player?.name || '';
       const achievements = result.sportsData?.achievements || [];
-      
+
       achievements.forEach(achievement => {
         achievementsData.push([playerId, playerName, achievement]);
       });
     });
-    
+
     workbook.sheets.Achievements = {
       headers: achievementsHeaders,
-      data: achievementsData
+      data: achievementsData,
     };
-    
+
     // Raw Data sheet
     const rawHeaders = [
-      'URL', 'Success', 'Error', 'Title', 'Content_Length', 
-      'Extraction_Method', 'Sports_Validation_Score', 'Raw_Text'
+      'URL',
+      'Success',
+      'Error',
+      'Title',
+      'Content_Length',
+      'Extraction_Method',
+      'Sports_Validation_Score',
+      'Raw_Text',
     ];
-    
+
     const rawData = processedResults.map(result => [
       result.url,
       result.success,
@@ -379,14 +423,14 @@ class SportsDataExporter {
       result.text?.length || 0,
       result.extractionDebug?.selectedMethod || '',
       result.sportsValidation?.score || 0,
-      (result.text || '').substring(0, 1000) // Truncate for Excel compatibility
+      (result.text || '').substring(0, 1000), // Truncate for Excel compatibility
     ]);
-    
+
     workbook.sheets.Raw_Data = {
       headers: rawHeaders,
-      data: rawData
+      data: rawData,
     };
-    
+
     return JSON.stringify(workbook, null, 2);
   }
 
@@ -395,11 +439,11 @@ class SportsDataExporter {
    */
   exportStatisticsCSV(processedResults) {
     const allStats = [];
-    
+
     processedResults.forEach(result => {
       const player = result.sportsData?.player || {};
       const stats = result.sportsData?.statistics || {};
-      
+
       // Career stats
       if (stats.career && Object.keys(stats.career).length > 0) {
         allStats.push({
@@ -408,10 +452,10 @@ class SportsDataExporter {
           stat_type: 'Career',
           season: 'All',
           source_url: result.url,
-          ...stats.career
+          ...stats.career,
         });
       }
-      
+
       // Season stats
       if (stats.seasons) {
         stats.seasons.forEach((season, index) => {
@@ -419,13 +463,13 @@ class SportsDataExporter {
             player_name: player.name || '',
             position: player.position || '',
             stat_type: 'Season',
-            season: season.Year || season.Season || (index + 1),
+            season: season.Year || season.Season || index + 1,
             source_url: result.url,
-            ...season
+            ...season,
           });
         });
       }
-      
+
       // Playoff stats
       if (stats.playoffs && Object.keys(stats.playoffs).length > 0) {
         allStats.push({
@@ -434,26 +478,24 @@ class SportsDataExporter {
           stat_type: 'Playoffs',
           season: 'All',
           source_url: result.url,
-          ...stats.playoffs
+          ...stats.playoffs,
         });
       }
     });
-    
+
     if (allStats.length === 0) {
       return this.exportOriginalCSV(processedResults);
     }
-    
+
     // Get all unique column names
     const allColumns = new Set(['player_name', 'position', 'stat_type', 'season', 'source_url']);
     allStats.forEach(stat => {
       Object.keys(stat).forEach(key => allColumns.add(key));
     });
-    
+
     const headers = Array.from(allColumns);
-    const rows = allStats.map(stat => 
-      headers.map(header => stat[header] || '')
-    );
-    
+    const rows = allStats.map(stat => headers.map(header => stat[header] || ''));
+
     return this.arrayToCSV([headers, ...rows]);
   }
 
@@ -461,7 +503,16 @@ class SportsDataExporter {
    * Export original CSV format (backward compatibility)
    */
   exportOriginalCSV(processedResults) {
-    const headers = ['url', 'title', 'author', 'published_at', 'description', 'text', 'success', 'error'];
+    const headers = [
+      'url',
+      'title',
+      'author',
+      'published_at',
+      'description',
+      'text',
+      'success',
+      'error',
+    ];
     const rows = processedResults.map(result => [
       result.url,
       result.metadata?.title || '',
@@ -470,9 +521,9 @@ class SportsDataExporter {
       result.metadata?.description || '',
       result.text || '',
       result.success,
-      result.error || ''
+      result.error || '',
     ]);
-    
+
     return this.arrayToCSV([headers, ...rows]);
   }
 
@@ -483,7 +534,7 @@ class SportsDataExporter {
     const player = result.sportsData?.player || {};
     const stats = result.sportsData?.statistics || {};
     const achievements = result.sportsData?.achievements || [];
-    
+
     return {
       id: `player_${result.index}`,
       url: result.url,
@@ -493,7 +544,7 @@ class SportsDataExporter {
         method: result.extractionDebug?.selectedMethod,
         contentLength: result.text?.length || 0,
         sportsValidationScore: result.sportsValidation?.score || 0,
-        extractedAt: new Date().toISOString()
+        extractedAt: new Date().toISOString(),
       },
       profile: {
         name: player.name || null,
@@ -501,24 +552,24 @@ class SportsDataExporter {
         jerseyNumber: player.jerseyNumber || null,
         physicalStats: {
           height: player.height || null,
-          weight: player.weight || null
+          weight: player.weight || null,
         },
         personal: {
           birthDate: player.birthDate || null,
           birthPlace: player.birthPlace || null,
-          college: player.college || null
+          college: player.college || null,
         },
-        draft: player.draft || null
+        draft: player.draft || null,
       },
       statistics: {
         career: stats.career || {},
         seasons: stats.seasons || [],
-        playoffs: stats.playoffs || {}
+        playoffs: stats.playoffs || {},
       },
       achievements: achievements,
       faqData: player.faqData || {},
       metadata: result.metadata || {},
-      rawText: result.text || ''
+      rawText: result.text || '',
     };
   }
 
@@ -527,12 +578,12 @@ class SportsDataExporter {
    */
   assessStructuredDataQuality(structuredData) {
     if (!structuredData) return 0;
-    
+
     let score = 0;
     const player = structuredData.player || {};
     const stats = structuredData.statistics || {};
     const achievements = structuredData.achievements || [];
-    
+
     // Player information completeness
     if (player.name) score += 20;
     if (player.position) score += 15;
@@ -540,15 +591,15 @@ class SportsDataExporter {
     if (player.birthDate) score += 10;
     if (player.college) score += 10;
     if (player.draft) score += 15;
-    
+
     // Statistics availability
     if (stats.career && Object.keys(stats.career).length > 0) score += 10;
     if (stats.seasons && stats.seasons.length > 0) score += 10;
     if (stats.playoffs && Object.keys(stats.playoffs).length > 0) score += 5;
-    
+
     // Achievements
     if (achievements.length > 0) score += 5;
-    
+
     return Math.min(score, 100); // Cap at 100
   }
 
@@ -556,14 +607,14 @@ class SportsDataExporter {
    * Convert array data to CSV format (optimized with array joins)
    */
   arrayToCSV(data) {
-    const escapeCSV = (value) => {
+    const escapeCSV = value => {
       const str = (value || '').toString();
       if (str.includes(',') || str.includes('"') || str.includes('\n')) {
         return `"${str.replace(/"/g, '""')}"`;
       }
       return str;
     };
-    
+
     // Use array joins for better performance
     const rows = [];
     for (let i = 0; i < data.length; i++) {
@@ -574,7 +625,7 @@ class SportsDataExporter {
       }
       rows.push(cells.join(','));
     }
-    
+
     return rows.join('\n');
   }
 
@@ -586,33 +637,33 @@ class SportsDataExporter {
       {
         id: 'enhanced-csv',
         name: 'Enhanced CSV',
-        description: 'CSV with sports-specific columns and structured data'
+        description: 'CSV with sports-specific columns and structured data',
       },
       {
         id: 'structured-json',
         name: 'Structured JSON',
-        description: 'JSON with normalized player objects and metadata'
+        description: 'JSON with normalized player objects and metadata',
       },
       {
         id: 'player-database',
         name: 'Player Database',
-        description: 'Normalized relational database structure'
+        description: 'Normalized relational database structure',
       },
       {
         id: 'excel-compatible',
         name: 'Excel Compatible',
-        description: 'Multi-sheet structure for Excel import'
+        description: 'Multi-sheet structure for Excel import',
       },
       {
         id: 'statistics-csv',
         name: 'Statistics CSV',
-        description: 'Focused on statistical data with one row per stat entry'
+        description: 'Focused on statistical data with one row per stat entry',
       },
       {
         id: 'original-csv',
         name: 'Original CSV',
-        description: 'Original format for backward compatibility'
-      }
+        description: 'Original format for backward compatibility',
+      },
     ];
   }
 }

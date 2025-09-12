@@ -6,6 +6,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createError = exports.ErrorHandler = exports.ErrorCodes = exports.APIError = void 0;
 const zod_1 = require("zod");
+const logger_1 = require("../logger");
+const logger = (0, logger_1.createLogger)('error-handler');
 class APIError extends Error {
     constructor(code, message, statusCode = 500, details) {
         super(message);
@@ -43,7 +45,7 @@ exports.ErrorCodes = {
     INTERNAL_ERROR: 'internal_error',
     SERVICE_UNAVAILABLE: 'service_unavailable',
     DATABASE_ERROR: 'database_error',
-    EXTERNAL_SERVICE_ERROR: 'external_service_error'
+    EXTERNAL_SERVICE_ERROR: 'external_service_error',
 };
 class ErrorHandler {
     /**
@@ -58,9 +60,9 @@ class ErrorHandler {
                     error: {
                         code: error.code,
                         message: error.message,
-                        ...(error.details && { details: error.details })
-                    }
-                }
+                        ...(error.details && { details: error.details }),
+                    },
+                },
             };
         }
         // Zod validation errors
@@ -68,7 +70,7 @@ class ErrorHandler {
             const formattedErrors = error.errors.map(err => ({
                 field: err.path.join('.'),
                 message: err.message,
-                code: err.code
+                code: err.code,
             }));
             return {
                 statusCode: 400,
@@ -76,9 +78,9 @@ class ErrorHandler {
                     error: {
                         code: exports.ErrorCodes.VALIDATION_FAILED,
                         message: 'Validation failed',
-                        details: formattedErrors
-                    }
-                }
+                        details: formattedErrors,
+                    },
+                },
             };
         }
         // Prisma errors
@@ -91,9 +93,9 @@ class ErrorHandler {
                             error: {
                                 code: exports.ErrorCodes.RESOURCE_ALREADY_EXISTS,
                                 message: 'Resource already exists',
-                                details: error.meta
-                            }
-                        }
+                                details: error.meta,
+                            },
+                        },
                     };
                 case 'P2025':
                     return {
@@ -102,9 +104,9 @@ class ErrorHandler {
                             error: {
                                 code: exports.ErrorCodes.RESOURCE_NOT_FOUND,
                                 message: 'Resource not found',
-                                details: error.meta
-                            }
-                        }
+                                details: error.meta,
+                            },
+                        },
                     };
                 default:
                     return {
@@ -113,9 +115,9 @@ class ErrorHandler {
                             error: {
                                 code: exports.ErrorCodes.DATABASE_ERROR,
                                 message: 'Database error occurred',
-                                details: process.env.NODE_ENV === 'development' ? error : undefined
-                            }
-                        }
+                                details: process.env.NODE_ENV === 'development' ? error : undefined,
+                            },
+                        },
                     };
             }
         }
@@ -126,9 +128,9 @@ class ErrorHandler {
                 body: {
                     error: {
                         code: exports.ErrorCodes.INVALID_TOKEN,
-                        message: 'Invalid token'
-                    }
-                }
+                        message: 'Invalid token',
+                    },
+                },
             };
         }
         if (error.name === 'TokenExpiredError') {
@@ -137,9 +139,9 @@ class ErrorHandler {
                 body: {
                     error: {
                         code: exports.ErrorCodes.TOKEN_EXPIRED,
-                        message: 'Token has expired'
-                    }
-                }
+                        message: 'Token has expired',
+                    },
+                },
             };
         }
         // Network/HTTP errors
@@ -149,9 +151,9 @@ class ErrorHandler {
                 body: {
                     error: {
                         code: exports.ErrorCodes.SERVICE_UNAVAILABLE,
-                        message: 'External service unavailable'
-                    }
-                }
+                        message: 'External service unavailable',
+                    },
+                },
             };
         }
         // Rate limiting errors
@@ -161,9 +163,9 @@ class ErrorHandler {
                 body: {
                     error: {
                         code: exports.ErrorCodes.RATE_LIMITED,
-                        message: 'Rate limit exceeded'
-                    }
-                }
+                        message: 'Rate limit exceeded',
+                    },
+                },
             };
         }
         // Default internal server error
@@ -173,9 +175,9 @@ class ErrorHandler {
                 error: {
                     code: exports.ErrorCodes.INTERNAL_ERROR,
                     message: 'Internal server error',
-                    details: process.env.NODE_ENV === 'development' ? error.message : undefined
-                }
-            }
+                    details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+                },
+            },
         };
     }
     /**
@@ -188,9 +190,9 @@ class ErrorHandler {
                 error: {
                     code,
                     message,
-                    ...(details && { details })
-                }
-            }
+                    ...(details && { details }),
+                },
+            },
         };
     }
     /**
@@ -203,10 +205,10 @@ class ErrorHandler {
             code: error.code,
             statusCode: error.statusCode,
             context,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
         };
         // In production, you might want to send this to a logging service
-        console.error('API Error:', JSON.stringify(errorInfo, null, 2));
+        logger.error('API Error:', errorInfo);
     }
     /**
      * Middleware wrapper for error handling
@@ -225,8 +227,8 @@ class ErrorHandler {
                         'Content-Type': 'application/json',
                         'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGINS || 'http://localhost:3000',
                         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
-                    }
+                        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+                    },
                 };
             }
         };
@@ -245,6 +247,6 @@ exports.createError = {
     invalidFileType: (allowedTypes) => new APIError(exports.ErrorCodes.INVALID_FILE_TYPE, 'Invalid file type', 400, { allowedTypes }),
     urlBlocked: (reason) => new APIError(exports.ErrorCodes.URL_BLOCKED, `URL blocked: ${reason}`, 400),
     rateLimited: (retryAfter) => new APIError(exports.ErrorCodes.RATE_LIMITED, 'Rate limit exceeded', 429, retryAfter ? { retryAfter } : undefined),
-    internalError: (message = 'Internal server error') => new APIError(exports.ErrorCodes.INTERNAL_ERROR, message, 500)
+    internalError: (message = 'Internal server error') => new APIError(exports.ErrorCodes.INTERNAL_ERROR, message, 500),
 };
 //# sourceMappingURL=error-handler.js.map

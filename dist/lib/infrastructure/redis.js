@@ -44,7 +44,8 @@ async function enqueueJob(queueName, jobType, payload, options = {}) {
 /**
  * Dequeue the next available job
  */
-async function dequeueJob(queueName, visibilityTimeout = 300) {
+async function dequeueJob(queueName, visibilityTimeout = 300 // 5 minutes default
+) {
     const now = Date.now();
     // Get all jobs from queue and filter by processAt time
     const allJobs = await redis.zrange(queueName, 0, -1, { withScores: true });
@@ -69,7 +70,10 @@ async function dequeueJob(queueName, visibilityTimeout = 300) {
     const job = JSON.parse(jobData);
     // Remove from queue and add to processing set with visibility timeout
     await redis.zrem(queueName, jobData);
-    await redis.zadd(`${queueName}:processing`, { score: now + visibilityTimeout * 1000, member: jobData });
+    await redis.zadd(`${queueName}:processing`, {
+        score: now + visibilityTimeout * 1000,
+        member: jobData,
+    });
     // Update job status
     await redis.hset(`job:${job.id}`, {
         status: 'processing',
@@ -93,7 +97,8 @@ async function completeJob(queueName, job) {
 /**
  * Mark a job as failed and potentially retry
  */
-async function failJob(queueName, job, error, retryDelay = 60000) {
+async function failJob(queueName, job, error, retryDelay = 60000 // 1 minute default
+) {
     const now = Date.now();
     // Remove from processing set
     await redis.zrem(`${queueName}:processing`, JSON.stringify(job));
@@ -133,7 +138,9 @@ async function getJobStatus(jobId) {
 async function cleanupExpiredJobs(queueName) {
     const now = Date.now();
     // Get all jobs from processing queue with scores
-    const allProcessingJobs = await redis.zrange(`${queueName}:processing`, 0, -1, { withScores: true });
+    const allProcessingJobs = await redis.zrange(`${queueName}:processing`, 0, -1, {
+        withScores: true,
+    });
     if (!allProcessingJobs || allProcessingJobs.length === 0) {
         return 0;
     }

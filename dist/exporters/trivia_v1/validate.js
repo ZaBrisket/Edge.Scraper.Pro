@@ -42,8 +42,10 @@ const ajv_1 = __importDefault(require("ajv"));
 const ajv_formats_1 = __importDefault(require("ajv-formats"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const logger_1 = require("../../lib/logger");
+const logger = (0, logger_1.createLogger)('trivia-validator');
 // Schema paths
-const SCHEMA_DIR = path.join(__dirname, '../../../schemas');
+const SCHEMA_DIR = path.join(process.cwd(), 'schemas');
 const DATASET_SCHEMA_PATH = path.join(SCHEMA_DIR, 'trivia_v1.dataset.schema.json');
 const PLAYER_SCHEMA_PATH = path.join(SCHEMA_DIR, 'trivia_v1.player.schema.json');
 const QB_SEASON_SCHEMA_PATH = path.join(SCHEMA_DIR, 'trivia_v1.qb_season.schema.json');
@@ -58,7 +60,7 @@ function createValidator() {
     const ajv = new ajv_1.default({
         allErrors: true,
         verbose: true,
-        strict: true
+        strict: true,
     });
     (0, ajv_formats_1.default)(ajv);
     // Load all schemas
@@ -69,7 +71,7 @@ function createValidator() {
         { path: WR_SEASON_SCHEMA_PATH, id: 'trivia_v1.wr_season.schema.json' },
         { path: TE_SEASON_SCHEMA_PATH, id: 'trivia_v1.te_season.schema.json' },
         { path: ELIGIBILITY_SCHEMA_PATH, id: 'trivia_v1.eligibility.schema.json' },
-        { path: DATASET_SCHEMA_PATH, id: 'trivia_v1.dataset.schema.json' }
+        { path: DATASET_SCHEMA_PATH, id: 'trivia_v1.dataset.schema.json' },
     ];
     for (const { path: schemaPath, id } of schemas) {
         try {
@@ -91,7 +93,7 @@ function validateTriviaDataset(data, options = {}) {
     const result = {
         valid: true,
         errors: [],
-        warnings: []
+        warnings: [],
     };
     try {
         const ajv = createValidator();
@@ -117,7 +119,7 @@ function validateTriviaDataset(data, options = {}) {
             }
         }
         if (verbose && result.errors.length > 0) {
-            console.log('Validation errors:', result.errors);
+            logger.error('Validation errors:', { errors: result.errors });
         }
     }
     catch (error) {
@@ -167,7 +169,8 @@ function performSemanticValidations(data) {
                 // Check numeric fields are actually numbers
                 const numericFields = ['G', 'GS', 'Age'];
                 for (const field of numericFields) {
-                    if (season[field] !== undefined && (typeof season[field] !== 'number' || isNaN(season[field]))) {
+                    if (season[field] !== undefined &&
+                        (typeof season[field] !== 'number' || isNaN(season[field]))) {
                         errors.push(`Non-numeric value in ${arrayName}.${field}: ${season[field]}`);
                     }
                 }
@@ -191,9 +194,19 @@ function validateRequiredFields(data) {
     const result = {
         valid: true,
         errors: [],
-        warnings: []
+        warnings: [],
     };
-    const requiredTopLevel = ['schema', 'players', 'qb_seasons', 'rb_seasons', 'wr_seasons', 'te_seasons', 'eligibility', 'daily_picks', 'generated_at'];
+    const requiredTopLevel = [
+        'schema',
+        'players',
+        'qb_seasons',
+        'rb_seasons',
+        'wr_seasons',
+        'te_seasons',
+        'eligibility',
+        'daily_picks',
+        'generated_at',
+    ];
     for (const field of requiredTopLevel) {
         if (!(field in data)) {
             result.errors.push(`Missing required field: ${field}`);
