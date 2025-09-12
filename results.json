@@ -1,19 +1,19 @@
 {
   "results": [
     {
-      "url": "https://www.pro-football-reference.com/players/K/KelcTr00.htm",
-      "success": true,
-      "status": 200,
-      "contentLength": 508166,
-      "timestamp": "2025-09-12T19:58:57.104Z",
-      "content": "\n<!DOCTYPE html>\n<html data-version=\"klecko-\" data-root=\"/home/pfr/build\" lang=\"en\" class=\"no-js\" >\n<head>\n    <meta charset=\"utf-8\">\n    <meta http-equiv=\"x-ua-compatible\" content=\"ie=edge\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=2.0\" />\n    <link rel=\"dns-prefetch\" href=\"https://cdn.ssref.net/req/202508071\" />\n<script>\n/* https://docs.osano.com/hc/en-us/articles/22469433444372-Google-Consent-Mode-v2  */\n  window.dataLayer = window.dataLayer ||[];\n      function gtag(){dataLayer.push(arguments);}\n      gtag('consent','default',{\n        'ad_storage':'denied',\n        'analytics_storage':'denied',\n        'ad_user_data':'denied',\n        'ad_personalization':'denied',\n        'personalization_storage':'denied',\n        'functionality_storage':'granted',\n        'security_storage':'granted',\n        'wait_for_update': 500\n      });\n      gtag(\"set\", \"ads_data_redaction\", true);\n</script>\n<script src=\"https://cmp.osano.com/16CGnCU8UtNhM14s..."
-    },
-    {
       "url": "https://www.pro-football-reference.com/players/M/MahoPa00.htm",
       "success": true,
       "status": 200,
       "contentLength": 599833,
-      "timestamp": "2025-09-12T19:58:57.124Z",
+      "timestamp": "2025-09-12T20:07:45.815Z",
+      "content": "\n<!DOCTYPE html>\n<html data-version=\"klecko-\" data-root=\"/home/pfr/build\" lang=\"en\" class=\"no-js\" >\n<head>\n    <meta charset=\"utf-8\">\n    <meta http-equiv=\"x-ua-compatible\" content=\"ie=edge\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=2.0\" />\n    <link rel=\"dns-prefetch\" href=\"https://cdn.ssref.net/req/202508071\" />\n<script>\n/* https://docs.osano.com/hc/en-us/articles/22469433444372-Google-Consent-Mode-v2  */\n  window.dataLayer = window.dataLayer ||[];\n      function gtag(){dataLayer.push(arguments);}\n      gtag('consent','default',{\n        'ad_storage':'denied',\n        'analytics_storage':'denied',\n        'ad_user_data':'denied',\n        'ad_personalization':'denied',\n        'personalization_storage':'denied',\n        'functionality_storage':'granted',\n        'security_storage':'granted',\n        'wait_for_update': 500\n      });\n      gtag(\"set\", \"ads_data_redaction\", true);\n</script>\n<script src=\"https://cmp.osano.com/16CGnCU8UtNhM14s..."
+    },
+    {
+      "url": "https://www.pro-football-reference.com/players/K/KelcTr00.htm",
+      "success": true,
+      "status": 200,
+      "contentLength": 508166,
+      "timestamp": "2025-09-12T20:07:45.858Z",
       "content": "\n<!DOCTYPE html>\n<html data-version=\"klecko-\" data-root=\"/home/pfr/build\" lang=\"en\" class=\"no-js\" >\n<head>\n    <meta charset=\"utf-8\">\n    <meta http-equiv=\"x-ua-compatible\" content=\"ie=edge\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=2.0\" />\n    <link rel=\"dns-prefetch\" href=\"https://cdn.ssref.net/req/202508071\" />\n<script>\n/* https://docs.osano.com/hc/en-us/articles/22469433444372-Google-Consent-Mode-v2  */\n  window.dataLayer = window.dataLayer ||[];\n      function gtag(){dataLayer.push(arguments);}\n      gtag('consent','default',{\n        'ad_storage':'denied',\n        'analytics_storage':'denied',\n        'ad_user_data':'denied',\n        'ad_personalization':'denied',\n        'personalization_storage':'denied',\n        'functionality_storage':'granted',\n        'security_storage':'granted',\n        'wait_for_update': 500\n      });\n      gtag(\"set\", \"ads_data_redaction\", true);\n</script>\n<script src=\"https://cmp.osano.com/16CGnCU8UtNhM14s..."
     },
     {
@@ -21,7 +21,7 @@
       "success": true,
       "status": 200,
       "contentLength": 416753,
-      "timestamp": "2025-09-12T19:58:58.166Z",
+      "timestamp": "2025-09-12T20:07:46.917Z",
       "content": "\n<!DOCTYPE html>\n<html data-version=\"klecko-\" data-root=\"/home/pfr/build\" lang=\"en\" class=\"no-js\" >\n<head>\n    <meta charset=\"utf-8\">\n    <meta http-equiv=\"x-ua-compatible\" content=\"ie=edge\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=2.0\" />\n    <link rel=\"dns-prefetch\" href=\"https://cdn.ssref.net/req/202508071\" />\n<script>\n/* https://docs.osano.com/hc/en-us/articles/22469433444372-Google-Consent-Mode-v2  */\n  window.dataLayer = window.dataLayer ||[];\n      function gtag(){dataLayer.push(arguments);}\n      gtag('consent','default',{\n        'ad_storage':'denied',\n        'analytics_storage':'denied',\n        'ad_user_data':'denied',\n        'ad_personalization':'denied',\n        'personalization_storage':'denied',\n        'functionality_storage':'granted',\n        'security_storage':'granted',\n        'wait_for_update': 500\n      });\n      gtag(\"set\", \"ads_data_redaction\", true);\n</script>\n<script src=\"https://cmp.osano.com/16CGnCU8UtNhM14s..."
     }
   ],
@@ -30,7 +30,7 @@
       "url": "https://www.thomasnet.com/suppliers/12345",
       "success": false,
       "error": "HTTP 404: Not Found",
-      "timestamp": "2025-09-12T19:58:58.266Z"
+      "timestamp": "2025-09-12T20:07:47.015Z"
     }
   ],
   "summary": {
@@ -38,7 +38,7 @@
     "successful": 3,
     "failed": 1,
     "successRate": "75.0",
-    "duration": "1.3s",
-    "averageTimePerUrl": "334ms"
+    "duration": "1.4s",
+    "averageTimePerUrl": "345ms"
   }
 }

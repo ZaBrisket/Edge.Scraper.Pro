@@ -10,7 +10,13 @@
  */
 
 const fs = require('fs');
+const { URL } = require('url');
 const URLCleanupTool = require('./url-cleanup-tool');
+
+// Polyfill fetch for older Node.js versions
+if (typeof fetch === 'undefined') {
+    global.fetch = require('node-fetch');
+}
 
 // Simple scraper class
 class SimpleScraper {
@@ -26,10 +32,13 @@ class SimpleScraper {
         try {
             console.log(`Scraping: ${url}`);
             
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+            // Create a promise that rejects after timeout
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error(`Request timeout after ${this.timeout}ms`)), this.timeout);
+            });
             
-            const response = await fetch(url, {
+            // Create the fetch promise
+            const fetchPromise = fetch(url, {
                 method: 'GET',
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -38,11 +47,11 @@ class SimpleScraper {
                     'Accept-Encoding': 'gzip, deflate, br',
                     'Connection': 'keep-alive',
                     'Upgrade-Insecure-Requests': '1'
-                },
-                signal: controller.signal
+                }
             });
             
-            clearTimeout(timeoutId);
+            // Race between fetch and timeout
+            const response = await Promise.race([fetchPromise, timeoutPromise]);
             
             if (response.ok) {
                 const content = await response.text();
@@ -168,22 +177,46 @@ Options:
         output: 'results.json'
     };
     
-    for (let i = 1; i < args.length; i += 2) {
+    for (let i = 1; i < args.length; i++) {
         const flag = args[i];
         const value = args[i + 1];
         
         switch (flag) {
             case '--concurrency':
-                options.concurrency = parseInt(value);
+                if (value && !isNaN(parseInt(value))) {
+                    options.concurrency = parseInt(value);
+                    i++; // Skip the value in next iteration
+                } else {
+                    console.error('Error: --concurrency requires a numeric value');
+                    process.exit(1);
+                }
                 break;
             case '--delay':
-                options.delayMs = parseInt(value);
+                if (value && !isNaN(parseInt(value))) {
+                    options.delayMs = parseInt(value);
+                    i++; // Skip the value in next iteration
+                } else {
+                    console.error('Error: --delay requires a numeric value');
+                    process.exit(1);
+                }
                 break;
             case '--timeout':
-                options.timeout = parseInt(value);
+                if (value && !isNaN(parseInt(value))) {
+                    options.timeout = parseInt(value);
+                    i++; // Skip the value in next iteration
+                } else {
+                    console.error('Error: --timeout requires a numeric value');
+                    process.exit(1);
+                }
                 break;
             case '--output':
-                options.output = value;
+                if (value) {
+                    options.output = value;
+                    i++; // Skip the value in next iteration
+                } else {
+                    console.error('Error: --output requires a filename');
+                    process.exit(1);
+                }
                 break;
         }
     }
