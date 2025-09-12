@@ -1,20 +1,18 @@
 const { PrismaClient } = require('@prisma/client');
 const { generatePresignedUpload } = require('./utils/s3');
 const { z } = require('zod');
+const { AuthService, Permission } = require('../../src/lib/auth');
+const { ValidationUtils, schemas } = require('../../src/lib/validation');
 
 const prisma = new PrismaClient();
 
-// Request schema validation
-const PresignRequestSchema = z.object({
-  filename: z.string().min(1).max(255),
-  contentType: z.enum(['text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel']),
-  maxFileSize: z.number().optional().default(10 * 1024 * 1024), // 10MB default
-});
+// Use centralized validation schema
+const PresignRequestSchema = schemas.targetList.uploadPresign;
 
 exports.handler = async (event, context) => {
   // CORS headers
   const headers = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGINS || 'http://localhost:3000',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Content-Type': 'application/json',
@@ -43,13 +41,43 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    // Authenticate user
+    const authHeader = event.headers.authorization || event.headers.Authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({
+          error: {
+            code: 'missing_token',
+            message: 'Authorization token required',
+          },
+        }),
+      };
+    }
+
+    const token = authHeader.substring(7);
+    const payload = AuthService.verifyToken(token);
+    
+    // Check permissions
+    if (!AuthService.hasPermission(payload.permissions, Permission.WRITE_TARGETS)) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({
+          error: {
+            code: 'insufficient_permissions',
+            message: 'Insufficient permissions to upload files',
+          },
+        }),
+      };
+    }
+
     // Parse and validate request body
     const body = JSON.parse(event.body || '{}');
-    const validatedData = PresignRequestSchema.parse(body);
+    const validatedData = ValidationUtils.validateBody(PresignRequestSchema, body);
 
-    // TODO: Add authentication/authorization
-    // For now, we'll use a mock user ID
-    const userId = 'mock-user-id';
+    const userId = payload.userId;
 
     // Generate presigned upload URL
     const presignedData = await generatePresignedUpload(

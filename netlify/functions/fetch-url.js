@@ -8,6 +8,8 @@ const { URL } = require('url');
 const net = require('net');
 const { fetchWithPolicy } = require('../../src/lib/http/client');
 const { getCorrelationId } = require('../../src/lib/http/correlation');
+const { AuthService, Permission } = require('../../src/lib/auth');
+const { ValidationUtils } = require('../../src/lib/validation');
 
 // Cache for resolved hostnames
 const hostCache = new Map();
@@ -21,9 +23,9 @@ const TIMEOUT_MS = parseInt(process.env.HTTP_DEADLINE_MS || '10000', 10);
 const ALLOWED_PORTS = new Set([80, 443, null, undefined, '']); // default http/https
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGINS || 'http://localhost:3000',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type'
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization'
 };
 
 async function resolveHost(hostname, { forceRefresh = false } = {}) {
@@ -48,8 +50,27 @@ exports.handler = async (event) => {
   }
 
   try {
+    // Authenticate user
+    const authHeader = event.headers.authorization || event.headers.Authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return json(401, { error: 'Authorization token required' }, correlationId);
+    }
+
+    const token = authHeader.substring(7);
+    const payload = AuthService.verifyToken(token);
+    
+    // Check permissions
+    if (!AuthService.hasPermission(payload.permissions, Permission.READ_SCRAPING)) {
+      return json(403, { error: 'Insufficient permissions to scrape URLs' }, correlationId);
+    }
     const urlParam = (event.queryStringParameters && event.queryStringParameters.url) || '';
     if (!urlParam) return json(400, { error: 'Missing ?url=' }, correlationId);
+
+    // Validate URL for security
+    const urlValidation = ValidationUtils.validateUrl(urlParam);
+    if (!urlValidation.isValid) {
+      return json(400, { error: 'Invalid URL: ' + urlValidation.errors.join(', ') }, correlationId);
+    }
 
     const startUrl = new URL(urlParam);
     if (!['http:', 'https:'].includes(startUrl.protocol)) return json(400, { error: 'Only http/https are allowed' }, correlationId);

@@ -8,7 +8,7 @@ exports.handler = async (event) => {
     return {
       statusCode: 204,
       headers: {
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGINS || 'http://localhost:3000',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
       },
@@ -28,7 +28,7 @@ exports.handler = async (event) => {
     statusCode: 410,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGINS || 'http://localhost:3000',
     },
     body: JSON.stringify(body),
   };

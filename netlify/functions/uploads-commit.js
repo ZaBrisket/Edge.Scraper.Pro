@@ -1,16 +1,14 @@
 const { PrismaClient } = require('@prisma/client');
 const { objectExists, getObjectMetadata, s3, BUCKET } = require('./utils/s3');
 const csv = require('csv-parser');
-const xlsx = require('xlsx');
+const ExcelJS = require('exceljs');
 const { z } = require('zod');
+const { ValidationUtils, schemas } = require('../../src/lib/validation');
 
 const prisma = new PrismaClient();
 
-// Request schema validation
-const CommitRequestSchema = z.object({
-  s3Key: z.string().min(1),
-  datasetName: z.string().optional(),
-});
+// Use centralized validation schema
+const CommitRequestSchema = schemas.targetList.uploadCommit;
 
 /**
  * Estimate row count from CSV/Excel file using streaming/chunked approach
@@ -30,18 +28,15 @@ async function estimateRowCount(s3Key, contentType) {
       }).promise();
       
       // Read only the worksheet range, not the full data
-      const workbook = xlsx.read(result.Body, { 
-        type: 'buffer',
-        sheetStubs: true, // Only read cell references, not values
-        cellDates: false,
-        cellNF: false,
-        cellStyles: false
-      });
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(result.Body);
       
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-      const range = xlsx.utils.decode_range(worksheet['!ref'] || 'A1:A1');
-      return Math.max(0, range.e.r); // End row (0-indexed)
+      const worksheet = workbook.worksheets[0];
+      if (!worksheet) {
+        return 0;
+      }
+      
+      return worksheet.rowCount; // Total row count
     }
   } catch (error) {
     console.error('Error estimating row count:', error);
@@ -120,30 +115,21 @@ async function parseHeaders(s3Key, contentType) {
       }).promise();
 
       // Read only the first row for headers
-      const workbook = xlsx.read(result.Body, { 
-        type: 'buffer',
-        sheetRows: 1, // Only read first row
-        cellDates: false,
-        cellNF: false,
-        cellStyles: false
-      });
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(result.Body);
       
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-      
-      if (!worksheet['!ref']) return [];
+      const worksheet = workbook.worksheets[0];
+      if (!worksheet) return [];
       
       // Get first row as headers
-      const range = xlsx.utils.decode_range(worksheet['!ref']);
       const headers = [];
+      const firstRow = worksheet.getRow(1);
       
-      for (let col = range.s.c; col <= range.e.c; col++) {
-        const cellAddress = xlsx.utils.encode_cell({ r: 0, c: col });
-        const cell = worksheet[cellAddress];
-        if (cell && cell.v) {
-          headers.push(cell.v.toString().trim());
+      firstRow.eachCell((cell, colNumber) => {
+        if (cell.value) {
+          headers.push(cell.value.toString().trim());
         }
-      }
+      });
       
       return headers.filter(h => h.length > 0);
     }
@@ -212,7 +198,7 @@ async function parseCsvHeaders(BUCKET, s3Key) {
 exports.handler = async (event, context) => {
   // CORS headers
   const headers = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGINS || 'http://localhost:3000',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Content-Type': 'application/json',
@@ -243,7 +229,7 @@ exports.handler = async (event, context) => {
   try {
     // Parse and validate request body
     const body = JSON.parse(event.body || '{}');
-    const validatedData = CommitRequestSchema.parse(body);
+    const validatedData = ValidationUtils.validateBody(CommitRequestSchema, body);
 
     // Find the upload record
     const upload = await prisma.upload.findUnique({
