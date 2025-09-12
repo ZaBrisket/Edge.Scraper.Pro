@@ -13,56 +13,72 @@ import { BatchProcessor } from '../lib/batch-processor';
 // Input schema for supplier directory mode
 const SupplierDirectoryInputSchema = z.object({
   urls: z.array(z.string().url()).min(1).max(1500),
-  options: z.object({
-    concurrency: z.number().min(1).max(20).optional().default(3),
-    delayMs: z.number().min(0).max(10000).optional().default(1000),
-    timeout: z.number().min(1000).max(60000).optional().default(30000),
-    maxRetries: z.number().min(0).max(5).optional().default(3),
-    enablePaginationDiscovery: z.boolean().optional().default(true),
-    enableUrlNormalization: z.boolean().optional().default(true),
-    extractionDepth: z.enum(['basic', 'detailed']).optional().default('basic'),
-  }).optional().default({}),
+  options: z
+    .object({
+      concurrency: z.number().min(1).max(20).optional().default(3),
+      delayMs: z.number().min(0).max(10000).optional().default(1000),
+      timeout: z.number().min(1000).max(60000).optional().default(30000),
+      maxRetries: z.number().min(0).max(5).optional().default(3),
+      enablePaginationDiscovery: z.boolean().optional().default(true),
+      enableUrlNormalization: z.boolean().optional().default(true),
+      extractionDepth: z.enum(['basic', 'detailed']).optional().default('basic'),
+    })
+    .optional()
+    .default({}),
 });
 
 // Output schema for supplier directory results
 const SupplierDirectoryOutputSchema = BatchOutputSchema.extend({
-  results: z.array(z.object({
-    url: z.string(),
-    success: z.boolean(),
-    data: z.object({
-      companies: z.array(z.object({
-        name: z.string().optional(),
-        website: z.string().optional(),
-        email: z.string().optional(),
-        phone: z.string().optional(),
-        address: z.string().optional(),
-        description: z.string().optional(),
-        category: z.string().optional(),
-        metadata: z.object({
-          extractedAt: z.string(),
-          confidence: z.number(),
-          source: z.string(),
-        }).optional(),
-      })).optional(),
-      pagination: z.object({
-        currentPage: z.number().optional(),
-        totalPages: z.number().optional(),
-        nextPageUrl: z.string().optional(),
-        discoveredUrls: z.array(z.string()).optional(),
-      }).optional(),
-    }).optional(),
-    error: z.string().optional(),
-    category: z.string().optional(),
-    responseTime: z.number().optional(),
-    canonicalized: z.boolean().optional(),
-    paginationDiscovered: z.boolean().optional(),
-  })),
+  results: z.array(
+    z.object({
+      url: z.string(),
+      success: z.boolean(),
+      data: z
+        .object({
+          companies: z
+            .array(
+              z.object({
+                name: z.string().optional(),
+                website: z.string().optional(),
+                email: z.string().optional(),
+                phone: z.string().optional(),
+                address: z.string().optional(),
+                description: z.string().optional(),
+                category: z.string().optional(),
+                metadata: z
+                  .object({
+                    extractedAt: z.string(),
+                    confidence: z.number(),
+                    source: z.string(),
+                  })
+                  .optional(),
+              })
+            )
+            .optional(),
+          pagination: z
+            .object({
+              currentPage: z.number().optional(),
+              totalPages: z.number().optional(),
+              nextPageUrl: z.string().optional(),
+              discoveredUrls: z.array(z.string()).optional(),
+            })
+            .optional(),
+        })
+        .optional(),
+      error: z.string().optional(),
+      category: z.string().optional(),
+      responseTime: z.number().optional(),
+      canonicalized: z.boolean().optional(),
+      paginationDiscovered: z.boolean().optional(),
+    })
+  ),
 });
 
 export class SupplierDirectoryMode implements ModeContract {
   public readonly id = 'supplier-directory';
   public readonly label = 'Supplier Directory';
-  public readonly description = 'Extract company listings and contact information from supplier directory pages';
+  public readonly description =
+    'Extract company listings and contact information from supplier directory pages';
   public readonly version = '1.0.0';
 
   public readonly inputSchema = SupplierDirectoryInputSchema;
@@ -75,8 +91,10 @@ export class SupplierDirectoryMode implements ModeContract {
     estimatedTimePerUrl: 2000, // 2 seconds per URL
     maxBatchSize: 500,
     fileFormats: ['txt', 'csv'],
-    placeholder: 'Enter supplier directory URLs (one per line)\nExample: https://directory.example.com/suppliers',
-    helpText: 'Extracts company listings from supplier directory pages. Supports pagination discovery and URL normalization.',
+    placeholder:
+      'Enter supplier directory URLs (one per line)\nExample: https://directory.example.com/suppliers',
+    helpText:
+      'Extracts company listings from supplier directory pages. Supports pagination discovery and URL normalization.',
     examples: [
       'https://www.d2pbuyersguide.com/filter/all/page/1',
       'https://directory.example.com/suppliers',
@@ -106,7 +124,7 @@ export class SupplierDirectoryMode implements ModeContract {
         enablePaginationDiscovery: input.options?.enablePaginationDiscovery !== false,
         enableStructuredLogging: true,
         correlationId: ctx.correlationId,
-        onProgress: (progress) => {
+        onProgress: progress => {
           this.logger.info('Processing progress', {
             jobId: ctx.jobId,
             completed: progress.completed,
@@ -125,10 +143,13 @@ export class SupplierDirectoryMode implements ModeContract {
         results: batchResult.results.map(result => ({
           url: result.url,
           success: result.success,
-          data: result.success && result.data ? {
-            companies: Array.isArray(result.data.companies) ? result.data.companies : [],
-            pagination: result.data.pagination || undefined,
-          } : undefined,
+          data:
+            result.success && result.data
+              ? {
+                  companies: Array.isArray(result.data.companies) ? result.data.companies : [],
+                  pagination: result.data.pagination || undefined,
+                }
+              : undefined,
           error: result.error,
           category: result.category,
           responseTime: result.responseTime,
@@ -164,7 +185,6 @@ export class SupplierDirectoryMode implements ModeContract {
       });
 
       return modeResult;
-
     } catch (error) {
       this.logger.error('Supplier directory extraction failed', {
         jobId: ctx.jobId,
@@ -200,13 +220,19 @@ export class SupplierDirectoryMode implements ModeContract {
 
     // Validate options
     if (input.options) {
-      if (input.options.concurrency && (input.options.concurrency < 1 || input.options.concurrency > 20)) {
+      if (
+        input.options.concurrency &&
+        (input.options.concurrency < 1 || input.options.concurrency > 20)
+      ) {
         errors.push('Concurrency must be between 1 and 20');
       }
       if (input.options.delayMs && (input.options.delayMs < 0 || input.options.delayMs > 10000)) {
         errors.push('Delay must be between 0 and 10000 milliseconds');
       }
-      if (input.options.timeout && (input.options.timeout < 1000 || input.options.timeout > 60000)) {
+      if (
+        input.options.timeout &&
+        (input.options.timeout < 1000 || input.options.timeout > 60000)
+      ) {
         errors.push('Timeout must be between 1000 and 60000 milliseconds');
       }
     }
@@ -220,7 +246,7 @@ export class SupplierDirectoryMode implements ModeContract {
   async transform(output: any, input: any): Promise<any> {
     // Add any post-processing transformations here
     // For example, normalize company data, deduplicate entries, etc.
-    
+
     if (output.results) {
       for (const result of output.results) {
         if (result.success && result.data?.companies) {
@@ -229,12 +255,12 @@ export class SupplierDirectoryMode implements ModeContract {
             if (company.name) {
               company.name = company.name.trim();
             }
-            
+
             // Normalize website URLs
             if (company.website && !company.website.startsWith('http')) {
               company.website = `https://${company.website}`;
             }
-            
+
             // Clean phone numbers
             if (company.phone) {
               company.phone = company.phone.replace(/[^\d\-\(\)\+\s]/g, '').trim();

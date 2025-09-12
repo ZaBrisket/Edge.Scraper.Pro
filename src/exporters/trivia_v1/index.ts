@@ -179,7 +179,7 @@ const DEFAULT_OPTIONS: Required<ExporterOptions> = {
  */
 export function slugifyPlayerName(name: string, existingIds: Set<string>): string {
   // Basic slugification: lowercase, remove special chars, replace spaces with underscores
-  let slug = name
+  const slug = name
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, '_')

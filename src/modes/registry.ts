@@ -25,11 +25,7 @@ export class ModeRegistry {
    */
   register(mode: ModeContract): void {
     if (!isModeContract(mode)) {
-      throw new ModeError(
-        'Invalid mode contract',
-        'INVALID_CONTRACT',
-        { mode }
-      );
+      throw new ModeError('Invalid mode contract', 'INVALID_CONTRACT', { mode });
     }
 
     if (this.modes.has(mode.id)) {
@@ -72,11 +68,7 @@ export class ModeRegistry {
     }
 
     if (!entry.enabled) {
-      throw new ModeError(
-        `Mode is disabled: ${modeId}`,
-        'MODE_DISABLED',
-        { modeId }
-      );
+      throw new ModeError(`Mode is disabled: ${modeId}`, 'MODE_DISABLED', { modeId });
     }
 
     // Update usage tracking
@@ -150,8 +142,8 @@ export class ModeRegistry {
   } {
     const entries = Array.from(this.modes.values());
     const totalUsage = entries.reduce((sum, entry) => sum + entry.usageCount, 0);
-    const mostUsed = entries.reduce((max, entry) => 
-      entry.usageCount > (max?.usageCount || 0) ? entry : max, 
+    const mostUsed = entries.reduce(
+      (max, entry) => (entry.usageCount > (max?.usageCount || 0) ? entry : max),
       null as ModeRegistryEntry | null
     );
 
@@ -167,7 +159,10 @@ export class ModeRegistry {
   /**
    * Validate mode input before execution
    */
-  async validateInput(modeId: string, input: any): Promise<{
+  async validateInput(
+    modeId: string,
+    input: any
+  ): Promise<{
     valid: boolean;
     errors?: string[];
   }> {
@@ -178,11 +173,7 @@ export class ModeRegistry {
     }
 
     if (!entry.enabled) {
-      throw new ModeError(
-        `Mode is disabled: ${modeId}`,
-        'MODE_DISABLED',
-        { modeId }
-      );
+      throw new ModeError(`Mode is disabled: ${modeId}`, 'MODE_DISABLED', { modeId });
     }
 
     const mode = entry.mode;
@@ -214,11 +205,7 @@ export class ModeRegistry {
   /**
    * Execute a mode with input
    */
-  async execute(
-    modeId: string,
-    input: any,
-    context: any
-  ): Promise<any> {
+  async execute(modeId: string, input: any, context: any): Promise<any> {
     // Get mode without incrementing usage count (we'll do it once at the end)
     const entry = this.modes.get(modeId);
     if (!entry) {
@@ -226,11 +213,7 @@ export class ModeRegistry {
     }
 
     if (!entry.enabled) {
-      throw new ModeError(
-        `Mode is disabled: ${modeId}`,
-        'MODE_DISABLED',
-        { modeId }
-      );
+      throw new ModeError(`Mode is disabled: ${modeId}`, 'MODE_DISABLED', { modeId });
     }
 
     const mode = entry.mode;
@@ -245,11 +228,9 @@ export class ModeRegistry {
       // Validate input
       const validation = await this.validateInput(modeId, input);
       if (!validation.valid) {
-        throw new ModeError(
-          'Input validation failed',
-          'VALIDATION_ERROR',
-          { errors: validation.errors }
-        );
+        throw new ModeError('Input validation failed', 'VALIDATION_ERROR', {
+          errors: validation.errors,
+        });
       }
 
       // Execute mode
@@ -261,9 +242,7 @@ export class ModeRegistry {
       mode.outputSchema.parse(result);
 
       // Transform output if transformer provided
-      const finalResult = mode.transform 
-        ? await mode.transform(result, input)
-        : result;
+      const finalResult = mode.transform ? await mode.transform(result, input) : result;
 
       // Update usage tracking only once after successful execution
       entry.usageCount++;

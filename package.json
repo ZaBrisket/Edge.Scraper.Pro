@@ -16,7 +16,6 @@
     "db:reset": "npx prisma migrate reset",
     "dev": "next dev",
     "next:build": "npm run db:generate && next build",
-    "next:export": "next export",
     "start": "next start",
     "postinstall": "npx prisma generate",
     "lint": "eslint src --ext .ts,.js",

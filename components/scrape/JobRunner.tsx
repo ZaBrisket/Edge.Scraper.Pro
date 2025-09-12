@@ -77,7 +77,7 @@ export default function JobRunner({ mode, input, onComplete, onError }: JobRunne
     enabled: !!jobId && isStarted,
     refetchInterval: (data) => {
       // Stop polling when job is complete or failed
-      if (data?.status === 'completed' || data?.status === 'failed') {
+      if (data?.data?.status === 'completed' || data?.data?.status === 'failed') {
         return false;
       }
       return 1000; // Poll every second

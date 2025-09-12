@@ -3,7 +3,7 @@
   publish = "out"
   functions = "netlify/functions"
   # Changed from "npm run build" to build Next.js application
-  command = "npm run next:build && npm run next:export"
+  command = "npm run next:build"
 
 [build.environment]
   NODE_VERSION = "18"

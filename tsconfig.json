@@ -31,7 +31,10 @@
     "src/**/*",
     "core/**/*",
     "tasks/**/*",
-    "api/**/*"
+    "api/**/*",
+    "pages/**/*",
+    "components/**/*",
+    "next.config.js"
   ],
   "exclude": [
     "node_modules",
