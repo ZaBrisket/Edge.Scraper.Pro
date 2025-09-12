@@ -2,7 +2,43 @@
 
 ## 🚨 Repository Rule Issue
 
-The GitHub repository has strict rules preventing branches with merge commits from being pushed. Since the main branch contains merge commits, we need to create the PR manually.
+The GitHub repository has strict rules preventing branches with merge commits from being pushed. Additionally, there's a Netlify deployment issue related to submodule configuration that needs to be resolved.
+
+## 🔧 Netlify Deployment Fix
+
+The deployment error is caused by Netlify trying to checkout submodules that don't exist. I've prepared the following fixes:
+
+### **Files to Update for Netlify:**
+
+1. **Create `.gitmodules` file** (empty to resolve submodule error):
+```
+# GitModules Configuration  
+# This file is required by Netlify but currently empty as we don't use submodules
+```
+
+2. **Update `netlify.toml`**:
+```toml
+[build]
+  publish = "out"
+  functions = "netlify/functions"
+  command = "npm run next:build && npm run next:export"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_FLAGS = "--production=false"
+
+# ... rest of existing configuration
+```
+
+3. **Update `package.json`** scripts section:
+```json
+{
+  "scripts": {
+    "next:export": "next export",
+    // ... other existing scripts
+  }
+}
+```
 
 ## 📋 Manual PR Creation Steps
 
