@@ -5,7 +5,6 @@ const logger = createLogger('database');
 
 // Global Prisma instance for serverless environments
 declare global {
-  // eslint-disable-next-line no-var
   var __prisma: PrismaClient | undefined;
 }
 

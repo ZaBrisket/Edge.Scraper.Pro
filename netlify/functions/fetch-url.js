@@ -10,6 +10,8 @@ const { fetchWithPolicy } = require('../../src/lib/http/client');
 const { getCorrelationId } = require('../../src/lib/http/correlation');
 const { AuthService, Permission } = require('../../src/lib/auth');
 const { ValidationUtils } = require('../../src/lib/validation');
+const { corsHeaders } = require('../../src/lib/http/cors');
+const { requireAuth } = require('../../src/lib/auth/token');
 
 // Cache for resolved hostnames
 const hostCache = new Map();
@@ -22,11 +24,7 @@ const MAX_BYTES = 2.5 * 1024 * 1024; // 2.5 MB
 const TIMEOUT_MS = parseInt(process.env.HTTP_DEADLINE_MS || '10000', 10);
 const ALLOWED_PORTS = new Set([80, 443, null, undefined, '']); // default http/https
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGINS || 'http://localhost:3000',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-};
+// CORS headers are now generated dynamically based on origin
 
 async function resolveHost(hostname, { forceRefresh = false } = {}) {
   const now = Date.now();
@@ -45,90 +43,100 @@ const log = (...args) => console.log(new Date().toISOString(), ...args);
 
 exports.handler = async (event) => {
   const correlationId = getCorrelationId(event);
+  const origin = event.headers && event.headers.origin;
+  
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: { ...CORS_HEADERS, 'x-correlation-id': correlationId } };
+    return { statusCode: 204, headers: { ...corsHeaders(origin), 'x-correlation-id': correlationId } };
   }
 
   try {
-    // Development bypass - check if we're in development mode
-    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NETLIFY_DEV === 'true';
-    
-    if (!isDevelopment) {
-      // Authenticate user
-      const authHeader = event.headers.authorization || event.headers.Authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return json(401, { error: 'Authorization token required' }, correlationId);
+    // Authentication check using new utility
+    try {
+      const payload = requireAuth(event.headers || {});
+      if (payload.dev !== true) {
+        if (!AuthService.hasPermission(payload.permissions, Permission.READ_SCRAPING)) {
+          return json(403, { error: 'Insufficient permissions to scrape URLs' }, correlationId, origin);
+        }
       }
-
-      const token = authHeader.substring(7);
-      const payload = AuthService.verifyToken(token);
-      
-      // Check permissions
-      if (!AuthService.hasPermission(payload.permissions, Permission.READ_SCRAPING)) {
-        return json(403, { error: 'Insufficient permissions to scrape URLs' }, correlationId);
-      }
+    } catch (e) {
+      return json(401, { error: e.message || 'Unauthorized' }, correlationId, origin);
     }
     const urlParam = (event.queryStringParameters && event.queryStringParameters.url) || '';
-    if (!urlParam) return json(400, { error: 'Missing ?url=' }, correlationId);
+    if (!urlParam) return json(400, { error: 'Missing ?url=' }, correlationId, origin);
 
     // Validate URL for security
     const urlValidation = ValidationUtils.validateUrl(urlParam);
     if (!urlValidation.isValid) {
-      return json(400, { error: 'Invalid URL: ' + urlValidation.errors.join(', ') }, correlationId);
+      return json(400, { error: 'Invalid URL: ' + urlValidation.errors.join(', ') }, correlationId, origin);
     }
 
     const startUrl = new URL(urlParam);
-    if (!['http:', 'https:'].includes(startUrl.protocol)) return json(400, { error: 'Only http/https are allowed' }, correlationId);
+    if (!['http:', 'https:'].includes(startUrl.protocol)) return json(400, { error: 'Only http/https are allowed' }, correlationId, origin);
 
     // Disallow non-standard ports (basic SSRF mitigation)
     const port = startUrl.port ? Number(startUrl.port) : (startUrl.protocol === 'http:' ? 80 : 443);
-    if (!ALLOWED_PORTS.has(port)) return json(400, { error: 'Non-standard ports are blocked' }, correlationId);
+    if (!ALLOWED_PORTS.has(port)) return json(400, { error: 'Non-standard ports are blocked' }, correlationId, origin);
 
     // Resolve and block private IPs using cache
     try {
       await resolveHost(startUrl.hostname);
     } catch {
-      return json(400, { error: 'Blocked by SSRF policy (private or local address)' }, correlationId);
+      return json(400, { error: 'Blocked by SSRF policy (private or local address)' }, correlationId, origin);
     }
 
-    // robots.txt (best-effort)
-    const allowedByRobots = await robotsAllows(startUrl, correlationId);
-    if (!allowedByRobots) return json(403, { error: 'Blocked by robots.txt' }, correlationId);
+    // robots.txt (best-effort) - check for toggle parameter
+    const params = event.body ? JSON.parse(event.body) : {};
+    const respectRobots = params.respectRobots !== false; // default true
+    
+    if (respectRobots) {
+      const allowedByRobots = await robotsAllows(startUrl, correlationId);
+      if (!allowedByRobots) return json(403, { error: 'Blocked by robots.txt' }, correlationId, origin);
+    } else {
+      log(`[${correlationId}] WARNING: Bypassing robots.txt check as requested`);
+    }
 
     const { response, finalUrl } = await safeFetchWithRedirects(startUrl.href, correlationId);
     const ct = (response.headers.get('content-type') || '').toLowerCase();
     if (!(ct.includes('text/html') || ct.includes('application/xhtml'))) {
       // Allow text/plain as a fallback to still return html-like content
       if (!ct.includes('text/plain')) {
-        return json(415, { error: `Unsupported content-type: ${ct || 'unknown'}` }, correlationId);
+        return json(415, { error: `Unsupported content-type: ${ct || 'unknown'}` }, correlationId, origin);
       }
     }
 
     // Size limits
     const lenHeader = response.headers.get('content-length');
     if (lenHeader && Number(lenHeader) > MAX_BYTES) {
-      return json(413, { error: `Content too large: ${lenHeader} bytes` }, correlationId);
+      return json(413, { error: `Content too large: ${lenHeader} bytes` }, correlationId, origin);
     }
 
     const html = await readLimited(response, MAX_BYTES);
     log(`[${correlationId}] upstream [${response.status}] ${finalUrl}:`, html.substring(0, 200));
     if (!response.ok) {
-      return json(response.status, { error: `Upstream responded ${response.status}`, html }, correlationId);
+      return json(response.status, { error: `Upstream responded ${response.status}`, html }, correlationId, origin);
     }
 
-    return json(200, { html, url: finalUrl }, correlationId);
+    return json(200, { html, url: finalUrl }, correlationId, origin);
   } catch (err) {
     const code = err.code || 'INTERNAL';
     const message = err.message || 'Unknown error';
-    return json(500, { error: { code, message } }, correlationId);
+    return json(500, { error: { code, message } }, correlationId, origin);
   }
 };
 
-function json(statusCode, obj, correlationId) {
+function json(statusCode, obj, correlationId, origin) {
   const payload = Object.prototype.hasOwnProperty.call(obj, 'error')
     ? { ok: false, error: typeof obj.error === 'string' ? { message: obj.error } : obj.error }
     : { ok: true, data: obj };
-  return { statusCode, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS, 'x-correlation-id': correlationId }, body: JSON.stringify(payload) };
+  return { 
+    statusCode, 
+    headers: { 
+      'Content-Type': 'application/json', 
+      ...corsHeaders(origin), 
+      'x-correlation-id': correlationId 
+    }, 
+    body: JSON.stringify(payload) 
+  };
 }
 
 async function safeFetchWithRedirects(inputUrl, correlationId) {
