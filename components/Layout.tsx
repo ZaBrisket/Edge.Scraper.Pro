@@ -60,9 +60,7 @@ export default function Layout({ children, title = 'EdgeScraperPro' }: LayoutPro
 
             {/* Right side navigation */}
             <div className="hidden sm:ml-6 sm:flex sm:items-center">
-              <div className="text-sm text-gray-500">
-                v2.0.0
-              </div>
+              <div className="text-sm text-gray-500">v2.0.0</div>
             </div>
 
             {/* Mobile menu button */}
@@ -74,12 +72,7 @@ export default function Layout({ children, title = 'EdgeScraperPro' }: LayoutPro
                 aria-expanded="false"
               >
                 <span className="sr-only">Open main menu</span>
-                <svg
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -103,17 +96,13 @@ export default function Layout({ children, title = 'EdgeScraperPro' }: LayoutPro
       )}
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {children}
-      </main>
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">{children}</main>
 
       {/* Footer */}
       <footer className="bg-white border-t mt-auto">
         <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
           <div className="text-center text-sm text-gray-500">
-            <p>
-              EdgeScraperPro - Advanced web scraping with intelligent extraction modes
-            </p>
+            <p>EdgeScraperPro - Advanced web scraping with intelligent extraction modes</p>
           </div>
         </div>
       </footer>

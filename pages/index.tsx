@@ -22,9 +22,7 @@ export default function HomePage() {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             EdgeScraperPro - Advanced Web Scraping Platform
           </h2>
-          <p className="text-gray-600 mb-4">
-            Loading scraping interface...
-          </p>
+          <p className="text-gray-600 mb-4">Loading scraping interface...</p>
           <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
         </div>
       </div>

@@ -31,7 +31,10 @@
     "src/**/*",
     "core/**/*",
     "tasks/**/*",
-    "api/**/*"
+    "api/**/*",
+    "pages/**/*",
+    "components/**/*",
+    "next-env.d.ts"
   ],
   "exclude": [
     "node_modules",

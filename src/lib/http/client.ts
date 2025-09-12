@@ -114,7 +114,9 @@ export async function fetchWithPolicy(
   opts: FetchOptions = {}
 ): Promise<Response> {
   const url =
-    typeof input === 'string' ? new URL(input) : new URL((input as Request).url || (input as URL).href);
+    typeof input === 'string'
+      ? new URL(input)
+      : new URL((input as Request).url || (input as URL).href);
   const host = url.host;
   const limiter = getLimiter(host);
   const circuit = getCircuit(host);

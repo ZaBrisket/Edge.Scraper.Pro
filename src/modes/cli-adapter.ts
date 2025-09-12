@@ -15,7 +15,7 @@ const logger = createLogger('cli-adapter');
 // Mode to task mapping for backward compatibility
 const modeToTaskMap: Record<string, string> = {
   'news-articles': 'news',
-  'sports': 'sports',
+  sports: 'sports',
   'supplier-directory': 'companies',
 };
 
@@ -28,7 +28,9 @@ export class CLIAdapter {
     const taskName = modeToTaskMap[mode] || mode;
 
     if (!taskDispatcher.hasTask(taskName)) {
-      throw new Error(`Unknown mode: ${mode}. Available modes: ${Object.keys(modeToTaskMap).join(', ')}`);
+      throw new Error(
+        `Unknown mode: ${mode}. Available modes: ${Object.keys(modeToTaskMap).join(', ')}`
+      );
     }
 
     // Log deprecation warning
@@ -77,7 +79,12 @@ export class CLIAdapter {
     return modes;
   }
 
-  getModeInfo(mode: string): { mode: string; task: string; deprecated: boolean; available: boolean } {
+  getModeInfo(mode: string): {
+    mode: string;
+    task: string;
+    deprecated: boolean;
+    available: boolean;
+  } {
     const taskName = modeToTaskMap[mode] || mode;
     const available = taskDispatcher.hasTask(taskName);
     const deprecated = !!modeToTaskMap[mode];

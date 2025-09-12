@@ -53,7 +53,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     res.status(200).json(status);
-
   } catch (error) {
     logger.error('Status API error', {
       error: error instanceof Error ? error.message : 'Unknown error',

@@ -14,7 +14,12 @@ interface SportsOptions {
   extractBiography: boolean;
   extractAchievements: boolean;
   includePlaceholderData: boolean;
-  sportsSite: 'pro-football-reference' | 'basketball-reference' | 'baseball-reference' | 'hockey-reference' | 'auto';
+  sportsSite:
+    | 'pro-football-reference'
+    | 'basketball-reference'
+    | 'baseball-reference'
+    | 'hockey-reference'
+    | 'auto';
   concurrency: number;
   delayMs: number;
 }
@@ -88,7 +93,7 @@ export default function SportsScrapePage() {
       ]);
 
       content = [headers, ...rows]
-        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        .map(row => row.map((cell: any) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
         .join('\n');
       filename = `sports-players-${Date.now()}.csv`;
       mimeType = 'text/csv';
@@ -113,11 +118,7 @@ export default function SportsScrapePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Input Form */}
           <div className="lg:col-span-2">
-            <TaskForm
-              taskName="sports"
-              onSubmit={handleSubmit}
-              isSubmitting={!!jobInput}
-            >
+            <TaskForm taskName="sports" onSubmit={handleSubmit} isSubmitting={!!jobInput}>
               <div>
                 <label htmlFor="urls" className="block text-sm font-medium text-gray-700">
                   Player URLs (one per line)
@@ -128,7 +129,7 @@ export default function SportsScrapePage() {
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono"
                   placeholder="https://www.pro-football-reference.com/players/M/MahoPa00.htm&#10;https://www.basketball-reference.com/players/j/jamesle01.html&#10;https://www.baseball-reference.com/players/t/troutmi01.shtml"
                   value={urls}
-                  onChange={(e) => setUrls(e.target.value)}
+                  onChange={e => setUrls(e.target.value)}
                   disabled={!!jobInput}
                 />
                 <p className="mt-2 text-sm text-gray-500">
@@ -146,7 +147,9 @@ export default function SportsScrapePage() {
                         type="checkbox"
                         className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                         checked={options.extractTables}
-                        onChange={(e) => setOptions(prev => ({ ...prev, extractTables: e.target.checked }))}
+                        onChange={e =>
+                          setOptions(prev => ({ ...prev, extractTables: e.target.checked }))
+                        }
                         disabled={!!jobInput}
                       />
                       <span className="ml-2 text-sm text-gray-700">Extract statistics tables</span>
@@ -158,7 +161,9 @@ export default function SportsScrapePage() {
                         type="checkbox"
                         className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                         checked={options.extractBiography}
-                        onChange={(e) => setOptions(prev => ({ ...prev, extractBiography: e.target.checked }))}
+                        onChange={e =>
+                          setOptions(prev => ({ ...prev, extractBiography: e.target.checked }))
+                        }
                         disabled={!!jobInput}
                       />
                       <span className="ml-2 text-sm text-gray-700">Extract biographical data</span>
@@ -170,7 +175,9 @@ export default function SportsScrapePage() {
                         type="checkbox"
                         className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                         checked={options.extractAchievements}
-                        onChange={(e) => setOptions(prev => ({ ...prev, extractAchievements: e.target.checked }))}
+                        onChange={e =>
+                          setOptions(prev => ({ ...prev, extractAchievements: e.target.checked }))
+                        }
                         disabled={!!jobInput}
                       />
                       <span className="ml-2 text-sm text-gray-700">Extract achievements</span>
@@ -182,7 +189,12 @@ export default function SportsScrapePage() {
                         type="checkbox"
                         className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                         checked={options.includePlaceholderData}
-                        onChange={(e) => setOptions(prev => ({ ...prev, includePlaceholderData: e.target.checked }))}
+                        onChange={e =>
+                          setOptions(prev => ({
+                            ...prev,
+                            includePlaceholderData: e.target.checked,
+                          }))
+                        }
                         disabled={!!jobInput}
                       />
                       <span className="ml-2 text-sm text-gray-700">Include placeholder data</span>
@@ -198,7 +210,9 @@ export default function SportsScrapePage() {
                     id="sportsSite"
                     className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     value={options.sportsSite}
-                    onChange={(e) => setOptions(prev => ({ ...prev, sportsSite: e.target.value as any }))}
+                    onChange={e =>
+                      setOptions(prev => ({ ...prev, sportsSite: e.target.value as any }))
+                    }
                     disabled={!!jobInput}
                   >
                     <option value="auto">Auto-detect</option>
@@ -215,7 +229,10 @@ export default function SportsScrapePage() {
                 <h4 className="text-md font-medium text-gray-900 mb-3">Performance Settings</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="concurrency" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="concurrency"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       Concurrent requests
                     </label>
                     <input
@@ -225,7 +242,9 @@ export default function SportsScrapePage() {
                       max="5"
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       value={options.concurrency}
-                      onChange={(e) => setOptions(prev => ({ ...prev, concurrency: parseInt(e.target.value) }))}
+                      onChange={e =>
+                        setOptions(prev => ({ ...prev, concurrency: parseInt(e.target.value) }))
+                      }
                       disabled={!!jobInput}
                     />
                   </div>
@@ -240,7 +259,9 @@ export default function SportsScrapePage() {
                       max="10000"
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       value={options.delayMs}
-                      onChange={(e) => setOptions(prev => ({ ...prev, delayMs: parseInt(e.target.value) }))}
+                      onChange={e =>
+                        setOptions(prev => ({ ...prev, delayMs: parseInt(e.target.value) }))
+                      }
                       disabled={!!jobInput}
                     />
                   </div>
@@ -261,11 +282,7 @@ export default function SportsScrapePage() {
             )}
 
             {result && (
-              <TaskResults
-                result={result}
-                taskName="sports"
-                onDownload={downloadResults}
-              />
+              <TaskResults result={result} taskName="sports" onDownload={downloadResults} />
             )}
           </div>
         </div>

@@ -24,7 +24,7 @@ export default function TaskRunner({ taskName, input, onComplete, onError }: Tas
     const startJob = async () => {
       try {
         setStatus('running');
-        
+
         // Start the job
         const startResponse = await fetch('/api/tasks/start', {
           method: 'POST',
@@ -68,7 +68,6 @@ export default function TaskRunner({ taskName, input, onComplete, onError }: Tas
 
         // Start polling
         setTimeout(pollStatus, 1000);
-
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
         onError(err instanceof Error ? err.message : 'Unknown error');
@@ -91,25 +90,27 @@ export default function TaskRunner({ taskName, input, onComplete, onError }: Tas
     return (
       <div className="bg-white shadow rounded-lg p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Job Status</h3>
-        
+
         <div className="space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Status:</span>
             <span className="font-medium text-blue-600">Running</span>
           </div>
-          
+
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Progress:</span>
-            <span className="font-medium">{progress.completed} / {progress.total}</span>
+            <span className="font-medium">
+              {progress.completed} / {progress.total}
+            </span>
           </div>
-          
+
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
+            <div
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${progress.percentage}%` }}
             />
           </div>
-          
+
           {progress.errors > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Errors:</span>

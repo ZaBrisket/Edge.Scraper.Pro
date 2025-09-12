@@ -12,60 +12,72 @@ import { BatchProcessor } from '../lib/batch-processor';
 // Input schema for news articles mode
 const NewsArticlesInputSchema = z.object({
   urls: z.array(z.string().url()).min(1).max(1500),
-  options: z.object({
-    concurrency: z.number().min(1).max(20).optional().default(5),
-    delayMs: z.number().min(0).max(10000).optional().default(500),
-    timeout: z.number().min(1000).max(60000).optional().default(15000),
-    maxRetries: z.number().min(0).max(5).optional().default(2),
-    extractContent: z.boolean().optional().default(false),
-    extractImages: z.boolean().optional().default(false),
-    maxContentLength: z.number().min(100).max(50000).optional().default(5000),
-    dateFormat: z.enum(['iso', 'timestamp', 'human']).optional().default('iso'),
-  }).optional().default({}),
+  options: z
+    .object({
+      concurrency: z.number().min(1).max(20).optional().default(5),
+      delayMs: z.number().min(0).max(10000).optional().default(500),
+      timeout: z.number().min(1000).max(60000).optional().default(15000),
+      maxRetries: z.number().min(0).max(5).optional().default(2),
+      extractContent: z.boolean().optional().default(false),
+      extractImages: z.boolean().optional().default(false),
+      maxContentLength: z.number().min(100).max(50000).optional().default(5000),
+      dateFormat: z.enum(['iso', 'timestamp', 'human']).optional().default('iso'),
+    })
+    .optional()
+    .default({}),
 });
 
 // Output schema for news articles results
 const NewsArticlesOutputSchema = BatchOutputSchema.extend({
-  results: z.array(z.object({
-    url: z.string(),
-    success: z.boolean(),
-    data: z.object({
-      title: z.string().optional(),
-      byline: z.string().optional(),
-      author: z.string().optional(),
-      publishDate: z.string().optional(),
-      modifiedDate: z.string().optional(),
-      excerpt: z.string().optional(),
-      content: z.string().optional(),
-      wordCount: z.number().optional(),
-      readingTime: z.number().optional(), // minutes
-      tags: z.array(z.string()).optional(),
+  results: z.array(
+    z.object({
+      url: z.string(),
+      success: z.boolean(),
+      data: z
+        .object({
+          title: z.string().optional(),
+          byline: z.string().optional(),
+          author: z.string().optional(),
+          publishDate: z.string().optional(),
+          modifiedDate: z.string().optional(),
+          excerpt: z.string().optional(),
+          content: z.string().optional(),
+          wordCount: z.number().optional(),
+          readingTime: z.number().optional(), // minutes
+          tags: z.array(z.string()).optional(),
+          category: z.string().optional(),
+          images: z
+            .array(
+              z.object({
+                src: z.string(),
+                alt: z.string().optional(),
+                caption: z.string().optional(),
+                width: z.number().optional(),
+                height: z.number().optional(),
+              })
+            )
+            .optional(),
+          metadata: z.object({
+            extractedAt: z.string(),
+            confidence: z.number(),
+            source: z.string(),
+            language: z.string().optional(),
+          }),
+        })
+        .optional(),
+      error: z.string().optional(),
       category: z.string().optional(),
-      images: z.array(z.object({
-        src: z.string(),
-        alt: z.string().optional(),
-        caption: z.string().optional(),
-        width: z.number().optional(),
-        height: z.number().optional(),
-      })).optional(),
-      metadata: z.object({
-        extractedAt: z.string(),
-        confidence: z.number(),
-        source: z.string(),
-        language: z.string().optional(),
-      }),
-    }).optional(),
-    error: z.string().optional(),
-    category: z.string().optional(),
-    responseTime: z.number().optional(),
-    canonicalized: z.boolean().optional(),
-  })),
+      responseTime: z.number().optional(),
+      canonicalized: z.boolean().optional(),
+    })
+  ),
 });
 
 export class NewsArticlesMode implements ModeContract {
   public readonly id = 'news-articles';
   public readonly label = 'News Articles';
-  public readonly description = 'Extract article metadata, content, and structured data from news article URLs';
+  public readonly description =
+    'Extract article metadata, content, and structured data from news article URLs';
   public readonly version = '1.0.0';
 
   public readonly inputSchema = NewsArticlesInputSchema;
@@ -78,8 +90,10 @@ export class NewsArticlesMode implements ModeContract {
     estimatedTimePerUrl: 1500, // 1.5 seconds per URL
     maxBatchSize: 1000,
     fileFormats: ['txt', 'csv'],
-    placeholder: 'Enter news article URLs (one per line)\nExample: https://news.example.com/article/breaking-news',
-    helpText: 'Extracts article titles, bylines, publication dates, content, and metadata from news articles.',
+    placeholder:
+      'Enter news article URLs (one per line)\nExample: https://news.example.com/article/breaking-news',
+    helpText:
+      'Extracts article titles, bylines, publication dates, content, and metadata from news articles.',
     examples: [
       'https://www.bbc.com/news/world-12345678',
       'https://www.cnn.com/2024/01/15/politics/news-story/index.html',
@@ -108,7 +122,7 @@ export class NewsArticlesMode implements ModeContract {
         enablePaginationDiscovery: false, // Not relevant for individual articles
         enableStructuredLogging: true,
         correlationId: ctx.correlationId,
-        onProgress: (progress) => {
+        onProgress: progress => {
           this.logger.info('Processing progress', {
             jobId: ctx.jobId,
             completed: progress.completed,
@@ -124,49 +138,51 @@ export class NewsArticlesMode implements ModeContract {
 
       // Transform batch result to mode output format with article extraction
       const modeResult = {
-        results: await Promise.all(batchResult.results.map(async (result) => {
-          if (!result.success || !result.data) {
-            return {
-              url: result.url,
-              success: false,
-              error: result.error,
-              category: result.category,
-              responseTime: result.responseTime,
-              canonicalized: result.canonicalized,
-            };
-          }
+        results: await Promise.all(
+          batchResult.results.map(async result => {
+            if (!result.success || !result.data) {
+              return {
+                url: result.url,
+                success: false,
+                error: result.error,
+                category: result.category,
+                responseTime: result.responseTime,
+                canonicalized: result.canonicalized,
+              };
+            }
 
-          try {
-            // Extract article data from the HTML content
-            const articleData = await this.extractArticleData(
-              result.data.content || result.data.html || '',
-              result.url,
-              input.options || {}
-            );
+            try {
+              // Extract article data from the HTML content
+              const articleData = await this.extractArticleData(
+                result.data.content || result.data.html || '',
+                result.url,
+                input.options || {}
+              );
 
-            return {
-              url: result.url,
-              success: true,
-              data: articleData,
-              responseTime: result.responseTime,
-              canonicalized: result.canonicalized,
-            };
-          } catch (error) {
-            this.logger.warn('Article extraction failed', {
-              url: result.url,
-              error: error instanceof Error ? error.message : 'Unknown error',
-            });
+              return {
+                url: result.url,
+                success: true,
+                data: articleData,
+                responseTime: result.responseTime,
+                canonicalized: result.canonicalized,
+              };
+            } catch (error) {
+              this.logger.warn('Article extraction failed', {
+                url: result.url,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              });
 
-            return {
-              url: result.url,
-              success: false,
-              error: `Article extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              category: 'extraction_error',
-              responseTime: result.responseTime,
-              canonicalized: result.canonicalized,
-            };
-          }
-        })),
+              return {
+                url: result.url,
+                success: false,
+                error: `Article extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                category: 'extraction_error',
+                responseTime: result.responseTime,
+                canonicalized: result.canonicalized,
+              };
+            }
+          })
+        ),
         summary: {
           total: batchResult.stats.totalUrls,
           successful: batchResult.results.filter(r => r.success).length,
@@ -196,7 +212,6 @@ export class NewsArticlesMode implements ModeContract {
       });
 
       return modeResult;
-
     } catch (error) {
       this.logger.error('News articles extraction failed', {
         jobId: ctx.jobId,
@@ -209,7 +224,7 @@ export class NewsArticlesMode implements ModeContract {
   private async extractArticleData(html: string, url: string, options: any): Promise<any> {
     const dom = new JSDOM(html);
     const document = dom.window.document;
-    
+
     const articleData = {
       title: this.extractTitle(document),
       byline: this.extractByline(document),
@@ -217,7 +232,9 @@ export class NewsArticlesMode implements ModeContract {
       publishDate: this.extractPublishDate(document, options.dateFormat),
       modifiedDate: this.extractModifiedDate(document, options.dateFormat),
       excerpt: this.extractExcerpt(document),
-      content: options.extractContent ? this.extractContent(document, options.maxContentLength) : undefined,
+      content: options.extractContent
+        ? this.extractContent(document, options.maxContentLength)
+        : undefined,
       wordCount: undefined as number | undefined,
       readingTime: undefined as number | undefined,
       tags: this.extractTags(document),
@@ -259,9 +276,10 @@ export class NewsArticlesMode implements ModeContract {
     for (const selector of selectors) {
       const element = document.querySelector(selector);
       if (element) {
-        const content = selector === '[property="og:title"]' 
-          ? element.getAttribute('content') 
-          : element.textContent;
+        const content =
+          selector === '[property="og:title"]'
+            ? element.getAttribute('content')
+            : element.textContent;
         if (content?.trim()) {
           return content.trim();
         }
@@ -328,10 +346,11 @@ export class NewsArticlesMode implements ModeContract {
     for (const selector of selectors) {
       const element = document.querySelector(selector);
       if (element) {
-        const dateStr = element.getAttribute('content') || 
-                       element.getAttribute('datetime') || 
-                       element.textContent?.trim();
-        
+        const dateStr =
+          element.getAttribute('content') ||
+          element.getAttribute('datetime') ||
+          element.textContent?.trim();
+
         if (dateStr) {
           const date = new Date(dateStr);
           if (!isNaN(date.getTime())) {
@@ -410,9 +429,7 @@ export class NewsArticlesMode implements ModeContract {
 
         const content = element.textContent?.trim();
         if (content && content.length > 100) {
-          return content.length > maxLength 
-            ? content.substring(0, maxLength) + '...'
-            : content;
+          return content.length > maxLength ? content.substring(0, maxLength) + '...' : content;
         }
       }
     }
@@ -422,7 +439,7 @@ export class NewsArticlesMode implements ModeContract {
 
   private extractTags(document: Document): string[] {
     const tags: string[] = [];
-    
+
     // Meta keywords
     const keywords = document.querySelector('[name="keywords"]');
     if (keywords) {
@@ -464,7 +481,9 @@ export class NewsArticlesMode implements ModeContract {
 
   private extractImages(document: Document, baseUrl: string): Array<any> {
     const images: Array<any> = [];
-    const imageElements = document.querySelectorAll('article img, .article-content img, .content img');
+    const imageElements = document.querySelectorAll(
+      'article img, .article-content img, .content img'
+    );
 
     imageElements.forEach(img => {
       const src = img.getAttribute('src');
@@ -501,9 +520,11 @@ export class NewsArticlesMode implements ModeContract {
   }
 
   private extractLanguage(document: Document): string | undefined {
-    return document.documentElement.getAttribute('lang') || 
-           document.querySelector('[property="og:locale"]')?.getAttribute('content') ||
-           undefined;
+    return (
+      document.documentElement.getAttribute('lang') ||
+      document.querySelector('[property="og:locale"]')?.getAttribute('content') ||
+      undefined
+    );
   }
 
   private calculateWordCount(text: string): number {
@@ -515,10 +536,10 @@ export class NewsArticlesMode implements ModeContract {
       case 'timestamp':
         return date.getTime().toString();
       case 'human':
-        return date.toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
         });
       default:
         return date.toISOString();
@@ -563,8 +584,10 @@ export class NewsArticlesMode implements ModeContract {
 
     // Validate options
     if (input.options) {
-      if (input.options.maxContentLength && 
-          (input.options.maxContentLength < 100 || input.options.maxContentLength > 50000)) {
+      if (
+        input.options.maxContentLength &&
+        (input.options.maxContentLength < 100 || input.options.maxContentLength > 50000)
+      ) {
         errors.push('Max content length must be between 100 and 50000 characters');
       }
     }

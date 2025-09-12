@@ -40,8 +40,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (job.status !== 'completed' || !job.result) {
-      return res.status(400).json({ 
-        error: 'Job is not completed or has no results' 
+      return res.status(400).json({
+        error: 'Job is not completed or has no results',
       });
     }
 
@@ -63,7 +63,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       res.setHeader('Content-Disposition', `attachment; filename="${job.mode}-${id}.csv"`);
       res.status(200).send(csv);
     }
-
   } catch (error) {
     logger.error('Download API error', {
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -102,7 +101,16 @@ function convertToCSV(result: any, mode: string): string {
 }
 
 function convertNewsToCSV(results: any[]): string {
-  const headers = ['URL', 'Title', 'Author', 'Publish Date', 'Excerpt', 'Word Count', 'Category', 'Confidence'];
+  const headers = [
+    'URL',
+    'Title',
+    'Author',
+    'Publish Date',
+    'Excerpt',
+    'Word Count',
+    'Category',
+    'Confidence',
+  ];
   const rows = results.map(result => [
     result.url,
     result.data.title || '',
@@ -160,7 +168,17 @@ function convertCompaniesToCSV(results: any[]): string {
     return 'No companies found';
   }
 
-  const headers = ['Source URL', 'Company Name', 'Website', 'Email', 'Phone', 'Address', 'Description', 'Category', 'Confidence'];
+  const headers = [
+    'Source URL',
+    'Company Name',
+    'Website',
+    'Email',
+    'Phone',
+    'Address',
+    'Description',
+    'Category',
+    'Confidence',
+  ];
   const rows = allCompanies.map(company => [
     company.sourceUrl,
     company.name,

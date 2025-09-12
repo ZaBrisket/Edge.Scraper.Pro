@@ -30,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Map legacy mode names to new task names
   const modeToTaskMap: Record<string, string> = {
     'news-articles': 'news',
-    'sports': 'sports',
+    sports: 'sports',
     'supplier-directory': 'companies',
   };
 
@@ -49,10 +49,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const taskName = modeToTaskMap[mode] || mode;
 
     // Use the new task dispatcher
-    const result = await handleStartRequest(
-      { ...req, body: { taskName, input } },
-      res
-    );
+    const modifiedReq = {
+      ...req,
+      body: { taskName, input }
+    } as NextApiRequest;
+    const result = await handleStartRequest(modifiedReq, res);
 
     // Add deprecation warning
     if (modeToTaskMap[mode]) {
@@ -64,7 +65,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     return result;
-
   } catch (error) {
     logger.error('Start job API error', {
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -110,9 +110,10 @@ async function processJobAsync(jobId: string, mode: string, input: any) {
       urlPreservation: {
         sourceUrls: job.originalInput.urls,
         processedUrls: result.results?.map((r: any) => r.url) || [],
-        discoveredUrls: result.results?.filter((r: any) => 
-          r.paginationDiscovered && !job.originalInput.urls.includes(r.url)
-        ).map((r: any) => r.url) || [],
+        discoveredUrls:
+          result.results
+            ?.filter((r: any) => r.paginationDiscovered && !job.originalInput.urls.includes(r.url))
+            .map((r: any) => r.url) || [],
       },
     };
 
@@ -135,7 +136,6 @@ async function processJobAsync(jobId: string, mode: string, input: any) {
       successful: result.summary?.successful || 0,
       failed: result.summary?.failed || 0,
     });
-
   } catch (error) {
     logger.error('Job execution failed', {
       jobId,

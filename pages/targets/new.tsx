@@ -88,26 +88,42 @@ export default function NewTargetList() {
           {/* Progress indicator */}
           <div className="mb-8">
             <div className="flex items-center justify-center space-x-4">
-              <div className={`flex items-center ${uploadState.step === 'upload' ? 'text-blue-600' : uploadState.step === 'mapping' || uploadState.step === 'preview' ? 'text-green-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${uploadState.step === 'upload' ? 'bg-blue-600 text-white' : uploadState.step === 'mapping' || uploadState.step === 'preview' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>
+              <div
+                className={`flex items-center ${uploadState.step === 'upload' ? 'text-blue-600' : uploadState.step === 'mapping' || uploadState.step === 'preview' ? 'text-green-600' : 'text-gray-400'}`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${uploadState.step === 'upload' ? 'bg-blue-600 text-white' : uploadState.step === 'mapping' || uploadState.step === 'preview' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}
+                >
                   1
                 </div>
                 <span className="ml-2">Upload</span>
               </div>
-              
-              <div className={`w-16 h-1 ${uploadState.step === 'mapping' || uploadState.step === 'preview' ? 'bg-green-600' : 'bg-gray-200'}`}></div>
-              
-              <div className={`flex items-center ${uploadState.step === 'mapping' ? 'text-blue-600' : uploadState.step === 'preview' ? 'text-green-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${uploadState.step === 'mapping' ? 'bg-blue-600 text-white' : uploadState.step === 'preview' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>
+
+              <div
+                className={`w-16 h-1 ${uploadState.step === 'mapping' || uploadState.step === 'preview' ? 'bg-green-600' : 'bg-gray-200'}`}
+              ></div>
+
+              <div
+                className={`flex items-center ${uploadState.step === 'mapping' ? 'text-blue-600' : uploadState.step === 'preview' ? 'text-green-600' : 'text-gray-400'}`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${uploadState.step === 'mapping' ? 'bg-blue-600 text-white' : uploadState.step === 'preview' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}
+                >
                   2
                 </div>
                 <span className="ml-2">Map Fields</span>
               </div>
-              
-              <div className={`w-16 h-1 ${uploadState.step === 'preview' ? 'bg-green-600' : 'bg-gray-200'}`}></div>
-              
-              <div className={`flex items-center ${uploadState.step === 'preview' ? 'text-blue-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${uploadState.step === 'preview' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+
+              <div
+                className={`w-16 h-1 ${uploadState.step === 'preview' ? 'bg-green-600' : 'bg-gray-200'}`}
+              ></div>
+
+              <div
+                className={`flex items-center ${uploadState.step === 'preview' ? 'text-blue-600' : 'text-gray-400'}`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${uploadState.step === 'preview' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+                >
                   3
                 </div>
                 <span className="ml-2">Preview</span>
@@ -147,41 +163,38 @@ export default function NewTargetList() {
             </div>
           )}
 
-          {uploadState.step === 'preview' && uploadState.datasetId && uploadState.templateId && uploadState.mapping && (
-            <div className="space-y-6">
-              <div className="card">
-                <div className="card-header">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2>Preview Mapped Data</h2>
-                      <p>Review the transformed data before proceeding to final preview</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleBackToMapping}
-                        className="btn-secondary"
-                      >
-                        Back to Mapping
-                      </button>
-                      <button
-                        onClick={handleProceedToPreview}
-                        className="btn-primary"
-                      >
-                        Continue to Export
-                      </button>
+          {uploadState.step === 'preview' &&
+            uploadState.datasetId &&
+            uploadState.templateId &&
+            uploadState.mapping && (
+              <div className="space-y-6">
+                <div className="card">
+                  <div className="card-header">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2>Preview Mapped Data</h2>
+                        <p>Review the transformed data before proceeding to final preview</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={handleBackToMapping} className="btn-secondary">
+                          Back to Mapping
+                        </button>
+                        <button onClick={handleProceedToPreview} className="btn-primary">
+                          Continue to Export
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="card-body">
-                  <PreviewTable
-                    datasetId={uploadState.datasetId}
-                    templateId={uploadState.templateId}
-                    customMapping={uploadState.mapping}
-                  />
+                  <div className="card-body">
+                    <PreviewTable
+                      datasetId={uploadState.datasetId}
+                      templateId={uploadState.templateId}
+                      customMapping={uploadState.mapping}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
         </main>
       </div>
     </>
