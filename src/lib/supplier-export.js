@@ -139,12 +139,12 @@ class SupplierDataExporter {
 
     if (batchResult.results) {
       batchResult.results.forEach(result => {
-        if (result.success && result.result && result.result.companies) {
+        if (result.success && result.data && result.data.companies) {
           allCompanies.push(
-            ...result.result.companies.map(company => ({
+            ...result.data.companies.map(company => ({
               ...company,
               sourceUrl: result.url,
-              extractedAt: result.result.extractedAt,
+              extractedAt: result.data.extractedAt,
             }))
           );
         }
@@ -160,7 +160,7 @@ class SupplierDataExporter {
         successfulUrls: batchResult.stats.successfulUrls,
         failedUrls: batchResult.stats.failedUrls,
         totalCompanies: allCompanies.length,
-        processingTime: batchResult.stats.processingTime,
+        processingTime: batchResult.stats.duration,
         format: format,
         version: '1.0',
       },
@@ -194,7 +194,7 @@ class SupplierDataExporter {
                 1
               ) + '%'
             : '0%',
-        processingTime: batchResult.stats.processingTime,
+        processingTime: batchResult.stats.duration,
         averageProcessingTime: batchResult.stats.averageProcessingTime,
         throughput: batchResult.stats.throughput,
       },
@@ -216,16 +216,16 @@ class SupplierDataExporter {
 
     if (batchResult.results) {
       batchResult.results.forEach(result => {
-        if (result.success && result.result && result.result.companies) {
+        if (result.success && result.data && result.data.companies) {
           companiesByUrl[result.url] = {
-            count: result.result.companies.length,
-            companies: result.result.companies.map(c => ({
+            count: result.data.companies.length,
+            companies: result.data.companies.map(c => ({
               name: c.name,
               hasContact: !!c.contact,
               hasWebsite: !!c.website,
             })),
           };
-          totalCompanies += result.result.companies.length;
+          totalCompanies += result.data.companies.length;
         }
       });
     }
