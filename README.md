@@ -1,14 +1,127 @@
 # Edge.Scraper.Pro
 
-## Enhanced Sports Statistics Scraper
-This project provides a comprehensive web scraping solution with specialized capabilities for sports statistics extraction. Built on Netlify Functions with advanced content detection, structured data parsing, and multiple export formats.
+## Modular Web Scraping Platform
+A comprehensive, modular web scraping solution built with TypeScript and Next.js. Features a task-based architecture with specialized scrapers for news articles, sports statistics, and company data.
 
-### 🏈 Sports-Specific Features
-- **Intelligent Sports Detection**: Automatically recognizes Pro Football Reference and similar sports sites
-- **Structured Data Extraction**: Player biography, statistics tables, achievements, and career data
-- **Advanced Export Formats**: Enhanced CSV, structured JSON, player database, and Excel-compatible formats
-- **Quality Validation**: 6-point sports content validation system with debug tools
-- **Performance Optimized**: Handles 100+ player pages with detailed extraction analysis
+### 🚀 Key Features
+- **Modular Architecture**: Task-based system with shared core utilities
+- **Multiple Scrapers**: News articles, sports statistics, and company data extraction
+- **Web UI**: Tabbed interface with forms, real-time progress, and result visualization
+- **API & CLI**: RESTful API and command-line interface for all tasks
+- **Rate Limiting**: Built-in rate limiting and retry logic
+- **Export Formats**: CSV, JSON, and Excel-compatible outputs
+- **Type Safety**: Full TypeScript support with Zod schema validation
+
+### 📋 Available Tasks
+- **News Articles**: Extract article metadata, content, and images from news sites
+- **Sports Statistics**: Scrape player data, statistics, and achievements from sports sites
+- **Company Data**: Extract company information, contact details, and social media links
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+
+### Installation
+```bash
+git clone https://github.com/ZaBrisket/Edge.Scraper.Pro.git
+cd Edge.Scraper.Pro
+npm install
+```
+
+### Development
+```bash
+# Start development server
+npm run dev
+
+# Build the project
+npm run build
+
+# Run tests
+npm test
+
+# Type checking
+npm run type-check
+```
+
+### Usage
+
+#### Web Interface
+1. Open http://localhost:3000/scrape
+2. Choose a task tab (News, Sports, or Companies)
+3. Enter URLs and configure options
+4. Submit and monitor progress
+5. Download results as CSV or JSON
+
+#### API
+```bash
+# Start a news scraping job
+curl -X POST http://localhost:3000/api/tasks/start \
+  -H "Content-Type: application/json" \
+  -d '{
+    "taskName": "news",
+    "input": {
+      "urls": ["https://example.com/article"],
+      "options": {
+        "concurrency": 3,
+        "delayMs": 1000,
+        "timeout": 15000,
+        "maxRetries": 2,
+        "extractContent": true,
+        "extractImages": false,
+        "maxContentLength": 5000,
+        "dateFormat": "iso"
+      }
+    }
+  }'
+```
+
+#### CLI
+```bash
+# Run news scraping
+npm run cli -- news-articles --urls "https://example.com/article1,https://example.com/article2"
+
+# Run sports scraping
+npm run cli -- sports --urls "https://www.pro-football-reference.com/players/A/AllenJo00.htm"
+
+# Run company scraping
+npm run cli -- supplier-directory --urls "https://example.com/company"
+```
+
+## 🏗️ Architecture
+
+### Core Module (`/core`)
+- **Types**: Shared interfaces and type definitions
+- **HTTP Client**: Rate-limited HTTP client with retry logic
+- **Rate Limiting**: Token bucket algorithm for request throttling
+- **Storage**: Abstract storage layer for caching and persistence
+- **Logging**: Structured logging with context
+- **Batch Processor**: Generic batch processing utility
+- **Dispatcher**: Task registry and execution engine
+
+### Task Modules (`/tasks`)
+Each task is a self-contained module with:
+- **Schema**: Input/output validation with Zod
+- **Implementation**: Task-specific scraping logic
+- **Tests**: Unit and integration tests
+- **Types**: TypeScript type definitions
+
+### API Layer (`/api`)
+- **Controllers**: Request handling and validation
+- **Models**: API-specific data models
+- **Endpoints**: RESTful API endpoints for task execution
+
+### UI Components (`/components/scrape`)
+- **TabNavigation**: Top-level navigation between tasks
+- **TaskForm**: Generic form component for task inputs
+- **TaskRunner**: Job submission and progress monitoring
+- **TaskResults**: Results display and export functionality
+
+### Backward Compatibility
+- **Legacy API**: Existing `/api/scrape/start` endpoint maintained
+- **CLI Adapter**: Legacy CLI commands mapped to new task system
+- **Deprecation Warnings**: Clear migration path for existing users
 
 ## Enhanced HTTP Client
 
