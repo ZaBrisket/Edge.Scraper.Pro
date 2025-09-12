@@ -213,9 +213,81 @@ This system is particularly effective for:
 - **Domain Migrations**: Sites transitioning between www/apex domains
 - **Error Analysis**: Understanding and categorizing scraping failures
 
+## Modular Modes Architecture (NEW!)
+
+EdgeScraperPro now features a **pluggable mode system** with specialized extraction modes and a modern Next.js UI:
+
+### 🔧 Three First-Class Modes
+
+1. **News Articles** (`/scrape/news`)
+   - Extract article titles, authors, publication dates, and content
+   - Configurable content extraction with length limits
+   - Support for multiple date formats and image extraction
+   - Optimized for news sites with ~1.5s per URL processing
+
+2. **Sports Statistics** (`/scrape/sports`) 
+   - Extract player stats from Pro Football Reference and similar sites
+   - Biographical data, career achievements, and statistics tables
+   - Respectful rate limiting with ~3s per URL processing
+   - Specialized for sports reference sites
+
+3. **Supplier Directory** (`/scrape/companies`)
+   - Extract company listings from business directories
+   - Automatic pagination discovery and URL normalization
+   - Contact information and business category extraction
+   - Enhanced with HTTP→HTTPS canonicalization
+
+### 🎯 Modern Web Interface
+
+- **Mode Selection Dashboard**: Choose the right extraction mode for your data
+- **Real-time Job Progress**: Live updates with detailed progress tracking
+- **Results Management**: Download results in JSON/CSV formats
+- **URL Preservation**: Original URLs maintained throughout processing
+- **Error Analytics**: Detailed error categorization and reporting
+
+### 📊 Enhanced Observability
+
+- **Structured Logging**: NDJSON logs with correlation IDs
+- **Job Tracking**: Complete lifecycle monitoring with immutable input preservation
+- **Performance Metrics**: Processing times, success rates, and error analysis
+- **URL Integrity**: Source vs discovered URLs clearly separated
+
 ## Usage
 
-### Bulk URL Upload (NEW!)
+### Web Interface (Recommended)
+
+1. **Start the development server**:
+   ```bash
+   npm run dev
+   ```
+
+2. **Visit the scraping dashboard**:
+   ```
+   http://localhost:3000/scrape
+   ```
+
+3. **Choose your mode** and configure options:
+   - Upload URLs via text input or file upload
+   - Configure mode-specific extraction options
+   - Monitor real-time progress
+   - Download results in preferred format
+
+### Command Line Interface
+
+The CLI supports all modes via the `--mode` parameter:
+
+```bash
+# News articles extraction
+node bin/edge-scraper scrape --mode news-articles --urls news-urls.txt --output articles.json
+
+# Sports statistics extraction  
+node bin/edge-scraper scrape --mode sports --urls player-urls.txt --output players.json
+
+# Supplier directory extraction
+node bin/edge-scraper scrape --mode supplier-directory --urls directory-urls.txt --output companies.json
+```
+
+### Bulk URL Upload
 **Upload up to 1500 URLs at once using TXT or JSON files:**
 
 1. **File Upload Options:**
