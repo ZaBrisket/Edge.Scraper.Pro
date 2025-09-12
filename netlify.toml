@@ -1,7 +1,7 @@
 [build]
-  publish = "out"
+  publish = "public"
   functions = "netlify/functions"
-  command = "npm run next:build && npm run next:export"
+  command = "npm run build"
 
 [build.environment]
   NODE_VERSION = "18"
@@ -75,29 +75,8 @@
   to = "/.netlify/functions/artifacts-download"
   status = 200
 
-# New Scraping API Routes for Next.js
+# New Scraping API Routes for Next.js (will need Netlify functions)
 [[redirects]]
-  from = "/api/scrape/start"
-  to = "/.netlify/functions/scrape-start"
-  status = 200
-
-[[redirects]]
-  from = "/api/scrape/status/*"
-  to = "/.netlify/functions/scrape-status"
-  status = 200
-
-[[redirects]]
-  from = "/api/scrape/cancel/*"
-  to = "/.netlify/functions/scrape-cancel"
-  status = 200
-
-[[redirects]]
-  from = "/api/scrape/download/*"
-  to = "/.netlify/functions/scrape-download"
-  status = 200
-
-# Catch-all for Next.js pages
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from = "/api/scrape/*"
+  to = "/api/scrape/:splat"
   status = 200
