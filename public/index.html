@@ -714,10 +714,9 @@
 
         async function verifyBackend() {
             try {
-                const res = await fetch('/api/fetch-url?url=https://example.com');
+                const res = await fetch('/api/health');
                 const text = await res.text();
-                const correlationId = res.headers.get('x-correlation-id');
-                log(correlationId ? `[${correlationId}]` : '', `[verifyBackend] [${res.status}]`, text.substring(0, 200));
+                log(`[verifyBackend] [${res.status}]`, text.substring(0, 200));
                 if (!res.ok) throw new Error(`Backend returned ${res.status}`);
                 return true;
             } catch (e) {
