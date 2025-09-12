@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import Layout from '../../components/Layout';
 import JobRunner from '../../components/scrape/JobRunner';
+import TabNavigation from '../../components/scrape/TabNavigation';
 
 interface NewsOptions {
   extractContent: boolean;
@@ -105,28 +106,9 @@ export default function NewsScrapePage() {
   };
 
   return (
-    <Layout title="News Articles Scraping">
+    <Layout title="Web Scraping - News Articles">
       <div className="px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <span className="text-2xl">📰</span>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">
-                  News Articles Mode
-                </h3>
-                <div className="mt-2 text-sm text-blue-700">
-                  <p>
-                    Extract article metadata, content, and structured data from news article URLs.
-                    Supports major news sites and automatically detects titles, authors, publication dates, and content.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <TabNavigation />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Input Form */}

@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import Layout from '../../components/Layout';
 import JobRunner from '../../components/scrape/JobRunner';
+import TabNavigation from '../../components/scrape/TabNavigation';
 
 interface SportsOptions {
   extractTables: boolean;
@@ -104,28 +105,9 @@ export default function SportsScrapePage() {
   };
 
   return (
-    <Layout title="Sports Statistics Scraping">
+    <Layout title="Web Scraping - Sports Data">
       <div className="px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <div className="bg-orange-50 border border-orange-200 rounded-md p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <span className="text-2xl">🏈</span>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-orange-800">
-                  Sports Statistics Mode
-                </h3>
-                <div className="mt-2 text-sm text-orange-700">
-                  <p>
-                    Extract player statistics, biographical data, and achievements from Pro Football Reference 
-                    and other sports reference sites. Optimized for sports data with respectful rate limiting.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <TabNavigation />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">

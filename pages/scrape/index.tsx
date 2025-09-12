@@ -3,16 +3,16 @@
  * Mode selection and overview
  */
 
-import React from 'react';
-import Layout from '../../components/Layout';
-import ModeSelector from '../../components/scrape/ModeSelector';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/router';
 
 export default function ScrapePage() {
-  return (
-    <Layout title="Web Scraping">
-      <div className="px-4 sm:px-6 lg:px-8">
-        <ModeSelector />
-      </div>
-    </Layout>
-  );
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to news articles as the default tab
+    router.replace('/scrape/news');
+  }, [router]);
+
+  return null;
 }
