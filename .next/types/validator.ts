@@ -36,6 +36,42 @@ type PagesPageConfig = {
   type __Unused = __Check
 }
 
+// Validate ../../pages/scrape/companies.tsx
+{
+  type __IsExpected<Specific extends PagesPageConfig> = Specific
+  const handler = {} as typeof import("../../pages/scrape/companies.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../pages/scrape/index.tsx
+{
+  type __IsExpected<Specific extends PagesPageConfig> = Specific
+  const handler = {} as typeof import("../../pages/scrape/index.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../pages/scrape/news.tsx
+{
+  type __IsExpected<Specific extends PagesPageConfig> = Specific
+  const handler = {} as typeof import("../../pages/scrape/news.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../pages/scrape/sports.tsx
+{
+  type __IsExpected<Specific extends PagesPageConfig> = Specific
+  const handler = {} as typeof import("../../pages/scrape/sports.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../pages/targets/[id]/preview.tsx
 {
   type __IsExpected<Specific extends PagesPageConfig> = Specific
