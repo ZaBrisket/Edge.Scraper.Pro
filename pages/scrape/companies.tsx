@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import Layout from '../../components/Layout';
 import JobRunner from '../../components/scrape/JobRunner';
+import TabNavigation from '../../components/scrape/TabNavigation';
 
 interface CompaniesOptions {
   enablePaginationDiscovery: boolean;
@@ -123,28 +124,9 @@ export default function CompaniesScrapePage() {
   };
 
   return (
-    <Layout title="Supplier Directory Scraping">
+    <Layout title="Web Scraping - Company Web Pages">
       <div className="px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <div className="bg-green-50 border border-green-200 rounded-md p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <span className="text-2xl">🏢</span>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-green-800">
-                  Supplier Directory Mode
-                </h3>
-                <div className="mt-2 text-sm text-green-700">
-                  <p>
-                    Extract company listings and contact information from supplier directory pages. 
-                    Includes automatic pagination discovery and URL normalization for maximum coverage.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <TabNavigation />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
