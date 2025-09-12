@@ -1,7 +1,11 @@
 [build]
-  publish = "public"
+  publish = "out"
   functions = "netlify/functions"
-  command = "npm run build"
+  command = "npm run next:build && npm run next:export"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_FLAGS = "--production=false"
 
 [functions]
   node_bundler = "esbuild"
@@ -69,4 +73,31 @@
 [[redirects]]
   from = "/api/artifacts/*/signed-url"
   to = "/.netlify/functions/artifacts-download"
+  status = 200
+
+# New Scraping API Routes for Next.js
+[[redirects]]
+  from = "/api/scrape/start"
+  to = "/.netlify/functions/scrape-start"
+  status = 200
+
+[[redirects]]
+  from = "/api/scrape/status/*"
+  to = "/.netlify/functions/scrape-status"
+  status = 200
+
+[[redirects]]
+  from = "/api/scrape/cancel/*"
+  to = "/.netlify/functions/scrape-cancel"
+  status = 200
+
+[[redirects]]
+  from = "/api/scrape/download/*"
+  to = "/.netlify/functions/scrape-download"
+  status = 200
+
+# Catch-all for Next.js pages
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
   status = 200
