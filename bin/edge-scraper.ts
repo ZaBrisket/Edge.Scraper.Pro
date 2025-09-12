@@ -3,16 +3,17 @@
 import { Command } from 'commander';
 import * as path from 'path';
 import * as fs from 'fs';
-import { createLogger } from '../src/lib/logger';
+import { createLogger } from '../lib/logger';
 
 // Import the trivia exporter (will need to compile TypeScript first)
-import { exportTriviaDataset } from '../src/exporters/trivia_v1/index';
+import { exportTriviaDataset } from '../exporters/trivia_v1/index';
 
 // Import batch processor and extractors
-import { BatchProcessor } from '../src/lib/batch-processor';
-import { SupplierDirectoryExtractor } from '../src/lib/supplier-directory-extractor';
-import { SupplierDirectoryTestSuite } from '../src/lib/supplier-directory-test-suite';
-import { SupplierDataExporter } from '../src/lib/supplier-export';
+import { BatchProcessor } from '../lib/batch-processor';
+import { SupplierDirectoryExtractor } from '../lib/supplier-directory-extractor';
+import { SupplierDirectoryTestSuite } from '../lib/supplier-directory-test-suite';
+// @ts-ignore - JavaScript module without types
+import { SupplierDataExporter } from '../lib/supplier-export';
 
 const program = new Command();
 const logger = createLogger('cli');
@@ -33,9 +34,9 @@ interface ScrapeOptions {
   urls: string;
   mode: 'supplier-directory' | 'sports' | 'general';
   output: string;
-  concurrency: number;
-  delay: number;
-  timeout: number;
+  concurrency: string;
+  delay: string;
+  timeout: string;
   verbose: boolean;
 }
 
@@ -70,7 +71,7 @@ program
       const exportOptions: ExportOptions = {
         seasonMin: parseInt(options.seasonMin),
         seasonMax: parseInt(options.seasonMax),
-        positions: options.positions.split(',').map(p => p.trim()),
+        positions: options.positions.split(',').map((p: string) => p.trim()),
         requireGMin: parseInt(options.requireGMin),
         dropSummaryRows: options.dropSummaryRows,
         pretty: options.pretty,

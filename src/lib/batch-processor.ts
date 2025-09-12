@@ -121,11 +121,18 @@ export interface BatchResult {
     startTime: number;
     endTime: number;
     duration: number;
+    processingTime: number;
+    averageProcessingTime: number;
+    throughput: number;
   };
   results: Array<{
     url: string;
     success: boolean;
-    data?: any;
+    result?: {
+      companies: any[];
+      extractedAt: string;
+      [key: string]: any;
+    };
     error?: string;
     category?: ErrorCategory;
     responseTime?: number;
@@ -389,7 +396,11 @@ export class BatchProcessor {
         this.results.push({
           url,
           success: true,
-          data: extractedData,
+          result: {
+            companies: extractedData?.companies || [],
+            extractedAt: new Date().toISOString(),
+            ...extractedData
+          },
           responseTime: Date.now() - startTime,
           canonicalized: fetchResult.canonicalized,
           paginationDiscovered: fetchResult.paginationDiscovered,
@@ -528,6 +539,10 @@ export class BatchProcessor {
     const successRate =
       this.processedCount > 0 ? (this.successfulCount / this.processedCount) * 100 : 0;
 
+    const processingTime = duration;
+    const averageProcessingTime = this.processedCount > 0 ? processingTime / this.processedCount : 0;
+    const throughput = processingTime > 0 ? (this.processedCount / processingTime) * 1000 : 0; // URLs per second
+
     return {
       batchId: this.batchId,
       stats: {
@@ -539,6 +554,9 @@ export class BatchProcessor {
         startTime: this.startTime,
         endTime: this.endTime,
         duration,
+        processingTime,
+        averageProcessingTime,
+        throughput,
       },
       results: this.results,
       errors: this.errors.slice(-this.options.errorReportSize), // Keep only recent errors
