@@ -1,7 +1,10 @@
 [build]
   publish = "public"
   functions = "netlify/functions"
-  command = "npm run build"
+  command = "npm run build && npm run db:generate"
+
+[build.environment]
+  NODE_ENV = "production"
 
 [functions]
   node_bundler = "esbuild"
@@ -69,4 +72,10 @@
 [[redirects]]
   from = "/api/artifacts/*/signed-url"
   to = "/.netlify/functions/artifacts-download"
+  status = 200
+
+# Health check endpoint
+[[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/health-check"
   status = 200

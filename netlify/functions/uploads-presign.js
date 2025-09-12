@@ -1,8 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
 const { generatePresignedUpload } = require('./utils/s3');
 const { z } = require('zod');
-const { AuthService, Permission } = require('../../src/lib/auth');
-const { ValidationUtils, schemas } = require('../../src/lib/validation');
+const { AuthService, Permission } = require('../../dist/lib/auth');
+const { ValidationUtils, schemas } = require('../../dist/lib/validation');
 
 const prisma = new PrismaClient();
 

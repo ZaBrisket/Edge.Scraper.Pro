@@ -3,9 +3,9 @@
  * Handles user login and returns JWT token
  */
 
-const { AuthService } = require('../../src/lib/auth');
-const { ValidationUtils, schemas } = require('../../src/lib/validation');
-const { ErrorHandler, createError } = require('../../src/lib/middleware/error-handler');
+const { AuthService } = require('../../dist/lib/auth');
+const { ValidationUtils, schemas } = require('../../dist/lib/validation');
+const { ErrorHandler, createError } = require('../../dist/lib/middleware/error-handler');
 
 exports.handler = async (event, context) => {
   // CORS headers

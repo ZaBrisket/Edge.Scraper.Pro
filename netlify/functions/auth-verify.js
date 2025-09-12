@@ -3,7 +3,7 @@
  * Verifies JWT token and returns user info
  */
 
-const { AuthService } = require('../../src/lib/auth');
+const { AuthService } = require('../../dist/lib/auth');
 
 exports.handler = async (event, context) => {
   // CORS headers
@@ -37,6 +37,35 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    // Check for required environment variables
+    if (!process.env.JWT_SECRET) {
+      console.error('Missing JWT_SECRET environment variable');
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: {
+            code: 'server_misconfiguration',
+            message: 'Server configuration error. Please check deployment settings.',
+          },
+        }),
+      };
+    }
+
+    if (!process.env.DATABASE_URL) {
+      console.error('Missing DATABASE_URL environment variable');
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: {
+            code: 'server_misconfiguration',
+            message: 'Database configuration error. Please check deployment settings.',
+          },
+        }),
+      };
+    }
+
     // Get authorization header
     const authHeader = event.headers.authorization || event.headers.Authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -75,6 +104,33 @@ exports.handler = async (event, context) => {
     };
   } catch (error) {
     console.error('Token verification error:', error);
+    
+    // Provide more specific error messages
+    if (error.message.includes('JWT_SECRET')) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: {
+            code: 'server_misconfiguration',
+            message: 'Authentication service configuration error',
+          },
+        }),
+      };
+    }
+
+    if (error.message.includes('Database')) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: {
+            code: 'database_error',
+            message: 'Database connection error',
+          },
+        }),
+      };
+    }
     
     return {
       statusCode: 401,
