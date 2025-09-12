@@ -1,0 +1,193 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Companies Export Schema",
+  "description": "Schema for exported company profiles data",
+  "type": "object",
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "exportedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "totalCompanies": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "successfulExtractions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failedExtractions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "extractor": {
+          "type": "string",
+          "enum": ["CompaniesExtractor"]
+        }
+      },
+      "required": ["exportedAt", "totalCompanies", "successfulExtractions", "failedExtractions", "extractor"]
+    },
+    "companies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "originalUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "content": {
+            "type": "string",
+            "minLength": 500
+          },
+          "description": {
+            "type": "string"
+          },
+          "heroCopy": {
+            "type": "string"
+          },
+          "navigation": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "locations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "contactInfo": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "string",
+                "format": "email"
+              },
+              "phone": {
+                "type": "string"
+              },
+              "address": {
+                "type": "string"
+              }
+            }
+          },
+          "socialMedia": {
+            "type": "object",
+            "properties": {
+              "website": {
+                "type": "string",
+                "format": "uri"
+              },
+              "linkedin": {
+                "type": "string",
+                "format": "uri"
+              },
+              "twitter": {
+                "type": "string",
+                "format": "uri"
+              },
+              "facebook": {
+                "type": "string",
+                "format": "uri"
+              }
+            }
+          },
+          "industry": {
+            "type": "string",
+            "enum": ["technology", "software", "healthcare", "finance", "education", "retail", "manufacturing", "consulting", "marketing", "advertising", "real estate", "construction", "automotive", "aerospace", "energy", "telecommunications", "media", "entertainment", "gaming", "e-commerce"]
+          },
+          "size": {
+            "type": "string"
+          },
+          "founded": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "keywords": {
+                "type": "string"
+              },
+              "ogTitle": {
+                "type": "string"
+              },
+              "ogDescription": {
+                "type": "string"
+              },
+              "canonical": {
+                "type": "string",
+                "format": "uri"
+              }
+            }
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "technologies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "extractionInfo": {
+            "type": "object",
+            "properties": {
+              "extractor": {
+                "type": "string"
+              },
+              "contentLength": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "canonicalized": {
+                "type": "boolean"
+              },
+              "paginationDiscovered": {
+                "type": "boolean"
+              },
+              "discoveredUrls": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            },
+            "required": ["extractor", "contentLength"]
+          }
+        },
+        "required": ["url", "title", "content", "extractionInfo"]
+      }
+    }
+  },
+  "required": ["metadata", "companies"]
+}

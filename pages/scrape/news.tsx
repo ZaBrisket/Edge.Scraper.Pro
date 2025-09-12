@@ -8,6 +8,7 @@ import TabNavigation from '../../components/scrape/TabNavigation';
 import TaskForm from '../../components/scrape/TaskForm';
 import TaskRunner from '../../components/scrape/TaskRunner';
 import TaskResults from '../../components/scrape/TaskResults';
+import ModeHelp from '../../components/scrape/ModeHelp';
 
 interface NewsOptions {
   extractContent: boolean;
@@ -121,6 +122,10 @@ export default function NewsScrapePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Input Form */}
           <div className="lg:col-span-2">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-medium text-gray-900">News Articles Extraction</h2>
+              <ModeHelp mode="news" />
+            </div>
             <TaskForm taskName="news" onSubmit={handleSubmit} isSubmitting={!!jobInput}>
               <div>
                 <label htmlFor="urls" className="block text-sm font-medium text-gray-700">

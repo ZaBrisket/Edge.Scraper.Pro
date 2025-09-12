@@ -6,7 +6,7 @@
 const dns = require('dns').promises;
 const { URL } = require('url');
 const net = require('net');
-const { fetchWithPolicy } = require('../../src/lib/http/client');
+const { fetchWithPolicy } = require('../../src/lib/http/unified-client');
 const { getCorrelationId } = require('../../src/lib/http/correlation');
 const { AuthService, Permission } = require('../../src/lib/auth');
 const { ValidationUtils } = require('../../src/lib/validation');

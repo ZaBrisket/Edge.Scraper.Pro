@@ -1,0 +1,141 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Sports Content Export Schema",
+  "description": "Schema for exported sports content data",
+  "type": "object",
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "exportedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "totalPlayers": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "successfulExtractions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failedExtractions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "extractor": {
+          "type": "string",
+          "enum": ["SportsExtractor"]
+        }
+      },
+      "required": ["exportedAt", "totalPlayers", "successfulExtractions", "failedExtractions", "extractor"]
+    },
+    "players": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "originalUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "content": {
+            "type": "string",
+            "minLength": 500
+          },
+          "sport": {
+            "type": "string",
+            "enum": ["football", "basketball", "baseball", "hockey", "soccer", "tennis", "golf", "cricket", "rugby", "volleyball", "swimming", "track", "cycling", "boxing", "mma", "wrestling", "skiing", "snowboarding"]
+          },
+          "team": {
+            "type": "string"
+          },
+          "player": {
+            "type": "string"
+          },
+          "event": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "score": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "keywords": {
+                "type": "string"
+              },
+              "ogTitle": {
+                "type": "string"
+              },
+              "ogDescription": {
+                "type": "string"
+              },
+              "canonical": {
+                "type": "string",
+                "format": "uri"
+              }
+            }
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "stats": {
+            "type": "object",
+            "description": "Player statistics and performance data"
+          },
+          "extractionInfo": {
+            "type": "object",
+            "properties": {
+              "extractor": {
+                "type": "string"
+              },
+              "contentLength": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "canonicalized": {
+                "type": "boolean"
+              },
+              "paginationDiscovered": {
+                "type": "boolean"
+              },
+              "discoveredUrls": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            },
+            "required": ["extractor", "contentLength"]
+          }
+        },
+        "required": ["url", "title", "content", "sport", "extractionInfo"]
+      }
+    }
+  },
+  "required": ["metadata", "players"]
+}

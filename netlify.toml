@@ -8,10 +8,15 @@
 [build.environment]
   NODE_VERSION = "18"
   NPM_FLAGS = "--production=false"
+  HTTP_DEADLINE_MS = "30000"
+  NODE_OPTIONS = "--max-old-space-size=4096"
+  NPM_CONFIG_CACHE = "/tmp/.npm"
 
 [functions]
   node_bundler = "esbuild"
-  included_files = ["prisma/**/*"]
+  included_files = ["prisma/**/*", "src/**/*", "schemas/**/*"]
+  external_node_modules = ["aws-sdk"]
+  timeout = 30
 
 # Proxy API routes to Netlify Functions
 [[redirects]]
@@ -92,3 +97,44 @@
   from = "/api/tasks/*"
   to = "/.netlify/functions/:splat"
   status = 200
+
+# Security headers for all pages
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
+# CORS headers for SPA
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "https://your-spa-domain.netlify.app"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, x-correlation-id"
+    Access-Control-Max-Age = "86400"
+
+# Cache policy for large batches
+[[headers]]
+  for = "/api/jobs/*"
+  [headers.values]
+    Cache-Control = "public, max-age=300"
+    X-Content-Type-Options = "nosniff"
+
+# Static assets caching
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# API rate limiting headers
+[[headers]]
+  for = "/api/fetch-url"
+  [headers.values]
+    X-RateLimit-Limit = "100"
+    X-RateLimit-Remaining = "99"
+    X-RateLimit-Reset = "1640995200"

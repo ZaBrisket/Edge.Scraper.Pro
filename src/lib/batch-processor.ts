@@ -18,8 +18,10 @@ import config from './config';
 import { createLogger } from './logger';
 import { SupplierDirectoryExtractor } from './supplier-directory-extractor';
 import { SportsContentExtractor } from './sports-extractor';
-import { EnhancedFetchClient } from './http/enhanced-fetch-client';
+const { fetchWithPolicy } = require('./http/unified-client');
 import { StructuredLogger } from './http/structured-logger';
+import { UrlNormalizer } from '../pipeline/url-normalizer';
+import { ExtractorRouter } from '../extractors/route';
 
 // Input validation schemas
 const urlArraySchema = z.array(z.string()).min(1).max(10000);
@@ -31,10 +33,11 @@ const batchOptionsSchema = z
     timeout: z.number().int().min(100).max(300000).optional(),
     maxRetries: z.number().int().min(0).max(10).optional(),
     errorReportSize: z.number().int().min(10).max(1000).optional(),
-    extractionMode: z.enum(['sports', 'supplier-directory', 'general']).optional(),
+    extractionMode: z.enum(['news', 'sports', 'companies', 'supplier-directory', 'general', 'auto']).optional(),
     enableUrlNormalization: z.boolean().optional(),
     enablePaginationDiscovery: z.boolean().optional(),
     enableStructuredLogging: z.boolean().optional(),
+    enableExtractorRouter: z.boolean().optional(),
     onProgress: z.function().optional(),
     onError: z.function().optional(),
     onComplete: z.function().optional(),
@@ -82,10 +85,11 @@ export interface BatchOptions {
   timeout?: number;
   maxRetries?: number;
   errorReportSize?: number;
-  extractionMode?: 'sports' | 'supplier-directory' | 'general';
+  extractionMode?: 'news' | 'sports' | 'companies' | 'supplier-directory' | 'general' | 'auto';
   enableUrlNormalization?: boolean;
   enablePaginationDiscovery?: boolean;
   enableStructuredLogging?: boolean;
+  enableExtractorRouter?: boolean;
   onProgress?: (progress: ProgressInfo) => void;
   onError?: (error: ProcessingError) => void;
   onComplete?: (result: BatchResult) => void;
@@ -160,7 +164,9 @@ export class BatchProcessor {
   private skippedCount: number = 0;
   private structuredLogger?: StructuredLogger;
   private extractor?: SupplierDirectoryExtractor | SportsContentExtractor;
-  private fetchClient?: EnhancedFetchClient;
+  private urlNormalizer?: UrlNormalizer;
+  private extractorRouter?: ExtractorRouter;
+  // Using unified HTTP client directly
   private abortController?: AbortController;
 
   constructor(options: BatchOptions = {}) {
@@ -177,10 +183,11 @@ export class BatchProcessor {
       timeout: validatedOptions.timeout || config.DEFAULT_TIMEOUT_MS || 30000,
       maxRetries: validatedOptions.maxRetries ?? config.MAX_RETRIES ?? 3,
       errorReportSize: validatedOptions.errorReportSize || 50,
-      extractionMode: validatedOptions.extractionMode || 'general',
+      extractionMode: validatedOptions.extractionMode || 'auto',
       enableUrlNormalization: validatedOptions.enableUrlNormalization !== false,
       enablePaginationDiscovery: validatedOptions.enablePaginationDiscovery !== false,
       enableStructuredLogging: validatedOptions.enableStructuredLogging !== false,
+      enableExtractorRouter: validatedOptions.enableExtractorRouter !== false,
       onProgress: validatedOptions.onProgress || (() => {}),
       onError: validatedOptions.onError || (() => {}),
       onComplete: validatedOptions.onComplete || (() => {}),
@@ -237,27 +244,37 @@ export class BatchProcessor {
       });
     }
 
-    // Initialize extractor based on mode
-    switch (this.options.extractionMode) {
-      case 'supplier-directory':
-        this.extractor = new SupplierDirectoryExtractor();
-        break;
-      case 'sports':
-        this.extractor = new SportsContentExtractor();
-        break;
-      default:
-        // General mode - no specific extractor
-        break;
+    // Initialize URL normalizer if enabled
+    if (this.options.enableUrlNormalization) {
+      this.urlNormalizer = new UrlNormalizer({
+        enableCanonicalization: this.options.enableUrlNormalization,
+        enablePaginationDiscovery: this.options.enablePaginationDiscovery,
+      });
     }
 
-    // Initialize fetch client
-    this.fetchClient = new EnhancedFetchClient({
-      timeout: this.options.timeout,
-      maxRetries: this.options.maxRetries,
-      enableUrlNormalization: this.options.enableUrlNormalization,
-      enablePaginationDiscovery: this.options.enablePaginationDiscovery,
-      structuredLogger: this.structuredLogger,
-    });
+    // Initialize extractor router if enabled
+    if (this.options.enableExtractorRouter) {
+      this.extractorRouter = new ExtractorRouter({
+        mode: this.options.extractionMode === 'auto' ? 'auto' : this.options.extractionMode as any,
+        enableFallbacks: true,
+        minContentLength: 500,
+      });
+    } else {
+      // Initialize legacy extractor based on mode
+      switch (this.options.extractionMode) {
+        case 'supplier-directory':
+          this.extractor = new SupplierDirectoryExtractor();
+          break;
+        case 'sports':
+          this.extractor = new SportsContentExtractor();
+          break;
+        default:
+          // General mode - no specific extractor
+          break;
+      }
+    }
+
+    // Using unified HTTP client directly - no initialization needed
   }
 
   async processBatch(urls: string[]): Promise<BatchResult> {
@@ -352,6 +369,8 @@ export class BatchProcessor {
     const startTime = Date.now();
     let attempt = 0;
     let lastError: Error | null = null;
+    let normalizedUrl = url;
+    let discoveredUrls: string[] = [];
 
     while (attempt <= this.options.maxRetries) {
       try {
@@ -362,24 +381,76 @@ export class BatchProcessor {
 
         this.logger.debug('Processing URL', { url, attempt });
 
-        // Fetch the URL
-        const fetchResult = await this.fetchClient!.fetch(url, {
-          signal: this.abortController?.signal,
-        });
+        // Step 1: URL Normalization (if enabled)
+        if (this.urlNormalizer) {
+          try {
+            const normalizationResult = await this.urlNormalizer.normalizeUrl(
+              url, 
+              (url: string, options?: any) => fetchWithPolicy(url, { ...options, correlationId: this.correlationId }),
+              {
+                enableCanonicalization: this.options.enableUrlNormalization,
+                enablePaginationDiscovery: this.options.enablePaginationDiscovery,
+              }
+            );
 
-        if (!fetchResult.success) {
-          throw new Error(fetchResult.error || 'Fetch failed');
+            if (normalizationResult.resolvedUrl) {
+              normalizedUrl = normalizationResult.resolvedUrl;
+              this.logger.debug({ 
+                originalUrl: url, 
+                resolvedUrl: normalizedUrl,
+                canonicalized: normalizationResult.canonicalized,
+                paginationDiscovered: normalizationResult.paginationDiscovered
+              }, 'URL normalized');
+            }
+
+            if (normalizationResult.discoveredUrls) {
+              discoveredUrls = normalizationResult.discoveredUrls;
+              this.logger.info({ 
+                url, 
+                discoveredUrls: discoveredUrls.length 
+              }, 'Pagination discovery found additional URLs');
+            }
+          } catch (normalizationError) {
+            this.logger.warn('URL normalization failed', {
+              url,
+              error: normalizationError instanceof Error ? normalizationError.message : 'Unknown error',
+            });
+          }
         }
 
-        // Extract data if extractor is available
+        // Step 2: Fetch the URL using unified client
+        const response = await fetchWithPolicy(normalizedUrl, {
+          timeout: this.options.timeout,
+          retries: this.options.maxRetries,
+          correlationId: this.correlationId,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const content = await response.text();
+
+        // Step 3: Extract data using appropriate extractor
         let extractedData: any = null;
-        if (this.extractor && fetchResult.content) {
+        if (this.extractorRouter) {
           try {
-            const dom = new JSDOM(fetchResult.content);
-            extractedData = await this.extractor.extract(dom.window.document, url);
+            const dom = new JSDOM(content);
+            const extractionResult = await this.extractorRouter.extract(dom.window.document, normalizedUrl);
+            extractedData = extractionResult.data;
           } catch (extractError) {
             this.logger.warn('Data extraction failed', {
-              url,
+              url: normalizedUrl,
+              error: extractError instanceof Error ? extractError.message : 'Unknown error',
+            });
+          }
+        } else if (this.extractor && content) {
+          try {
+            const dom = new JSDOM(content);
+            extractedData = await this.extractor.extract(dom.window.document, normalizedUrl);
+          } catch (extractError) {
+            this.logger.warn('Data extraction failed', {
+              url: normalizedUrl,
               error: extractError instanceof Error ? extractError.message : 'Unknown error',
             });
           }
@@ -387,21 +458,27 @@ export class BatchProcessor {
 
         // Record successful result
         this.results.push({
-          url,
+          url: normalizedUrl,
           success: true,
-          data: extractedData,
+          data: {
+            ...extractedData,
+            originalUrl: url,
+            discoveredUrls: discoveredUrls,
+          },
           responseTime: Date.now() - startTime,
-          canonicalized: fetchResult.canonicalized,
-          paginationDiscovered: fetchResult.paginationDiscovered,
+          canonicalized: normalizedUrl !== url,
+          paginationDiscovered: discoveredUrls.length > 0,
         });
 
         this.successfulCount++;
         this.processedCount++;
 
         this.logger.debug('URL processed successfully', {
-          url,
+          originalUrl: url,
+          normalizedUrl,
           responseTime: Date.now() - startTime,
-          canonicalized: fetchResult.canonicalized,
+          canonicalized: normalizedUrl !== url,
+          paginationDiscovered: discoveredUrls.length > 0,
         });
 
         return;

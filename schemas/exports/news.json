@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "News Articles Export Schema",
+  "description": "Schema for exported news articles data",
+  "type": "object",
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "exportedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "totalArticles": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "successfulExtractions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failedExtractions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "extractor": {
+          "type": "string",
+          "enum": ["NewsExtractor"]
+        }
+      },
+      "required": ["exportedAt", "totalArticles", "successfulExtractions", "failedExtractions", "extractor"]
+    },
+    "articles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "originalUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "content": {
+            "type": "string",
+            "minLength": 500
+          },
+          "author": {
+            "type": "string"
+          },
+          "publishedDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "keywords": {
+                "type": "string"
+              },
+              "ogTitle": {
+                "type": "string"
+              },
+              "ogDescription": {
+                "type": "string"
+              },
+              "canonical": {
+                "type": "string",
+                "format": "uri"
+              }
+            }
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "extractionInfo": {
+            "type": "object",
+            "properties": {
+              "extractor": {
+                "type": "string"
+              },
+              "contentLength": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "canonicalized": {
+                "type": "boolean"
+              },
+              "paginationDiscovered": {
+                "type": "boolean"
+              },
+              "discoveredUrls": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            },
+            "required": ["extractor", "contentLength"]
+          }
+        },
+        "required": ["url", "title", "content", "extractionInfo"]
+      }
+    }
+  },
+  "required": ["metadata", "articles"]
+}
