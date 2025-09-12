@@ -14,6 +14,8 @@ const { URL } = require('url');
 const createLogger = require('./logging');
 const { UrlCanonicalizer } = require('./url-canonicalizer');
 const { PaginationDiscovery } = require('../pagination-discovery');
+const { JSDOM } = require('jsdom');
+const { renderSpaPage } = require('../browser/spa-renderer');
 
 class EnhancedFetchClient {
   constructor(options = {}) {
@@ -320,8 +322,8 @@ class EnhancedFetchClient {
           });
         });
 
-        if (canonicalizationResult.success) {
-          resolvedUrl = canonicalizationResult.canonicalUrl;
+      if (canonicalizationResult.success) {
+        resolvedUrl = canonicalizationResult.canonicalUrl;
           
           // Fetch the canonical URL
           response = await this.baseFetch(resolvedUrl, {
@@ -337,6 +339,39 @@ class EnhancedFetchClient {
             resolvedUrl, 
             attempts: canonicalizationResult.attempts.length 
           }, 'URL canonicalization successful');
+        }
+      }
+
+      // If still 404 on D2P manufacturer pages, try headless browser rendering
+      if (response.status === 404) {
+        const finalUrl = new URL(resolvedUrl);
+        const isD2P = finalUrl.hostname.includes('d2pbuyersguide.com');
+        const isManufacturer = finalUrl.pathname.startsWith('/manufacturer/');
+
+        if (isD2P && isManufacturer) {
+          this.logger.info({ url: resolvedUrl }, 'Attempting headless browser render');
+          try {
+            const html = await renderSpaPage(resolvedUrl);
+            const dom = new JSDOM(html);
+            response = new Response(html, {
+              status: 200,
+              headers: { 'Content-Type': 'text/html' }
+            });
+            this.recordRequestResult(hostname, true);
+            return {
+              response,
+              dom: dom.window.document,
+              originalUrl,
+              resolvedUrl,
+              canonicalizationResult,
+              robotsAllowed: true,
+              responseTime: Date.now() - startTime,
+              fromCache: false,
+              renderedViaBrowser: true
+            };
+          } catch (browserError) {
+            this.logger.error({ url: resolvedUrl, error: browserError.message }, 'Headless browser render failed');
+          }
         }
       }
 
