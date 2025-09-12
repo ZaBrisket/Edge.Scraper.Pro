@@ -39,27 +39,27 @@ export declare const scrapingSchemas: {
             followRedirects: z.ZodOptional<z.ZodBoolean>;
             userAgent: z.ZodOptional<z.ZodString>;
         }, "strip", z.ZodTypeAny, {
+            userAgent?: string | undefined;
             timeout?: number | undefined;
             followRedirects?: boolean | undefined;
-            userAgent?: string | undefined;
         }, {
+            userAgent?: string | undefined;
             timeout?: number | undefined;
             followRedirects?: boolean | undefined;
-            userAgent?: string | undefined;
         }>>;
     }, "strip", z.ZodTypeAny, {
         url: string;
         options?: {
+            userAgent?: string | undefined;
             timeout?: number | undefined;
             followRedirects?: boolean | undefined;
-            userAgent?: string | undefined;
         } | undefined;
     }, {
         url: string;
         options?: {
+            userAgent?: string | undefined;
             timeout?: number | undefined;
             followRedirects?: boolean | undefined;
-            userAgent?: string | undefined;
         } | undefined;
     }>;
     batchUrls: z.ZodObject<{
@@ -74,19 +74,19 @@ export declare const scrapingSchemas: {
             enablePaginationDiscovery: z.ZodOptional<z.ZodBoolean>;
             enableStructuredLogging: z.ZodOptional<z.ZodBoolean>;
         }, "strip", z.ZodTypeAny, {
-            concurrency?: number | undefined;
-            delayMs?: number | undefined;
             timeout?: number | undefined;
             maxRetries?: number | undefined;
+            concurrency?: number | undefined;
+            delayMs?: number | undefined;
             extractionMode?: "sports" | "supplier-directory" | "general" | undefined;
             enableUrlNormalization?: boolean | undefined;
             enablePaginationDiscovery?: boolean | undefined;
             enableStructuredLogging?: boolean | undefined;
         }, {
-            concurrency?: number | undefined;
-            delayMs?: number | undefined;
             timeout?: number | undefined;
             maxRetries?: number | undefined;
+            concurrency?: number | undefined;
+            delayMs?: number | undefined;
             extractionMode?: "sports" | "supplier-directory" | "general" | undefined;
             enableUrlNormalization?: boolean | undefined;
             enablePaginationDiscovery?: boolean | undefined;
@@ -95,10 +95,10 @@ export declare const scrapingSchemas: {
     }, "strip", z.ZodTypeAny, {
         urls: string[];
         options?: {
-            concurrency?: number | undefined;
-            delayMs?: number | undefined;
             timeout?: number | undefined;
             maxRetries?: number | undefined;
+            concurrency?: number | undefined;
+            delayMs?: number | undefined;
             extractionMode?: "sports" | "supplier-directory" | "general" | undefined;
             enableUrlNormalization?: boolean | undefined;
             enablePaginationDiscovery?: boolean | undefined;
@@ -107,10 +107,10 @@ export declare const scrapingSchemas: {
     }, {
         urls: string[];
         options?: {
-            concurrency?: number | undefined;
-            delayMs?: number | undefined;
             timeout?: number | undefined;
             maxRetries?: number | undefined;
+            concurrency?: number | undefined;
+            delayMs?: number | undefined;
             extractionMode?: "sports" | "supplier-directory" | "general" | undefined;
             enableUrlNormalization?: boolean | undefined;
             enablePaginationDiscovery?: boolean | undefined;
@@ -132,25 +132,25 @@ export declare const authSchemas: {
         name: z.ZodString;
         role: z.ZodOptional<z.ZodEnum<["admin", "user", "readonly"]>>;
     }, "strip", z.ZodTypeAny, {
-        password: string;
         name: string;
         email: string;
-        role?: "admin" | "user" | "readonly" | undefined;
+        password: string;
+        role?: "user" | "admin" | "readonly" | undefined;
     }, {
-        password: string;
         name: string;
         email: string;
-        role?: "admin" | "user" | "readonly" | undefined;
+        password: string;
+        role?: "user" | "admin" | "readonly" | undefined;
     }>;
     login: z.ZodObject<{
         email: z.ZodString;
         password: z.ZodString;
     }, "strip", z.ZodTypeAny, {
-        password: string;
         email: string;
+        password: string;
     }, {
-        password: string;
         email: string;
+        password: string;
     }>;
     changePassword: z.ZodObject<{
         currentPassword: z.ZodString;
@@ -221,15 +221,15 @@ export declare const targetListSchemas: {
         customMapping: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
         idempotencyKey: z.ZodOptional<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
-        datasetId: string;
         format: "xlsx" | "pdf";
+        datasetId: string;
         templateId?: string | undefined;
         theme?: "default" | "utss-2025" | undefined;
         idempotencyKey?: string | undefined;
         customMapping?: Record<string, string> | undefined;
     }, {
-        datasetId: string;
         format: "xlsx" | "pdf";
+        datasetId: string;
         templateId?: string | undefined;
         theme?: "default" | "utss-2025" | undefined;
         idempotencyKey?: string | undefined;
@@ -277,8 +277,8 @@ export declare const templateSchemas: {
             defaultValue?: string | undefined;
         }>, "many">;
     }, "strip", z.ZodTypeAny, {
-        version: string;
         name: string;
+        version: string;
         isPublic: boolean;
         fieldDefs: {
             targetField: string;
@@ -298,8 +298,8 @@ export declare const templateSchemas: {
             required?: boolean | undefined;
             defaultValue?: string | undefined;
         }[];
-        version?: string | undefined;
         description?: string | undefined;
+        version?: string | undefined;
         sourceHint?: string | undefined;
         isPublic?: boolean | undefined;
     }>;
@@ -332,9 +332,9 @@ export declare const templateSchemas: {
             defaultValue?: string | undefined;
         }>, "many">>;
     }, "strip", z.ZodTypeAny, {
-        version?: string | undefined;
         name?: string | undefined;
         description?: string | undefined;
+        version?: string | undefined;
         sourceHint?: string | undefined;
         isPublic?: boolean | undefined;
         fieldDefs?: {
@@ -346,9 +346,9 @@ export declare const templateSchemas: {
             defaultValue?: string | undefined;
         }[] | undefined;
     }, {
-        version?: string | undefined;
         name?: string | undefined;
         description?: string | undefined;
+        version?: string | undefined;
         sourceHint?: string | undefined;
         isPublic?: boolean | undefined;
         fieldDefs?: {
@@ -434,27 +434,27 @@ export declare const schemas: {
                 followRedirects: z.ZodOptional<z.ZodBoolean>;
                 userAgent: z.ZodOptional<z.ZodString>;
             }, "strip", z.ZodTypeAny, {
+                userAgent?: string | undefined;
                 timeout?: number | undefined;
                 followRedirects?: boolean | undefined;
-                userAgent?: string | undefined;
             }, {
+                userAgent?: string | undefined;
                 timeout?: number | undefined;
                 followRedirects?: boolean | undefined;
-                userAgent?: string | undefined;
             }>>;
         }, "strip", z.ZodTypeAny, {
             url: string;
             options?: {
+                userAgent?: string | undefined;
                 timeout?: number | undefined;
                 followRedirects?: boolean | undefined;
-                userAgent?: string | undefined;
             } | undefined;
         }, {
             url: string;
             options?: {
+                userAgent?: string | undefined;
                 timeout?: number | undefined;
                 followRedirects?: boolean | undefined;
-                userAgent?: string | undefined;
             } | undefined;
         }>;
         batchUrls: z.ZodObject<{
@@ -469,19 +469,19 @@ export declare const schemas: {
                 enablePaginationDiscovery: z.ZodOptional<z.ZodBoolean>;
                 enableStructuredLogging: z.ZodOptional<z.ZodBoolean>;
             }, "strip", z.ZodTypeAny, {
-                concurrency?: number | undefined;
-                delayMs?: number | undefined;
                 timeout?: number | undefined;
                 maxRetries?: number | undefined;
+                concurrency?: number | undefined;
+                delayMs?: number | undefined;
                 extractionMode?: "sports" | "supplier-directory" | "general" | undefined;
                 enableUrlNormalization?: boolean | undefined;
                 enablePaginationDiscovery?: boolean | undefined;
                 enableStructuredLogging?: boolean | undefined;
             }, {
-                concurrency?: number | undefined;
-                delayMs?: number | undefined;
                 timeout?: number | undefined;
                 maxRetries?: number | undefined;
+                concurrency?: number | undefined;
+                delayMs?: number | undefined;
                 extractionMode?: "sports" | "supplier-directory" | "general" | undefined;
                 enableUrlNormalization?: boolean | undefined;
                 enablePaginationDiscovery?: boolean | undefined;
@@ -490,10 +490,10 @@ export declare const schemas: {
         }, "strip", z.ZodTypeAny, {
             urls: string[];
             options?: {
-                concurrency?: number | undefined;
-                delayMs?: number | undefined;
                 timeout?: number | undefined;
                 maxRetries?: number | undefined;
+                concurrency?: number | undefined;
+                delayMs?: number | undefined;
                 extractionMode?: "sports" | "supplier-directory" | "general" | undefined;
                 enableUrlNormalization?: boolean | undefined;
                 enablePaginationDiscovery?: boolean | undefined;
@@ -502,10 +502,10 @@ export declare const schemas: {
         }, {
             urls: string[];
             options?: {
-                concurrency?: number | undefined;
-                delayMs?: number | undefined;
                 timeout?: number | undefined;
                 maxRetries?: number | undefined;
+                concurrency?: number | undefined;
+                delayMs?: number | undefined;
                 extractionMode?: "sports" | "supplier-directory" | "general" | undefined;
                 enableUrlNormalization?: boolean | undefined;
                 enablePaginationDiscovery?: boolean | undefined;
@@ -527,25 +527,25 @@ export declare const schemas: {
             name: z.ZodString;
             role: z.ZodOptional<z.ZodEnum<["admin", "user", "readonly"]>>;
         }, "strip", z.ZodTypeAny, {
-            password: string;
             name: string;
             email: string;
-            role?: "admin" | "user" | "readonly" | undefined;
+            password: string;
+            role?: "user" | "admin" | "readonly" | undefined;
         }, {
-            password: string;
             name: string;
             email: string;
-            role?: "admin" | "user" | "readonly" | undefined;
+            password: string;
+            role?: "user" | "admin" | "readonly" | undefined;
         }>;
         login: z.ZodObject<{
             email: z.ZodString;
             password: z.ZodString;
         }, "strip", z.ZodTypeAny, {
-            password: string;
             email: string;
+            password: string;
         }, {
-            password: string;
             email: string;
+            password: string;
         }>;
         changePassword: z.ZodObject<{
             currentPassword: z.ZodString;
@@ -616,15 +616,15 @@ export declare const schemas: {
             customMapping: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
             idempotencyKey: z.ZodOptional<z.ZodString>;
         }, "strip", z.ZodTypeAny, {
-            datasetId: string;
             format: "xlsx" | "pdf";
+            datasetId: string;
             templateId?: string | undefined;
             theme?: "default" | "utss-2025" | undefined;
             idempotencyKey?: string | undefined;
             customMapping?: Record<string, string> | undefined;
         }, {
-            datasetId: string;
             format: "xlsx" | "pdf";
+            datasetId: string;
             templateId?: string | undefined;
             theme?: "default" | "utss-2025" | undefined;
             idempotencyKey?: string | undefined;
@@ -672,8 +672,8 @@ export declare const schemas: {
                 defaultValue?: string | undefined;
             }>, "many">;
         }, "strip", z.ZodTypeAny, {
-            version: string;
             name: string;
+            version: string;
             isPublic: boolean;
             fieldDefs: {
                 targetField: string;
@@ -693,8 +693,8 @@ export declare const schemas: {
                 required?: boolean | undefined;
                 defaultValue?: string | undefined;
             }[];
-            version?: string | undefined;
             description?: string | undefined;
+            version?: string | undefined;
             sourceHint?: string | undefined;
             isPublic?: boolean | undefined;
         }>;
@@ -727,9 +727,9 @@ export declare const schemas: {
                 defaultValue?: string | undefined;
             }>, "many">>;
         }, "strip", z.ZodTypeAny, {
-            version?: string | undefined;
             name?: string | undefined;
             description?: string | undefined;
+            version?: string | undefined;
             sourceHint?: string | undefined;
             isPublic?: boolean | undefined;
             fieldDefs?: {
@@ -741,9 +741,9 @@ export declare const schemas: {
                 defaultValue?: string | undefined;
             }[] | undefined;
         }, {
-            version?: string | undefined;
             name?: string | undefined;
             description?: string | undefined;
+            version?: string | undefined;
             sourceHint?: string | undefined;
             isPublic?: boolean | undefined;
             fieldDefs?: {

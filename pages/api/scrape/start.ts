@@ -8,6 +8,7 @@ import { randomUUID } from 'crypto';
 import { createLogger } from '../../../src/lib/logger';
 import { modeRegistry } from '../../../src/modes/registry';
 import { initializeModes } from '../../../src/modes/index';
+import { handleStartRequest } from '../../../api/controller';
 
 // Initialize modes on startup
 let modesInitialized = false;
@@ -26,6 +27,13 @@ const logger = createLogger('api-scrape-start');
 const jobs = new Map<string, any>();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Map legacy mode names to new task names
+  const modeToTaskMap: Record<string, string> = {
+    'news-articles': 'news',
+    'sports': 'sports',
+    'supplier-directory': 'companies',
+  };
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -37,67 +45,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Mode and input are required' });
     }
 
-    // Validate that mode exists
-    if (!modeRegistry.hasMode(mode)) {
-      return res.status(400).json({ error: `Unknown mode: ${mode}` });
+    // Map legacy mode to new task name
+    const taskName = modeToTaskMap[mode] || mode;
+
+    // Use the new task dispatcher
+    const result = await handleStartRequest(
+      { ...req, body: { taskName, input } },
+      res
+    );
+
+    // Add deprecation warning
+    if (modeToTaskMap[mode]) {
+      logger.warn('Legacy mode used, consider migrating to new task API', {
+        legacyMode: mode,
+        newTaskName: taskName,
+        endpoint: '/api/tasks/start',
+      });
     }
 
-    // Create immutable snapshot of input to prevent URLs from disappearing
-    const immutableInput = JSON.parse(JSON.stringify(input));
-    immutableInput.metadata = {
-      submittedAt: new Date().toISOString(),
-      originalUrlCount: input.urls?.length || 0,
-      jobId: randomUUID(),
-    };
-
-    // Create separate deep copy for original input preservation
-    const originalInputSnapshot = JSON.parse(JSON.stringify(immutableInput));
-
-    // Create job
-    const jobId = immutableInput.metadata.jobId;
-    const job = {
-      id: jobId,
-      mode,
-      input: immutableInput, // Working copy for processing
-      originalInput: originalInputSnapshot, // Immutable snapshot for preservation
-      status: 'pending',
-      progress: {
-        completed: 0,
-        total: input.urls?.length || 0,
-        percentage: 0,
-        errors: 0,
-      },
-      result: null,
-      error: null,
-      startTime: new Date().toISOString(),
-      endTime: null,
-    };
-
-    jobs.set(jobId, job);
-
-    logger.info('Job created', {
-      jobId,
-      mode,
-      urlCount: input.urls?.length || 0,
-    });
-
-    // Start job processing asynchronously
-    processJobAsync(jobId, mode, input).catch(error => {
-      logger.error('Job processing failed', {
-        jobId,
-        error: error.message,
-      });
-      
-      const failedJob = jobs.get(jobId);
-      if (failedJob) {
-        failedJob.status = 'failed';
-        failedJob.error = error.message;
-        failedJob.endTime = new Date().toISOString();
-        jobs.set(jobId, failedJob);
-      }
-    });
-
-    res.status(200).json({ jobId });
+    return result;
 
   } catch (error) {
     logger.error('Start job API error', {
