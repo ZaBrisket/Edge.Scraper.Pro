@@ -1,17 +1,22 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
+  // Enable static export for Netlify deployment
   output: 'export',
-  trailingSlash: true,
+  // Disable image optimization for static export
   images: {
-    unoptimized: true,
+    unoptimized: true
   },
-  // Disable static optimization for Netlify Functions
-  experimental: {
-    esmExternals: false,
+  // Ensure trailing slashes for better compatibility
+  trailingSlash: true,
+  // Environment variables available to the browser
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.API_URL || '/.netlify/functions',
   },
+  // Custom webpack configuration if needed
   webpack: (config, { isServer }) => {
+    // Fixes for serverless functions
     if (!isServer) {
-      // Don't include server-only modules in client bundle
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
