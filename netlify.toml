@@ -1,6 +1,6 @@
 [build]
-  # Changed from "public" to "out" for Next.js static export
-  publish = "out"
+  # Next.js SSR build - using .next directory with Netlify plugin
+  publish = ".next"
   functions = "netlify/functions"
   # Changed from "npm run build" to build Next.js application
   command = "npm run next:build"
@@ -12,6 +12,16 @@
 [functions]
   node_bundler = "esbuild"
   included_files = ["prisma/**/*"]
+
+# Map API routes if you have custom redirects; otherwise plugin handles Next routing
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
 # Proxy API routes to Netlify Functions
 [[redirects]]
