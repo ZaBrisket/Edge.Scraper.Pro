@@ -139,12 +139,15 @@ class SupplierDataExporter {
 
     if (batchResult.results) {
       batchResult.results.forEach(result => {
-        if (result.success && result.result && result.result.companies) {
+        // Support both old shape (result.result.companies) and new shape (data.companies)
+        const payload = result.result || result.data || null;
+        const companies = payload && Array.isArray(payload.companies) ? payload.companies : [];
+        if (result.success && companies.length > 0) {
           allCompanies.push(
-            ...result.result.companies.map(company => ({
+            ...companies.map(company => ({
               ...company,
               sourceUrl: result.url,
-              extractedAt: result.result.extractedAt,
+              extractedAt: (payload && (payload.extractedAt || payload.metadata?.extractedAt)) || new Date().toISOString(),
             }))
           );
         }
@@ -160,7 +163,7 @@ class SupplierDataExporter {
         successfulUrls: batchResult.stats.successfulUrls,
         failedUrls: batchResult.stats.failedUrls,
         totalCompanies: allCompanies.length,
-        processingTime: batchResult.stats.processingTime,
+        processingTime: batchResult.stats.processingTime ?? (batchResult.stats.endTime - batchResult.stats.startTime),
         format: format,
         version: '1.0',
       },
@@ -194,9 +197,18 @@ class SupplierDataExporter {
                 1
               ) + '%'
             : '0%',
-        processingTime: batchResult.stats.processingTime,
-        averageProcessingTime: batchResult.stats.averageProcessingTime,
-        throughput: batchResult.stats.throughput,
+        processingTime: batchResult.stats.processingTime ?? (batchResult.stats.endTime - batchResult.stats.startTime),
+        averageProcessingTime: batchResult.stats.averageProcessingTime ?? (function () {
+          const times = (batchResult.results || [])
+            .map(r => r.responseTime)
+            .filter(t => typeof t === 'number');
+          if (times.length === 0) return 0;
+          return Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+        })(),
+        throughput: batchResult.stats.throughput ?? (function () {
+          const durationSec = Math.max(1, Math.round(((batchResult.stats.endTime - batchResult.stats.startTime) || 0) / 1000));
+          return Math.round((batchResult.stats.processedUrls || 0) / durationSec);
+        })(),
       },
       companies: this.extractCompanySummary(batchResult),
       errors: this.extractErrorSummary(batchResult),
@@ -216,16 +228,18 @@ class SupplierDataExporter {
 
     if (batchResult.results) {
       batchResult.results.forEach(result => {
-        if (result.success && result.result && result.result.companies) {
+        const payload = result.result || result.data || null;
+        const companies = payload && Array.isArray(payload.companies) ? payload.companies : [];
+        if (result.success && companies.length > 0) {
           companiesByUrl[result.url] = {
-            count: result.result.companies.length,
-            companies: result.result.companies.map(c => ({
+            count: companies.length,
+            companies: companies.map(c => ({
               name: c.name,
               hasContact: !!c.contact,
               hasWebsite: !!c.website,
             })),
           };
-          totalCompanies += result.result.companies.length;
+          totalCompanies += companies.length;
         }
       });
     }
@@ -250,14 +264,14 @@ class SupplierDataExporter {
     if (batchResult.results) {
       batchResult.results.forEach(result => {
         if (!result.success) {
-          const category = result.errorCategory || 'unknown';
+          const category = result.category || result.errorCategory || 'unknown';
           errorsByCategory[category] = (errorsByCategory[category] || 0) + 1;
 
           if (errorExamples.length < 10) {
             errorExamples.push({
               url: result.url,
               error: result.error,
-              category: result.errorCategory,
+              category: category,
             });
           }
         }

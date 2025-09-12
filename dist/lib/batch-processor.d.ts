@@ -80,6 +80,9 @@ export interface BatchResult {
         startTime: number;
         endTime: number;
         duration: number;
+        processingTime?: number;
+        averageProcessingTime?: number;
+        throughput?: number;
     };
     results: Array<{
         url: string;

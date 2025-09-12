@@ -406,6 +406,9 @@ class BatchProcessor {
                 startTime: this.startTime,
                 endTime: this.endTime,
                 duration,
+                processingTime: duration,
+                averageProcessingTime: Math.round(averageResponseTime),
+                throughput: duration > 0 ? Math.round((this.processedCount / duration) * 1000) : 0,
             },
             results: this.results,
             errors: this.errors.slice(-this.options.errorReportSize), // Keep only recent errors
