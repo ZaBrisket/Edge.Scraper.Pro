@@ -2,18 +2,14 @@ const { PrismaClient } = require('@prisma/client');
 const { transformRow } = require('./utils/transforms');
 const { s3, BUCKET } = require('./utils/s3');
 const csv = require('csv-parser');
-const xlsx = require('xlsx');
+const ExcelJS = require('exceljs');
 const { z } = require('zod');
+const { ValidationUtils, schemas } = require('../../src/lib/validation');
 
 const prisma = new PrismaClient();
 
-// Request schema validation
-const PreviewRequestSchema = z.object({
-  datasetId: z.string().min(1),
-  templateId: z.string().min(1),
-  sampleSize: z.number().min(1).max(100).default(50),
-  customMapping: z.record(z.string()).optional(), // sourceHeader -> targetField override
-});
+// Use centralized validation schema
+const PreviewRequestSchema = schemas.targetList.preview;
 
 /**
  * Parse CSV data and return sample rows using streaming approach
@@ -55,45 +51,40 @@ async function parseCsvSample(s3Key, sampleSize) {
 /**
  * Parse Excel data and return sample rows with memory optimization
  */
-function parseExcelSample(buffer, sampleSize) {
-  // Read only the sample rows we need, not the entire worksheet
-  const workbook = xlsx.read(buffer, { 
-    type: 'buffer',
-    sheetRows: sampleSize + 1, // +1 for header row
-    cellDates: false,
-    cellNF: false,
-    cellStyles: false
-  });
+async function parseExcelSample(buffer, sampleSize) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
   
-  const firstSheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[firstSheetName];
-  
-  if (!worksheet['!ref']) {
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet) {
     return { headers: [], rows: [] };
   }
   
-  // Convert to JSON with header row (limited rows)
-  const jsonData = xlsx.utils.sheet_to_json(worksheet, { 
-    header: 1,
-    range: 0 // Start from first row
-  });
+  const rows = [];
+  let headers = [];
+  let rowCount = 0;
   
-  if (jsonData.length === 0) {
-    return { headers: [], rows: [] };
-  }
-  
-  const headers = jsonData[0].map(h => h ? h.toString().trim() : '');
-  const dataRows = jsonData.slice(1, sampleSize + 1);
-  
-  // Convert array rows to objects
-  const rows = dataRows.map(row => {
-    const rowObject = {};
-    headers.forEach((header, index) => {
-      if (header) {
-        rowObject[header] = row[index] !== undefined ? row[index] : '';
-      }
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber > sampleSize + 1) return; // Stop after sample size + header
+    
+    const rowData = [];
+    row.eachCell((cell, colNumber) => {
+      rowData[colNumber - 1] = cell.value;
     });
-    return rowObject;
+    
+    if (rowNumber === 1) {
+      // Header row
+      headers = rowData.map((h) => h ? h.toString().trim() : '');
+    } else {
+      // Data row
+      const rowObject = {};
+      headers.forEach((header, index) => {
+        if (header) {
+          rowObject[header] = rowData[index] !== undefined ? rowData[index] : '';
+        }
+      });
+      rows.push(rowObject);
+    }
   });
   
   return { headers: headers.filter(h => h.length > 0), rows };
@@ -102,7 +93,7 @@ function parseExcelSample(buffer, sampleSize) {
 exports.handler = async (event, context) => {
   // CORS headers
   const headers = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGINS || 'http://localhost:3000',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Content-Type': 'application/json',
@@ -133,7 +124,7 @@ exports.handler = async (event, context) => {
   try {
     // Parse and validate request body
     const body = JSON.parse(event.body || '{}');
-    const validatedData = PreviewRequestSchema.parse(body);
+    const validatedData = ValidationUtils.validateBody(PreviewRequestSchema, body);
 
     // Get dataset with upload information
     const dataset = await prisma.dataset.findUnique({
@@ -194,7 +185,7 @@ exports.handler = async (event, context) => {
         Bucket: BUCKET,
         Key: upload.s3Key,
       }).promise();
-      parseResult = parseExcelSample(s3Object.Body, validatedData.sampleSize);
+      parseResult = await parseExcelSample(s3Object.Body, validatedData.sampleSize);
     }
 
     const { headers: detectedHeaders, rows: sampleRows } = parseResult;

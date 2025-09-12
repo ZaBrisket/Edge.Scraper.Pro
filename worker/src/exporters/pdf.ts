@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 import AWS from 'aws-sdk';
 import csv from 'csv-parser';
-import xlsx from 'xlsx';
+import ExcelJS from 'exceljs';
 import { Readable } from 'stream';
 import { createHash } from 'crypto';
 import { PrismaClient } from '@prisma/client';
@@ -94,7 +94,7 @@ export class PDFExporter {
         Bucket: this.bucket,
         Key: s3Key,
       }).promise();
-      return this.parseExcelData(sourceObject.Body as Buffer);
+      return await this.parseExcelData(sourceObject.Body as Buffer);
     }
   }
 
@@ -127,33 +127,40 @@ export class PDFExporter {
     });
   }
 
-  private parseExcelData(buffer: Buffer): {
+  private async parseExcelData(buffer: Buffer): Promise<{
     headers: string[];
     rows: Array<Record<string, any>>;
-  } {
-    const workbook = xlsx.read(buffer, { type: 'buffer' });
-    const firstSheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[firstSheetName];
+  }> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
     
-    // Convert to JSON with header row
-    const jsonData = xlsx.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
-    
-    if (jsonData.length === 0) {
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) {
       return { headers: [], rows: [] };
     }
     
-    const headers = jsonData[0].map((h: any) => h ? h.toString().trim() : '');
-    const dataRows = jsonData.slice(1);
+    const rows: Array<Record<string, any>> = [];
+    let headers: string[] = [];
     
-    // Convert array rows to objects
-    const rows = dataRows.map(row => {
-      const rowObject: Record<string, any> = {};
-      headers.forEach((header, index) => {
-        if (header) {
-          rowObject[header] = row[index] !== undefined ? row[index] : '';
-        }
+    worksheet.eachRow((row, rowNumber) => {
+      const rowData: any[] = [];
+      row.eachCell((cell, colNumber) => {
+        rowData[colNumber - 1] = cell.value;
       });
-      return rowObject;
+      
+      if (rowNumber === 1) {
+        // Header row
+        headers = rowData.map((h: any) => h ? h.toString().trim() : '');
+      } else {
+        // Data row
+        const rowObject: Record<string, any> = {};
+        headers.forEach((header, index) => {
+          if (header) {
+            rowObject[header] = rowData[index] !== undefined ? rowData[index] : '';
+          }
+        });
+        rows.push(rowObject);
+      }
     });
     
     return { headers: headers.filter(h => h.length > 0), rows };
