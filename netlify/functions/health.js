@@ -1,32 +1,65 @@
 /**
- * Netlify Function: health
- * Public health check that verifies the Functions runtime is working.
+ * Health check endpoint
+ * Returns basic system status and metrics
  */
+const { getMetrics } = require('../../dist/src/lib/http/client');
+const { getCorrelationId } = require('../../dist/src/lib/http/correlation');
+const { corsHeaders } = require('../../dist/src/lib/http/cors');
 
 exports.handler = async (event) => {
-  const headers = {
-    'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGINS || 'http://localhost:3000',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Content-Type': 'application/json',
-  };
-
+  const correlationId = getCorrelationId(event);
+  
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
-
-  if (event.httpMethod !== 'GET') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: { code: 'method_not_allowed', message: 'Only GET method is allowed' } }),
+    return { 
+      statusCode: 204, 
+      headers: { 
+        ...corsHeaders(event.headers && event.headers.origin), 
+        'x-correlation-id': correlationId 
+      } 
     };
   }
 
-  return {
-    statusCode: 200,
-    headers,
-    body: JSON.stringify({ ok: true, data: { status: 'healthy' } }),
-  };
-};
+  try {
+    const metrics = getMetrics();
+    
+    const health = {
+      ok: true,
+      timestamp: new Date().toISOString(),
+      version: '2.0.0',
+      environment: process.env.NODE_ENV || 'development',
+      metrics: {
+        totalRequests: metrics.requests.total,
+        rateLimitHits: metrics.rateLimits.hits,
+        retriesScheduled: metrics.retries.scheduled,
+        circuitBreakerStateChanges: metrics.circuitBreaker.stateChanges,
+        activeLimiters: metrics.limiters.length,
+        activeCircuits: metrics.circuits.length,
+      },
+      uptime: process.uptime(),
+    };
 
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders(event.headers && event.headers.origin),
+        'x-correlation-id': correlationId,
+      },
+      body: JSON.stringify(health),
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders(event.headers && event.headers.origin),
+        'x-correlation-id': correlationId,
+      },
+      body: JSON.stringify({
+        ok: false,
+        error: 'Health check failed',
+        timestamp: new Date().toISOString(),
+      }),
+    };
+  }
+};
