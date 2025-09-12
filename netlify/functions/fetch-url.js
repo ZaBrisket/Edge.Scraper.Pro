@@ -50,18 +50,23 @@ exports.handler = async (event) => {
   }
 
   try {
-    // Authenticate user
-    const authHeader = event.headers.authorization || event.headers.Authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return json(401, { error: 'Authorization token required' }, correlationId);
-    }
-
-    const token = authHeader.substring(7);
-    const payload = AuthService.verifyToken(token);
+    // Development bypass - check if we're in development mode
+    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NETLIFY_DEV === 'true';
     
-    // Check permissions
-    if (!AuthService.hasPermission(payload.permissions, Permission.READ_SCRAPING)) {
-      return json(403, { error: 'Insufficient permissions to scrape URLs' }, correlationId);
+    if (!isDevelopment) {
+      // Authenticate user
+      const authHeader = event.headers.authorization || event.headers.Authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return json(401, { error: 'Authorization token required' }, correlationId);
+      }
+
+      const token = authHeader.substring(7);
+      const payload = AuthService.verifyToken(token);
+      
+      // Check permissions
+      if (!AuthService.hasPermission(payload.permissions, Permission.READ_SCRAPING)) {
+        return json(403, { error: 'Insufficient permissions to scrape URLs' }, correlationId);
+      }
     }
     const urlParam = (event.queryStringParameters && event.queryStringParameters.url) || '';
     if (!urlParam) return json(400, { error: 'Missing ?url=' }, correlationId);
