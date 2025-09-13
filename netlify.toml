@@ -1,43 +1,43 @@
 [build]
-  # Serve the public directory directly
-  publish = "public"
-  # Serverless functions location
+  command = "npm run build"
   functions = "netlify/functions"
-  # No build needed for static HTML
-  command = "echo 'Deploying standalone HTML app'"
+  publish = "dist"
 
 [build.environment]
   NODE_VERSION = "18"
-  # Critical environment variables
-  BYPASS_AUTH = "true"
-  HTTP_DEADLINE_MS = "15000"
-  PUBLIC_API_KEY = "public-2024"
-
+  
 [functions]
-  directory = "netlify/functions"
   node_bundler = "esbuild"
-  included_files = ["src/**"]
+  external_node_modules = ["natural", "compromise", "jsdom"]
+  included_files = [
+    "src/**/*.js",
+    "src/**/*.json"
+  ]
 
-# Redirect API calls to Netlify Functions
-[[redirects]]
-  from = "/api/fetch-url"
-  to = "/.netlify/functions/fetch-url"
-  status = 200
-  force = true
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Headers = "Content-Type"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
 
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
 
-# CORS headers for API
-[[headers]]
-  for = "/.netlify/functions/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, X-API-Key"
-    Access-Control-Max-Age = "86400"
+[dev]
+  command = "npm run serve"
+  port = 8888
+  targetPort = 3000
+  autoLaunch = true
 
 # Cache static assets
 [[headers]]
