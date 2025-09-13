@@ -1019,5 +1019,314 @@
     
     <!-- Include necessary standalone JavaScript files -->
     <script src="sports-extractor.js"></script>
+
+    <!-- M&A Configuration Panel -->
+    <style>
+      .ma-config-panel {
+        background: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+      }
+      
+      .ma-config-panel h3 {
+        margin-top: 0;
+        color: #333;
+      }
+      
+      .config-section {
+        margin: 15px 0;
+      }
+      
+      .config-section label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      
+      .source-checkbox {
+        margin-right: 15px;
+      }
+      
+      .date-input {
+        margin-right: 10px;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      
+      .keywords-input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      
+      .ma-scrape-btn {
+        background: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        margin-top: 15px;
+      }
+      
+      .ma-scrape-btn:hover {
+        background: #45a049;
+      }
+      
+      .ma-scrape-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      
+      .ma-results {
+        margin-top: 20px;
+        padding: 20px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+      
+      .ma-result-item {
+        border-bottom: 1px solid #eee;
+        padding: 15px 0;
+      }
+      
+      .ma-result-item:last-child {
+        border-bottom: none;
+      }
+      
+      .deal-value {
+        color: #4CAF50;
+        font-weight: bold;
+        font-size: 18px;
+      }
+      
+      .companies {
+        color: #2196F3;
+        font-weight: bold;
+      }
+      
+      .confidence-score {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+      
+      .confidence-high {
+        background: #4CAF50;
+        color: white;
+      }
+      
+      .confidence-medium {
+        background: #FFC107;
+        color: black;
+      }
+      
+      .confidence-low {
+        background: #f44336;
+        color: white;
+      }
+    </style>
+
+    <div class="container">
+      <div class="ma-config-panel" id="maConfigPanel">
+        <h3>🏢 M&A News Scraping Configuration</h3>
+        
+        <div class="config-section">
+          <label>News Sources:</label>
+          <label class="source-checkbox">
+            <input type="checkbox" name="ma-source" value="businesswire" checked> BusinessWire
+          </label>
+          <label class="source-checkbox">
+            <input type="checkbox" name="ma-source" value="prnewswire" checked> PR Newswire
+          </label>
+          <label class="source-checkbox">
+            <input type="checkbox" name="ma-source" value="globenewswire"> GlobeNewswire
+          </label>
+          <label class="source-checkbox">
+            <input type="checkbox" name="ma-source" value="reuters"> Reuters
+          </label>
+          <label class="source-checkbox">
+            <input type="checkbox" name="ma-source" value="bloomberg"> Bloomberg
+          </label>
+        </div>
+        
+        <div class="config-section">
+          <label>Date Range (Optional):</label>
+          <input type="date" id="maDateFrom" class="date-input">
+          <span>to</span>
+          <input type="date" id="maDateTo" class="date-input">
+        </div>
+        
+        <div class="config-section">
+          <label>Keywords (Companies, sectors, or deal types):</label>
+          <input type="text" id="maKeywords" class="keywords-input" 
+                 placeholder="e.g., Microsoft, technology, acquisition">
+        </div>
+        
+        <div class="config-section">
+          <label>Extraction Options:</label>
+          <label class="source-checkbox">
+            <input type="checkbox" name="ma-field" value="dealValue" checked> Deal Value
+          </label>
+          <label class="source-checkbox">
+            <input type="checkbox" name="ma-field" value="parties" checked> Transaction Parties
+          </label>
+          <label class="source-checkbox">
+            <input type="checkbox" name="ma-field" value="advisors" checked> Advisors
+          </label>
+          <label class="source-checkbox">
+            <input type="checkbox" name="ma-field" value="quotes"> Executive Quotes
+          </label>
+          <label class="source-checkbox">
+            <input type="checkbox" name="ma-field" value="dates" checked> Key Dates
+          </label>
+        </div>
+        
+        <div class="config-section">
+          <label class="source-checkbox">
+            <input type="checkbox" id="maAutoDiscover"> Auto-discover M&A news URLs
+          </label>
+        </div>
+        
+        <button id="maScrapeBtn" class="ma-scrape-btn">🚀 Scrape M&A News</button>
+        
+        <div id="maResults" class="ma-results" style="display: none;"></div>
+      </div>
+    </div>
+
+    <!-- M&A Scraping JavaScript -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const maScrapeBtn = document.getElementById('maScrapeBtn');
+      const maResults = document.getElementById('maResults');
+      
+      maScrapeBtn.addEventListener('click', async function() {
+        // Disable button during scraping
+        maScrapeBtn.disabled = true;
+        maScrapeBtn.textContent = '⏳ Scraping...';
+        maResults.style.display = 'none';
+        
+        // Gather configuration
+        const sources = Array.from(document.querySelectorAll('input[name="ma-source"]:checked'))
+          .map(cb => cb.value);
+        
+        const dateFrom = document.getElementById('maDateFrom').value;
+        const dateTo = document.getElementById('maDateTo').value;
+        const keywords = document.getElementById('maKeywords').value;
+        const autoDiscover = document.getElementById('maAutoDiscover').checked;
+        
+        // Get URLs from main textarea if not auto-discovering
+        const urlTextarea = document.getElementById('urls');
+        const urls = !autoDiscover && urlTextarea ? 
+          urlTextarea.value.split('\n').filter(u => u.trim()) : [];
+        
+        try {
+          const response = await fetch('/.netlify/functions/scrape-ma-news', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              urls: urls,
+              mode: 'ma',
+              discover: autoDiscover,
+              sources: sources,
+              keywords: keywords,
+              dateRange: {
+                from: dateFrom,
+                to: dateTo
+              },
+              concurrency: 3,
+              extractionDepth: 'full'
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            displayMAResults(data);
+          } else {
+            alert('Scraping failed: ' + (data.error || 'Unknown error'));
+          }
+        } catch (error) {
+          alert('Error: ' + error.message);
+        } finally {
+          maScrapeBtn.disabled = false;
+          maScrapeBtn.textContent = '🚀 Scrape M&A News';
+        }
+      });
+      
+      function displayMAResults(data) {
+        maResults.style.display = 'block';
+        
+        let html = `
+          <h3>📊 M&A Scraping Results</h3>
+          <p><strong>Summary:</strong> ${data.stats.successful} successful | ${data.stats.failed} failed | ${data.stats.ma_detected} M&A deals detected</p>
+        `;
+        
+        const maDeals = data.results.filter(r => r.success && r.ma_analysis?.confidence > 50);
+        
+        if (maDeals.length > 0) {
+          html += '<h4>🎯 Detected M&A Transactions:</h4>';
+          
+          maDeals.forEach(deal => {
+            const ma = deal.ma_analysis;
+            const confidenceClass = ma.confidence >= 75 ? 'confidence-high' : 
+                                   ma.confidence >= 50 ? 'confidence-medium' : 'confidence-low';
+            
+            html += `
+              <div class="ma-result-item">
+                <h5>${deal.title || 'Untitled'}</h5>
+                <p><a href="${deal.url}" target="_blank">${deal.url}</a></p>
+                ${ma.dealValue ? `<p class="deal-value">💰 ${ma.dealValue.display}</p>` : ''}
+                ${ma.companies.length > 0 ? `<p class="companies">🏢 ${ma.companies.join(' • ')}</p>` : ''}
+                <p>📝 Type: ${ma.transactionType}</p>
+                ${ma.dates.length > 0 ? `<p>📅 Date: ${ma.dates[0].parsed}</p>` : ''}
+                ${ma.advisors.length > 0 ? `<p>👥 Advisors: ${ma.advisors.join(', ')}</p>` : ''}
+                <span class="confidence-score ${confidenceClass}">Confidence: ${ma.confidence}%</span>
+              </div>
+            `;
+          });
+        } else {
+          html += '<p>No M&A transactions detected in the scraped content.</p>';
+        }
+        
+        // Add export button
+        html += `
+          <button onclick="exportMAResults()" style="margin-top: 20px; padding: 10px 20px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            📥 Export Results (JSON)
+          </button>
+        `;
+        
+        maResults.innerHTML = html;
+        
+        // Store results for export
+        window.maScrapingResults = data;
+      }
+      
+      window.exportMAResults = function() {
+        if (!window.maScrapingResults) return;
+        
+        const dataStr = JSON.stringify(window.maScrapingResults, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ma-scraping-results-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      };
+    });
+    </script>
 </body>
 </html>
