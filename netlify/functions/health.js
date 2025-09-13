@@ -1,24 +1,26 @@
-/**
- * Netlify Function: health
- * Public health check that verifies the Functions runtime is working.
- */
-const { withCORS } = require('./_middleware');
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type'
+};
 
-exports.handler = withCORS(async (event, context) => {
+exports.handler = async (event, context) => {
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: ''
+    };
+  }
+  
   return {
     statusCode: 200,
-    headers: {
-      'Content-Type': 'application/json'
-    },
+    headers: corsHeaders,
     body: JSON.stringify({
-      ok: true,
-      data: {
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        correlationId: context.correlationId,
-        environment: process.env.NODE_ENV || 'production',
-        functionVersion: process.env.AWS_LAMBDA_FUNCTION_VERSION || 'unknown'
-      }
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      version: '3.0.0',
+      service: 'EdgeScraperPro'
     })
   };
-});
+};

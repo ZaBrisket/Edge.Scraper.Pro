@@ -745,6 +745,11 @@
             }
         }
 
+        // API Base URL
+        const API_BASE = window.location.hostname === 'localhost' 
+            ? 'http://localhost:8888/.netlify/functions'
+            : '/.netlify/functions';
+        
         // Scrape single URL
         async function scrapeUrl(url) {
             const startTime = Date.now();
@@ -759,15 +764,13 @@
                     timeout: document.getElementById('timeout').value
                 });
                 
-                // Check for auth token in environment or localStorage
-                const authToken = window.AUTH_TOKEN || localStorage.getItem('edgescraperpro_token');
-                const headers = {};
+                // Simple API key for public access
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'X-API-Key': 'public-2024'
+                };
                 
-                if (authToken) {
-                    headers['Authorization'] = `Bearer ${authToken}`;
-                }
-                
-                const response = await fetch(`/.netlify/functions/fetch-url?${params}`, {
+                const response = await fetch(`${API_BASE}/fetch-url?${params}`, {
                     headers: headers
                 });
                 const result = await response.json();
@@ -788,8 +791,19 @@
                     // Extract title
                     const title = doc.querySelector('title')?.textContent || '';
                     
-                    // Extract text content
-                    const content = doc.body?.textContent || '';
+                    // Use sports extractor if sports mode is enabled
+                    let content = '';
+                    let structuredData = null;
+                    
+                    if (document.getElementById('sportsMode').checked && window.SportsExtractor) {
+                        const extractor = new SportsExtractor();
+                        const extracted = extractor.extractContent(html, url);
+                        content = extracted.content;
+                        structuredData = extracted.structuredData;
+                    } else {
+                        // Regular text content extraction
+                        content = doc.body?.textContent || '';
+                    }
                     
                     // Extract images if requested
                     const images = document.getElementById('extractImages').checked 
@@ -810,8 +824,10 @@
                         url: result.data.url || url,
                         title,
                         content,
+                        contentLength: content.length,
                         images,
                         meta,
+                        structuredData,
                         html: html // Keep raw HTML for export
                     };
                 } else {
@@ -1000,5 +1016,8 @@
         window.startScraping = startScraping;
     })();
     </script>
+    
+    <!-- Include necessary standalone JavaScript files -->
+    <script src="sports-extractor.js"></script>
 </body>
 </html>
