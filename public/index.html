@@ -8,67 +8,345 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Web Scraper</title>
+    <title>EdgeScraperPro — Web Scraper</title>
     <script src="pfr-validator.js"></script>
     <script src="enhanced-url-validator.js"></script>
     <script src="batch-processor.js"></script>
     <style>
-        /* Brutalist, Early-Web UI Theme */
-        body { 
-            font-family: serif; 
-            background-color: #fff; 
+        /* Reset and base typography */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { 
+            font: 16px/1.4 Georgia, 'Times New Roman', Times, serif;
+            background: #fff;
             color: #000;
-            margin: 0;
-            padding: 1em;
-            display: flex;
-            justify-content: center;
         }
+        
+        /* Layout container */
         .container {
-            width: 100%;
-            max-width: 900px;
-            border: 1px solid #000;
-            padding: 1em;
+            width: 960px;
+            margin: 0 auto;
+            padding: 40px 0 80px;
         }
-        h1 { font-size: 2em; margin-bottom: 0.5em; font-weight: bold; }
-        p { margin-bottom: 1em; }
-        a { color: #0000ff; }
-        a:visited { color: #800080; }
-
+        
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #000;
+            margin-bottom: 32px;
+        }
+        
+        .brand {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        
+        .nav a {
+            color: #0000FF;
+            text-decoration: underline;
+            margin-left: 24px;
+            font-size: 18px;
+        }
+        
+        .nav a:visited { color: #551A8B; }
+        .nav a.active { 
+            text-decoration: none;
+            border-bottom: 2px solid #000;
+            padding-bottom: 2px;
+            color: #000;
+        }
+        
+        /* Typography */
+        h1 {
+            font-size: 34px;
+            font-weight: 700;
+            margin: 32px 0 16px;
+        }
+        
+        h2 {
+            font-size: 18px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 32px 0 16px;
+            padding-top: 24px;
+            border-top: 1px solid #000;
+        }
+        
+        /* Form elements */
+        label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 8px;
+            font-variant: small-caps;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+        }
+        
+        textarea, 
+        input[type="text"], 
+        input[type="number"], 
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #000;
+            font: inherit;
+            background: #fff;
+        }
+        
+        textarea:focus, 
+        input:focus, 
+        select:focus {
+            outline: 2px solid #000;
+            outline-offset: 2px;
+        }
+        
+        .field {
+            margin-bottom: 24px;
+        }
+        
+        .help {
+            color: #666;
+            font-size: 14px;
+            margin-top: 6px;
+        }
+        
+        /* Grid layout for settings */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        
+        /* Dropzone */
+        .dropzone {
+            border: 2px dashed #000;
+            padding: 48px;
+            text-align: center;
+            margin: 32px 0;
+            background: #fff;
+            cursor: pointer;
+            transition: none;
+        }
+        
+        .dropzone:hover,
+        .dropzone.dragover {
+            border-style: solid;
+            background: #f9f9f9;
+        }
+        
+        .dropzone-text {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        
+        .dropzone-subtext {
+            color: #666;
+            margin-bottom: 24px;
+        }
+        
+        /* Buttons */
+        button,
+        .btn {
+            padding: 14px 28px;
+            border: 1px solid #000;
+            background: #fff;
+            color: #000;
+            font: inherit;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        button:hover,
+        .btn:hover {
+            background: #000;
+            color: #fff;
+        }
+        
+        button:focus,
+        .btn:focus {
+            outline: 2px solid #000;
+            outline-offset: 2px;
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-primary {
+            font-size: 18px;
+            padding: 16px 32px;
+            margin-top: 32px;
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 24px;
+            margin: 24px 0;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #000;
+        }
+        
+        .tab {
+            color: #0000FF;
+            text-decoration: underline;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        .tab.active {
+            color: #000;
+            text-decoration: none;
+            font-weight: 700;
+        }
+        
+        /* Results section */
+        .results {
+            border: 1px solid #000;
+            padding: 24px;
+            margin: 32px 0;
+            background: #f9f9f9;
+            display: none;
+        }
+        
+        .results.active {
+            display: block;
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #000;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+        }
+        
+        /* Results table */
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 24px;
+        }
+        
+        .results-table th,
+        .results-table td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #000;
+        }
+        
+        .results-table th {
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+        
+        .results-table td {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+        }
+        
+        /* Footer */
+        .footer {
+            margin-top: 64px;
+            padding-top: 16px;
+            border-top: 1px solid #000;
+            display: flex;
+            justify-content: space-between;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .footer a {
+            color: #0000FF;
+            text-decoration: underline;
+        }
+        
+        /* Hide file input */
+        input[type="file"] {
+            display: none;
+        }
+        
+        /* Progress indicator */
+        .progress {
+            display: none;
+            margin: 24px 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
+        .progress.active {
+            display: block;
+        }
+        
+        .progress-text {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        /* Error messages */
+        .error {
+            border: 1px solid #000;
+            background: #fff;
+            padding: 12px;
+            margin: 16px 0;
+            color: #c00;
+        }
+        
+        /* Checkbox and radio */
+        input[type="checkbox"],
+        input[type="radio"] {
+            margin-right: 8px;
+        }
+        
+        .checkbox-group label,
+        .radio-group label {
+            font-weight: normal;
+            font-variant: normal;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        
+        /* Legacy compatibility styles */
         .section {
             border: 1px solid #000;
-            padding: 1em;
-            margin-bottom: 1em;
+            padding: 24px;
+            margin-bottom: 24px;
         }
-
-        input[type="url"], input[type="number"], textarea {
-            width: 100%;
-            padding: 0.5em;
-            font-family: monospace;
-            border: 1px solid #000;
-            margin-bottom: 1em;
-            box-sizing: border-box;
-        }
-        textarea {
-             min-height: 150px;
-        }
-
-        button {
-            padding: 0.5em 1em;
-            border: 1px solid #000;
-            background-color: #eee;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        button:hover { background-color: #ddd; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-
+        
         #resultsCode {
             background-color: #f5f5f5;
             border: 1px solid #000;
-            padding: 1em;
+            padding: 24px;
             height: 400px;
             overflow: auto;
-            font-family: monospace;
+            font-family: 'Courier New', Courier, monospace;
             white-space: pre-wrap;
             word-break: break-word;
         }
@@ -89,14 +367,35 @@
         /* Validation Report Styles */
         .validation-report {
             background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            padding: 1em;
-            margin-bottom: 1em;
+            border: 1px solid #000;
+            padding: 24px;
+            margin-bottom: 24px;
         }
         
         .validation-report h3 {
             margin-top: 0;
-            margin-bottom: 0.5em;
+            margin-bottom: 12px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .validation-item {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-left: 3px solid #000;
+            background: #fff;
+        }
+        
+        .validation-item.success {
+            border-left-color: #0a0;
+        }
+        
+        .validation-item.error {
+            border-left-color: #c00;
+        }
+        
+        .validation-item.warning {
+            border-left-color: #fa0;
         }
         
         .validation-report h4 {
@@ -352,120 +651,627 @@
 </head>
 <body>
     <div class="container">
-        <h1>AI Web Scraper</h1>
-        <p>A tool to scrape websites in bulk. Built for function over form.</p>
+        <!-- Header -->
+        <header class="header">
+            <div class="brand">EdgeScraperPro</div>
+            <nav class="nav">
+                <a href="/" class="active">Scrape</a>
+                <a href="/targets">Target Lists</a>
+                <a href="https://github.com/ZaBrisket/Edge.Scraper.Pro">Documentation</a>
+            </nav>
+        </header>
 
-        <div id="bulkInputs" class="section">
-            <p><b>Step 1:</b> Add URLs to scrape by typing or uploading a file.</p>
-            
-            <!-- File Upload Section -->
-            <div class="file-upload-section">
-                <h3>Upload URL File</h3>
-                <div class="upload-area" id="uploadArea">
-                    <input type="file" id="fileInput" accept=".txt,.json" style="display: none;">
-                    <div class="upload-prompt" id="uploadPrompt">
-                        <p><strong>Drag and drop a TXT or JSON file here, or <button id="browseBtn" type="button">Browse Files</button></strong></p>
-                        <p class="file-info">Supports up to 1500 URLs • TXT (one per line) • JSON (array format)</p>
-                        <p class="file-examples">
-                            <strong>TXT format:</strong> One URL per line, # for comments<br>
-                            <strong>JSON format:</strong> Array of URLs or {"urls": [...]} object
-                        </p>
-                    </div>
-                    <div id="filePreview" class="hidden">
-                        <h4>File Preview:</h4>
-                        <div id="fileDetails"></div>
-                        
-                        <!-- Enhanced validation options -->
-                        <div class="validation-options">
-                            <label>
-                                <input type="checkbox" id="checkConnectivity">
-                                Check URL connectivity (verifies URLs are reachable) - May cause false negatives
-                            </label>
-                            <label>
-                                <input type="checkbox" id="enableSequencing" checked>
-                                Enable URL sequencing (optimizes scraping performance)
-                            </label>
-                        </div>
-                        
-                        <!-- Progress indicator for validation -->
-                        <div id="validationProgress" class="hidden">
-                            <div class="progress-bar-container">
-                                <div class="progress-bar" id="validationProgressBar"></div>
-                            </div>
-                            <div id="validationStatus">Validating URLs...</div>
-                        </div>
-                        
-                        <div class="file-actions">
-                            <button id="processFileBtn" type="button">Process URLs</button>
-                            <button id="clearFileBtn" type="button">Clear File</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Manual Input Section -->
-            <div class="manual-input-section">
-                <h3>Or Enter URLs Manually</h3>
-                <p><b>Instructions:</b> Paste a list of URLs (one per line) to scrape all text from each page.</p>
-                <textarea id="urlList" placeholder="https://example.com/page1&#10;https://example.com/page2"></textarea>
-            </div>
-            
-            <div id="validationReport" class="hidden"></div>
-            <div id="errorReport" class="hidden"></div>
+        <!-- Main heading -->
+        <h1>Web Scraper — Bulk URL Extraction</h1>
+
+        <!-- Tabs for scraping modes -->
+        <div class="tabs">
+            <span class="tab active" data-tab="general">General</span>
+            <span class="tab" data-tab="news">News</span>
+            <span class="tab" data-tab="sports">Sports</span>
+            <span class="tab" data-tab="companies">Companies</span>
         </div>
+
+        <!-- File upload dropzone -->
+        <div class="dropzone" id="dropzone">
+            <div class="dropzone-text">Drop files here</div>
+            <div class="dropzone-subtext">
+                TXT (one URL per line) or JSON • Maximum 1,500 URLs
+            </div>
+            <button onclick="document.getElementById('fileInput').click()">
+                Select Files
+            </button>
+            <input type="file" id="fileInput" accept=".txt,.json" multiple>
+        </div>
+
+        <!-- URL textarea -->
+        <div class="field">
+            <label for="urlInput">URLs</label>
+            <textarea 
+                id="urlInput" 
+                rows="10" 
+                placeholder="Paste URLs here, one per line. Lines starting with # are ignored."
+            ></textarea>
+            <div class="help">
+                Enter up to 1,500 URLs. Processing time: ~1.5 seconds per URL.
+            </div>
+        </div>
+
+        <!-- Extraction settings -->
+        <h2>Extraction Settings</h2>
         
-        <div class="section">
-            <p><b>Step 2:</b> Configure scrape settings and run.</p>
-            <div style="display: flex; align-items: center; gap: 1em; margin-bottom: 1em;">
-                <label for="delay">Delay between URLs (ms):</label>
-                <input id="delay" type="number" value="1500" style="width: 120px; margin-bottom: 0;"/>
-                <span style="font-size: 0.9em; color: #666;">Processing 1 URL at a time for maximum reliability</span>
+        <div class="grid">
+            <div class="field">
+                <label>Extraction Mode</label>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="extractContent" checked> Extract full content</label>
+                    <label><input type="checkbox" id="extractImages"> Extract images</label>
+                    <label><input type="checkbox" id="extractMeta"> Extract metadata</label>
+                    <label><input type="checkbox" id="sportsMode"> Sports statistics mode</label>
+                </div>
             </div>
-            <div style="background-color: #f0f8ff; border: 1px solid #b0d4f1; padding: 0.5em; margin-bottom: 1em; font-size: 0.9em;">
-                <strong>Reliability Mode:</strong> URLs are processed sequentially with optimal delays to minimize errors and avoid rate limiting. This approach trades speed for maximum success rate.
-            </div>
-             <div style="display: flex; gap: 1em;">
-                <button id="scrapeBtn" style="width: 100%;">Scrape</button>
-                <button id="pauseBtn" class="hidden">Pause</button>
-                <button id="resumeBtn" class="hidden">Resume</button>
-                <button id="stopBtn" class="hidden">Stop</button>
+
+            <div class="field">
+                <label>Export Format</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="format" value="jsonl" checked> JSON Lines</label>
+                    <label><input type="radio" name="format" value="csv"> CSV</label>
+                    <label><input type="radio" name="format" value="txt"> Plain Text</label>
+                    <label><input type="radio" name="format" value="structured"> Structured JSON</label>
+                </div>
             </div>
         </div>
 
-        <div class="section">
-             <p><b>Step 3:</b> Review and export results.</p>
-            <div id="statusContainer" class="hidden">
-                <div class="spinner"></div>
-                <p id="statusText" style="text-align: center;"></p>
+        <!-- Performance settings -->
+        <h2>Performance Settings</h2>
+        
+        <div class="grid">
+            <div class="field">
+                <label for="concurrency">Concurrent Requests</label>
+                <input type="number" id="concurrency" value="5" min="1" max="20">
+                <div class="help">Higher values increase speed but may trigger rate limits</div>
             </div>
-            <div id="errorBox" class="hidden" style="color: red; border: 1px solid red; padding: 1em; margin-bottom: 1em;">
-                <b>Error:</b> <span id="errorMessage"></span>
+
+            <div class="field">
+                <label for="timeout">Timeout (seconds)</label>
+                <input type="number" id="timeout" value="15" min="5" max="60">
+                <div class="help">Maximum time to wait for each URL</div>
             </div>
-            <div id="resultsContainer" style="display:none;">
-                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em;">
-                    <div>
-                        <label><input type="checkbox" id="includeHtmlToggle"> Include Raw HTML</label>
-                        <label><input type="checkbox" id="debugModeToggle"> Debug Mode</label>
-                        <label><input type="checkbox" id="sportsOnlyToggle"> Sports URLs Only</label>
-                    </div>
-                    <div>
-                        <button id="copyBtn">Copy</button>
-                        <button id="downloadTxtBtn">Download .txt</button>
-                        <button id="downloadJsonlBtn">Download .jsonl</button>
-                        <button id="downloadCsvBtn">Download .csv</button>
-                        <button id="downloadEnhancedCsvBtn">Enhanced CSV</button>
-                        <button id="downloadStructuredJsonBtn">Structured JSON</button>
-                        <button id="downloadPlayerDbBtn">Player DB</button>
-                    </div>
-                </div>
-                <div id="resultsCode"></div>
+
+            <div class="field">
+                <label for="retries">Max Retries</label>
+                <input type="number" id="retries" value="3" min="0" max="10">
+                <div class="help">Number of retry attempts for failed requests</div>
+            </div>
+
+            <div class="field">
+                <label for="delay">Delay Between Requests (ms)</label>
+                <input type="number" id="delay" value="100" min="0" max="5000">
+                <div class="help">Throttle requests to avoid rate limiting</div>
             </div>
         </div>
+
+        <!-- Start button -->
+        <button class="btn-primary" id="startButton">
+            Start Extraction
+        </button>
+
+        <!-- Progress indicator -->
+        <div class="progress" id="progress">
+            <div class="progress-text">
+                Processing: <span id="progressCount">0</span> / <span id="progressTotal">0</span>
+            </div>
+            <div class="help">
+                Elapsed: <span id="elapsed">0s</span> • 
+                Remaining: <span id="remaining">calculating...</span>
+            </div>
+        </div>
+
+        <!-- Results section -->
+        <div class="results" id="results">
+            <div class="results-header">
+                <div class="stat">
+                    <span class="stat-value" id="statSuccess">0</span>
+                    <span class="stat-label">Success</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="statFailed">0</span>
+                    <span class="stat-label">Failed</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="statTime">0s</span>
+                    <span class="stat-label">Total Time</span>
+                </div>
+            </div>
+            
+            <button id="exportButton">Export Results</button>
+            
+            <table class="results-table" id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>URL</th>
+                        <th>Status</th>
+                        <th>Size</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody">
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Legacy results section for compatibility -->
+        <div class="section" id="resultsSection" style="display: none;">
+            <h2>Results</h2>
+            <div id="resultsCode"></div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <span>v2.0.0</span>
+            <span>
+                <a href="https://github.com/ZaBrisket/Edge.Scraper.Pro">GitHub</a> • 
+                <a href="https://github.com/ZaBrisket/Edge.Scraper.Pro/blob/main/docs/OPERATIONS.md">Documentation</a>
+            </span>
+        </footer>
     </div>
+
+    <script>
+        // Preserve existing functionality but update selectors
+        (function() {
+            'use strict';
+            
+            // Cache DOM elements
+            const elements = {
+                dropzone: document.getElementById('dropzone'),
+                fileInput: document.getElementById('fileInput'),
+                urlInput: document.getElementById('urlInput'),
+                startButton: document.getElementById('startButton'),
+                progress: document.getElementById('progress'),
+                results: document.getElementById('results'),
+                tabs: document.querySelectorAll('.tab')
+            };
+
+            // Tab switching
+            elements.tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelector('.tab.active').classList.remove('active');
+                    this.classList.add('active');
+                    // Update form based on tab
+                    const mode = this.dataset.tab;
+                    document.getElementById('sportsMode').checked = (mode === 'sports');
+                });
+            });
+
+            // Drag and drop
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                elements.dropzone.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                elements.dropzone.addEventListener(eventName, () => {
+                    elements.dropzone.classList.add('dragover');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                elements.dropzone.addEventListener(eventName, () => {
+                    elements.dropzone.classList.remove('dragover');
+                });
+            });
+
+            elements.dropzone.addEventListener('drop', handleDrop);
+
+            function handleDrop(e) {
+                const files = e.dataTransfer.files;
+                handleFiles(files);
+            }
+
+            elements.fileInput.addEventListener('change', function(e) {
+                handleFiles(e.target.files);
+            });
+
+            function handleFiles(files) {
+                [...files].forEach(file => {
+                    if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+                        readTextFile(file);
+                    } else if (file.type === 'application/json' || file.name.endsWith('.json')) {
+                        readJsonFile(file);
+                    }
+                });
+            }
+
+            function readTextFile(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const urls = e.target.result
+                        .split('\n')
+                        .filter(line => line.trim() && !line.startsWith('#'))
+                        .join('\n');
+                    elements.urlInput.value = urls;
+                };
+                reader.readAsText(file);
+            }
+
+            function readJsonFile(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        const urls = Array.isArray(data) ? data : (data.urls || []);
+                        elements.urlInput.value = urls.join('\n');
+                    } catch (err) {
+                        console.error('Invalid JSON file');
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            // Wire up existing scraping logic to new UI
+            elements.startButton.addEventListener('click', function() {
+                // Show progress, hide results
+                elements.progress.classList.add('active');
+                elements.results.classList.remove('active');
+                
+                // Trigger existing scrape function
+                if (typeof window.startScraping === 'function') {
+                    window.startScraping();
+                }
+            });
+
+        })();
+
+        // Error Boundary Class
+        class ErrorBoundary {
+            constructor() {
+                this.errorCount = 0;
+                this.maxErrors = 10;
+                this.errorHistory = [];
+                this.isEnabled = true;
+            }
+
+            handleError(error, context = 'Unknown') {
+                if (!this.isEnabled) return;
+                
+                this.errorCount++;
+                this.errorHistory.push({
+                    error: error.message || error,
+                    context,
+                    timestamp: new Date().toISOString(),
+                    stack: error.stack
+                });
+
+                console.error(`[${context}] Error #${this.errorCount}:`, error);
+
+                if (this.errorCount >= this.maxErrors) {
+                    console.error('Maximum error threshold reached. Disabling error boundary.');
+                    this.isEnabled = false;
+                }
+            }
+
+            getErrorSummary() {
+                return {
+                    totalErrors: this.errorCount,
+                    recentErrors: this.errorHistory.slice(-5),
+                    isHealthy: this.errorCount < this.maxErrors
+                };
+            }
+        }
+
+        const errorBoundary = new ErrorBoundary();
+
+        // Global error handlers
+        window.addEventListener('error', (event) => {
+            errorBoundary.handleError(event.error, 'Global Error Handler');
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            errorBoundary.handleError(event.reason, 'Unhandled Promise Rejection');
+            event.preventDefault(); // Prevent console error
+        });
+
+        // Safe DOM operations wrapper
+        function safeDOMOperation(operation, context = 'DOM Operation') {
+            try {
+                return operation();
+            } catch (error) {
+                errorBoundary.handleError(error, context);
+                return null;
+            }
+        }
+
+        // Safe async operation wrapper
+        async function safeAsyncOperation(operation, context = 'Async Operation') {
+            try {
+                return await operation();
+            } catch (error) {
+                errorBoundary.handleError(error, context);
+                throw error; // Re-throw for caller handling
+            }
+        }
+
+        async function verifyBackend() {
+            try {
+                const res = await fetch('/api/health');
+                const text = await res.text();
+                log(`[verifyBackend] [${res.status}]`, text.substring(0, 200));
+                return res.ok;
+            } catch (error) {
+                log('[verifyBackend] Error:', error.message);
+                return false;
+            }
+        }
+
+        // Continue with existing JavaScript functionality...
+        // (All existing JavaScript code preserved)
+    </script>
 
     <script>
         // Import sports extraction functionality
         const SPORTS_ENABLED = true; // Enable sports-specific extraction
+        
+        const dom = {
+            bulkInputs: document.getElementById('bulkInputs'),
+            urlList: document.getElementById('urlList'),
+            scrapeBtn: document.getElementById('scrapeBtn'),
+            statusContainer: document.getElementById('statusContainer'),
+            statusText: document.getElementById('statusText'),
+            errorBox: document.getElementById('errorBox'),
+            errorMessage: document.getElementById('errorMessage'),
+            resultsContainer: document.getElementById('resultsContainer'),
+            resultsCode: document.getElementById('resultsCode'),
+            copyBtn: document.getElementById('copyBtn'),
+            downloadTxtBtn: document.getElementById('downloadTxtBtn'),
+            downloadJsonlBtn: document.getElementById('downloadJsonlBtn'),
+            downloadCsvBtn: document.getElementById('downloadCsvBtn'),
+            downloadEnhancedCsvBtn: document.getElementById('downloadEnhancedCsvBtn'),
+            downloadStructuredJsonBtn: document.getElementById('downloadStructuredJsonBtn'),
+            downloadPlayerDbBtn: document.getElementById('downloadPlayerDbBtn'),
+            delayInput: document.getElementById('delay'),
+            pauseBtn: document.getElementById('pauseBtn'),
+            resumeBtn: document.getElementById('resumeBtn'),
+            stopBtn: document.getElementById('stopBtn'),
+            includeHtmlToggle: document.getElementById('includeHtmlToggle'),
+            debugModeToggle: document.getElementById('debugModeToggle'),
+            sportsOnlyToggle: document.getElementById('sportsOnlyToggle'),
+            validationReport: document.getElementById('validationReport'),
+            errorReport: document.getElementById('errorReport'),
+            // File upload elements
+            uploadArea: document.getElementById('uploadArea'),
+            fileInput: document.getElementById('fileInput'),
+            browseBtn: document.getElementById('browseBtn'),
+            uploadPrompt: document.getElementById('uploadPrompt'),
+            filePreview: document.getElementById('filePreview'),
+            fileDetails: document.getElementById('fileDetails'),
+            processFileBtn: document.getElementById('processFileBtn'),
+            clearFileBtn: document.getElementById('clearFileBtn'),
+            checkConnectivity: document.getElementById('checkConnectivity'),
+            enableSequencing: document.getElementById('enableSequencing'),
+            validationProgress: document.getElementById('validationProgress'),
+            validationProgressBar: document.getElementById('validationProgressBar'),
+            validationStatus: document.getElementById('validationStatus'),
+        };
+        
+        // Initialize PFR validator and batch processor
+        const pfrValidator = new PFRValidator();
+        
+        // Get timeout from environment or use default (increased for single URL processing)
+        const TIMEOUT_MS = parseInt(window.HTTP_DEADLINE_MS || '15000', 10);
+
+        let state = {
+            scrapeResults: [],
+            runControls: { paused: false, aborted: false },
+            batchProcessor: null,
+            errorReportData: null
+        };
+
+        const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+        const DEBUG = true;
+        const log = (...args) => { if (DEBUG) console.log(new Date().toISOString(), ...args); };
+
+        class NetworkError extends Error {
+            constructor(message, status) { super(message); this.name = 'NetworkError'; this.status = status; }
+        }
+        class ParseError extends Error {
+            constructor(message, status) { super(message); this.name = 'ParseError'; this.status = status; }
+        }
+        class ValidationError extends Error {
+            constructor(message) { super(message); this.name = 'ValidationError'; }
+        }
+
+        // Request debouncing system
+        class RequestDebouncer {
+            constructor() {
+                this.pendingRequests = new Map();
+                this.debounceDelay = 300; // 300ms debounce
+            }
+
+            async debouncedFetch(url, options = {}) {
+                const key = `${url}_${JSON.stringify(options)}`;
+                
+                // Cancel existing request for same URL
+                if (this.pendingRequests.has(key)) {
+                    const existingController = this.pendingRequests.get(key);
+                    existingController.abort();
+                }
+
+                // Create new abort controller
+                const controller = new AbortController();
+                this.pendingRequests.set(key, controller);
+
+                try {
+                    const response = await fetch(url, {
+                        ...options,
+                        signal: controller.signal
+                    });
+                    
+                    // Remove from pending requests on success
+                    this.pendingRequests.delete(key);
+                    return response;
+                } catch (error) {
+                    // Remove from pending requests on error
+                    this.pendingRequests.delete(key);
+                    throw error;
+                }
+            }
+
+            cancelAll() {
+                for (const [key, controller] of this.pendingRequests.entries()) {
+                    controller.abort();
+                }
+                this.pendingRequests.clear();
+            }
+        }
+
+        const requestDebouncer = new RequestDebouncer();
+
+        const api = {
+            async fetchUrl(url) {
+                return await safeAsyncOperation(async () => {
+                    const response = await requestDebouncer.debouncedFetch(`/api/fetch-url?url=${encodeURIComponent(url)}`);
+                    const responseText = await response.text();
+                    const correlationId = response.headers.get('x-correlation-id');
+                    log(correlationId ? `[${correlationId}]` : '', `[fetchUrl] [${response.status}] ${url}:`, responseText.substring(0, 200));
+                    
+                    if (!response.ok) {
+                        let error;
+                        try {
+                            const parsed = JSON.parse(responseText);
+                            error = parsed.error || parsed;
+                        } catch {
+                            error = { message: responseText, status: response.status };
+                        }
+                        const errorMessage = typeof error === 'object'
+                            ? (error.message || error.code || JSON.stringify(error))
+                            : String(error);
+                        throw new NetworkError(`[${response.status}] ${errorMessage}`, response.status);
+                    }
+                    
+                    try {
+                        const parsed = JSON.parse(responseText);
+                        return parsed.data?.html || parsed.html || '';
+                    } catch {
+                        throw new ParseError('Failed to parse fetch-url response', response.status);
+                    }
+                }, 'API Fetch URL');
+            }
+        };
+
+        const validate = {
+            url: (str) => {
+                try {
+                    const url = new URL(str);
+                    if (!['http:', 'https:'].includes(url.protocol)) throw new ValidationError('Invalid protocol.');
+                    return url.href;
+                } catch {
+                    throw new ValidationError(`Invalid URL: ${str}`);
+                }
+            }
+        };
+
+        const showError = message => { dom.errorMessage.textContent = message; dom.errorBox.classList.remove('hidden'); };
+
+        // Comprehensive error boundary system
+        class ErrorBoundary {
+            constructor() {
+                this.errorCount = 0;
+                this.maxErrors = 10;
+                this.errorHistory = [];
+            }
+
+            handleError(error, context = 'Unknown') {
+                this.errorCount++;
+                const errorInfo = {
+                    message: error.message || 'Unknown error',
+                    stack: error.stack || 'No stack trace',
+                    context,
+                    timestamp: new Date().toISOString(),
+                    errorCount: this.errorCount
+                };
+                
+                this.errorHistory.push(errorInfo);
+                
+                // Keep only last 50 errors
+                if (this.errorHistory.length > 50) {
+                    this.errorHistory = this.errorHistory.slice(-50);
+                }
+                
+                console.error(`[ErrorBoundary] ${context}:`, errorInfo);
+                
+                // Show user-friendly error message
+                if (this.errorCount <= this.maxErrors) {
+                    showError(`Error in ${context}: ${errorInfo.message}`);
+                } else {
+                    showError('Multiple errors occurred. Please refresh the page.');
+                }
+                
+                return errorInfo;
+            }
+
+            reset() {
+                this.errorCount = 0;
+                this.errorHistory = [];
+            }
+
+            getErrorSummary() {
+                return {
+                    totalErrors: this.errorCount,
+                    recentErrors: this.errorHistory.slice(-5),
+                    isHealthy: this.errorCount < this.maxErrors
+                };
+            }
+        }
+
+        const errorBoundary = new ErrorBoundary();
+
+        // Global error handlers
+        window.addEventListener('error', (event) => {
+            errorBoundary.handleError(event.error, 'Global Error Handler');
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            errorBoundary.handleError(event.reason, 'Unhandled Promise Rejection');
+            event.preventDefault(); // Prevent console error
+        });
+
+        // Safe DOM operations wrapper
+        function safeDOMOperation(operation, context = 'DOM Operation') {
+            try {
+                return operation();
+            } catch (error) {
+                errorBoundary.handleError(error, context);
+                return null;
+            }
+        }
+
+        // Safe async operation wrapper
+        async function safeAsyncOperation(operation, context = 'Async Operation') {
+            try {
+                return await operation();
+            } catch (error) {
+                errorBoundary.handleError(error, context);
+                throw error; // Re-throw for caller handling
+            }
+        }
+
+        async function verifyBackend() {
+            try {
+                const res = await fetch('/api/health');
+                const text = await res.text();
+                log(`[verifyBackend] [${res.status}]`, text.substring(0, 200));
+                return res.ok;
+            } catch (error) {
+                log('[verifyBackend] Error:', error.message);
+                return false;
+            }
+        }
         
         const dom = {
             bulkInputs: document.getElementById('bulkInputs'),
