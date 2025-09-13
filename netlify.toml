@@ -1,112 +1,51 @@
 [build]
-  # Next.js SSR build - using .next directory with Netlify plugin
-  publish = ".next"
+  # Serve the public directory directly
+  publish = "public"
+  # Serverless functions location
   functions = "netlify/functions"
-  # Changed from "npm run build" to build Next.js application
-  command = "npm run next:build"
+  # No build needed for static HTML
+  command = "echo 'Deploying standalone HTML app'"
 
 [build.environment]
   NODE_VERSION = "18"
-  NPM_FLAGS = "--production=false"
+  # Critical environment variables
+  BYPASS_AUTH = "true"
+  HTTP_DEADLINE_MS = "15000"
+  PUBLIC_API_KEY = "public-2024"
 
 [functions]
-  directory = ".netlify/functions"
+  directory = "netlify/functions"
   node_bundler = "esbuild"
-  included_files = ["prisma/**/*"]
+  included_files = ["src/**"]
 
-# Map API routes if you have custom redirects; otherwise plugin handles Next routing
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-  force = true
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-
-# Proxy API routes to Netlify Functions
+# Redirect API calls to Netlify Functions
 [[redirects]]
   from = "/api/fetch-url"
   to = "/.netlify/functions/fetch-url"
   status = 200
+  force = true
 
 [[redirects]]
-  # Temporary mapping for deprecated schema endpoint; returns 410
-  from = "/api/get-schema"
-  to = "/.netlify/functions/get-schema"
-  status = 200
-
-# Authentication API Routes
-[[redirects]]
-  from = "/api/auth/login"
-  to = "/.netlify/functions/auth-login"
-  status = 200
-
-[[redirects]]
-  from = "/api/auth/register"
-  to = "/.netlify/functions/auth-register"
-  status = 200
-
-[[redirects]]
-  from = "/api/auth/verify"
-  to = "/.netlify/functions/auth-verify"
-  status = 200
-
-# Target List Formatter API Routes
-[[redirects]]
-  from = "/api/uploads/presign"
-  to = "/.netlify/functions/uploads-presign"
-  status = 200
-
-[[redirects]]
-  from = "/api/uploads/commit"
-  to = "/.netlify/functions/uploads-commit"
-  status = 200
-
-[[redirects]]
-  from = "/api/templates"
-  to = "/.netlify/functions/templates"
-  status = 200
-
-[[redirects]]
-  from = "/api/preview"
-  to = "/.netlify/functions/preview"
-  status = 200
-
-[[redirects]]
-  from = "/api/health"
-  to = "/.netlify/functions/health"
-  status = 200
-
-[[redirects]]
-  from = "/api/jobs/export"
-  to = "/.netlify/functions/jobs-export"
-  status = 200
-
-[[redirects]]
-  from = "/api/jobs/*"
-  to = "/.netlify/functions/jobs-status"
-  status = 200
-
-[[redirects]]
-  from = "/api/artifacts/*/signed-url"
-  to = "/.netlify/functions/artifacts-download"
-  status = 200
-
-# API Routes for Next.js application
-[[redirects]]
-  from = "/api/scrape/*"
+  from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
 
-[[redirects]]
-  from = "/api/tasks/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-
+# CORS headers for API
 [[headers]]
   for = "/.netlify/functions/*"
   [headers.values]
-    Access-Control-Allow-Origin = "https://edgescraperpro.com"
+    Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Access-Control-Allow-Headers = "Content-Type, X-API-Key"
+    Access-Control-Max-Age = "86400"
+
+# Cache static assets
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
