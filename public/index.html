@@ -750,26 +750,27 @@
             const startTime = Date.now();
             
             try {
+                // FIX 1: Update API endpoint for fetch-url
+                const API_BASE = window.location.hostname === 'localhost' 
+                    ? 'http://localhost:8888/.netlify/functions'
+                    : '/.netlify/functions';
+                
                 const params = new URLSearchParams({
-                    url: url,
-                    extractContent: document.getElementById('extractContent').checked,
-                    extractImages: document.getElementById('extractImages').checked,
-                    extractMeta: document.getElementById('extractMeta').checked,
-                    sportsMode: document.getElementById('sportsMode').checked,
-                    timeout: document.getElementById('timeout').value
+                    url: url
                 });
                 
-                // Check for auth token in environment or localStorage
-                const authToken = window.AUTH_TOKEN || localStorage.getItem('edgescraperpro_token');
-                const headers = {};
-                
-                if (authToken) {
-                    headers['Authorization'] = `Bearer ${authToken}`;
+                const response = await fetch(`${API_BASE}/fetch-url?${params}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': 'public-2024' // Matches env var
+                    }
+                });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error?.message || `HTTP ${response.status}`);
                 }
                 
-                const response = await fetch(`/.netlify/functions/fetch-url?${params}`, {
-                    headers: headers
-                });
                 const result = await response.json();
                 
                 const endTime = Date.now();
@@ -779,39 +780,67 @@
                 let processedData = null;
                 let error = null;
                 
-                if (result.ok && result.data) {
+                if (result.ok && result.html) {
                     // Extract content from HTML
-                    const html = result.data.html || '';
+                    const html = result.html || '';
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
                     
                     // Extract title
                     const title = doc.querySelector('title')?.textContent || '';
                     
-                    // Extract text content
-                    const content = doc.body?.textContent || '';
+                    // Check if sports mode is enabled
+                    const isSportsMode = document.getElementById('sportsMode').checked;
                     
-                    // Extract images if requested
-                    const images = document.getElementById('extractImages').checked 
-                        ? Array.from(doc.querySelectorAll('img')).map(img => img.src)
-                        : [];
+                    let content, images, meta, structuredData = {};
                     
-                    // Extract metadata if requested
-                    const meta = document.getElementById('extractMeta').checked
-                        ? Array.from(doc.querySelectorAll('meta')).reduce((acc, tag) => {
-                            const name = tag.getAttribute('name') || tag.getAttribute('property');
-                            const content = tag.getAttribute('content');
-                            if (name && content) acc[name] = content;
-                            return acc;
-                        }, {})
-                        : {};
+                    if (isSportsMode) {
+                        // Use sports extractor for enhanced content extraction
+                        const sportsResult = extractSportsContent(html, url);
+                        content = sportsResult.content;
+                        structuredData = sportsResult.structuredData;
+                        
+                        // Extract images if requested
+                        images = document.getElementById('extractImages').checked 
+                            ? Array.from(doc.querySelectorAll('img')).map(img => img.src)
+                            : [];
+                        
+                        // Extract metadata if requested
+                        meta = document.getElementById('extractMeta').checked
+                            ? Array.from(doc.querySelectorAll('meta')).reduce((acc, tag) => {
+                                const name = tag.getAttribute('name') || tag.getAttribute('property');
+                                const content = tag.getAttribute('content');
+                                if (name && content) acc[name] = content;
+                                return acc;
+                            }, {})
+                            : {};
+                    } else {
+                        // Standard content extraction
+                        content = doc.body?.textContent || '';
+                        
+                        // Extract images if requested
+                        images = document.getElementById('extractImages').checked 
+                            ? Array.from(doc.querySelectorAll('img')).map(img => img.src)
+                            : [];
+                        
+                        // Extract metadata if requested
+                        meta = document.getElementById('extractMeta').checked
+                            ? Array.from(doc.querySelectorAll('meta')).reduce((acc, tag) => {
+                                const name = tag.getAttribute('name') || tag.getAttribute('property');
+                                const content = tag.getAttribute('content');
+                                if (name && content) acc[name] = content;
+                                return acc;
+                            }, {})
+                            : {};
+                    }
                     
                     processedData = {
-                        url: result.data.url || url,
+                        url: result.url || url,
                         title,
                         content,
                         images,
                         meta,
+                        structuredData, // Include structured data for sports mode
                         html: html // Keep raw HTML for export
                     };
                 } else {
@@ -996,9 +1025,30 @@
         elements.startButton.addEventListener('click', startScraping);
         elements.exportButton.addEventListener('click', exportResults);
 
+        // Sports content extraction function
+        function extractSportsContent(html, url) {
+            const extractor = new SportsExtractor();
+            const result = extractor.extractContent(html, url);
+            
+            // Log for debugging
+            console.log('Extraction result:', {
+                contentLength: result.contentLength,
+                playerName: result.structuredData?.playerName,
+                hasStats: Object.keys(result.structuredData?.stats || {}).length > 0
+            });
+            
+            return result;
+        }
+
         // Make startScraping available globally for compatibility
         window.startScraping = startScraping;
     })();
     </script>
+    
+    <!-- Include necessary standalone JavaScript files -->
+    <script src="batch-processor.js"></script>
+    <script src="enhanced-url-validator.js"></script>
+    <script src="pfr-validator.js"></script>
+    <script src="sports-extractor.js"></script>
 </body>
 </html>
