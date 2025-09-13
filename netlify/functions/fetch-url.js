@@ -6,12 +6,13 @@
 const dns = require('dns').promises;
 const { URL } = require('url');
 const net = require('net');
-const { fetchWithPolicy } = require('../../src/lib/http/client');
+const { fetchWithPolicy } = require('../../src/lib/http/simple-enhanced-client');
 const { getCorrelationId } = require('../../src/lib/http/correlation');
 const { AuthService, Permission } = require('../../src/lib/auth');
 const { ValidationUtils } = require('../../src/lib/validation');
 const { corsHeaders } = require('../../src/lib/http/cors');
 const { requireAuth } = require('../../src/lib/auth/token');
+const { withCORS } = require('./_middleware');
 
 // Cache for resolved hostnames
 const hostCache = new Map();
@@ -41,13 +42,9 @@ resolveHost.cache = hostCache;
 
 const log = (...args) => console.log(new Date().toISOString(), ...args);
 
-exports.handler = async (event) => {
-  const correlationId = getCorrelationId(event);
+const handler = async (event, context) => {
+  const correlationId = context.correlationId || getCorrelationId(event);
   const origin = event.headers && event.headers.origin;
-  
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: { ...corsHeaders(origin), 'x-correlation-id': correlationId } };
-  }
 
   try {
     // Authentication check using new utility
@@ -59,29 +56,89 @@ exports.handler = async (event) => {
         }
       }
     } catch (e) {
-      return json(401, { error: e.message || 'Unauthorized' }, correlationId, origin);
+      return {
+        statusCode: 401,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: { message: e.message || 'Unauthorized' }
+        })
+      };
     }
     const urlParam = (event.queryStringParameters && event.queryStringParameters.url) || '';
-    if (!urlParam) return json(400, { error: 'Missing ?url=' }, correlationId, origin);
+    if (!urlParam) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: { message: 'Missing ?url=' }
+        })
+      };
+    }
 
     // Validate URL for security
     const urlValidation = ValidationUtils.validateUrl(urlParam);
     if (!urlValidation.isValid) {
-      return json(400, { error: 'Invalid URL: ' + urlValidation.errors.join(', ') }, correlationId, origin);
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: { message: 'Invalid URL: ' + urlValidation.errors.join(', ') }
+        })
+      };
     }
 
     const startUrl = new URL(urlParam);
-    if (!['http:', 'https:'].includes(startUrl.protocol)) return json(400, { error: 'Only http/https are allowed' }, correlationId, origin);
+    if (!['http:', 'https:'].includes(startUrl.protocol)) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: { message: 'Only http/https are allowed' }
+        })
+      };
+    }
 
     // Disallow non-standard ports (basic SSRF mitigation)
     const port = startUrl.port ? Number(startUrl.port) : (startUrl.protocol === 'http:' ? 80 : 443);
-    if (!ALLOWED_PORTS.has(port)) return json(400, { error: 'Non-standard ports are blocked' }, correlationId, origin);
+    if (!ALLOWED_PORTS.has(port)) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: { message: 'Non-standard ports are blocked' }
+        })
+      };
+    }
 
     // Resolve and block private IPs using cache
     try {
       await resolveHost(startUrl.hostname);
     } catch {
-      return json(400, { error: 'Blocked by SSRF policy (private or local address)' }, correlationId, origin);
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: { message: 'Blocked by SSRF policy (private or local address)' }
+        })
+      };
     }
 
     // robots.txt (best-effort) - check for toggle parameter
@@ -90,7 +147,18 @@ exports.handler = async (event) => {
     
     if (respectRobots) {
       const allowedByRobots = await robotsAllows(startUrl, correlationId);
-      if (!allowedByRobots) return json(403, { error: 'Blocked by robots.txt' }, correlationId, origin);
+      if (!allowedByRobots) {
+        return {
+          statusCode: 403,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            ok: false,
+            error: { message: 'Blocked by robots.txt' }
+          })
+        };
+      }
     } else {
       log(`[${correlationId}] WARNING: Bypassing robots.txt check as requested`);
     }
@@ -100,44 +168,80 @@ exports.handler = async (event) => {
     if (!(ct.includes('text/html') || ct.includes('application/xhtml'))) {
       // Allow text/plain as a fallback to still return html-like content
       if (!ct.includes('text/plain')) {
-        return json(415, { error: `Unsupported content-type: ${ct || 'unknown'}` }, correlationId, origin);
+        return {
+          statusCode: 415,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            ok: false,
+            error: { message: `Unsupported content-type: ${ct || 'unknown'}` }
+          })
+        };
       }
     }
 
     // Size limits
     const lenHeader = response.headers.get('content-length');
     if (lenHeader && Number(lenHeader) > MAX_BYTES) {
-      return json(413, { error: `Content too large: ${lenHeader} bytes` }, correlationId, origin);
+      return {
+        statusCode: 413,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: { message: `Content too large: ${lenHeader} bytes` }
+        })
+      };
     }
 
     const html = await readLimited(response, MAX_BYTES);
     log(`[${correlationId}] upstream [${response.status}] ${finalUrl}:`, html.substring(0, 200));
     if (!response.ok) {
-      return json(response.status, { error: `Upstream responded ${response.status}`, html }, correlationId, origin);
+      return {
+        statusCode: response.status,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: { message: `Upstream responded ${response.status}`, html }
+        })
+      };
     }
 
-    return json(200, { html, url: finalUrl }, correlationId, origin);
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ok: true,
+        data: {
+          html,
+          url: finalUrl
+        }
+      })
+    };
   } catch (err) {
     const code = err.code || 'INTERNAL';
     const message = err.message || 'Unknown error';
-    return json(500, { error: { code, message } }, correlationId, origin);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ok: false,
+        error: { code, message }
+      })
+    };
   }
 };
 
-function json(statusCode, obj, correlationId, origin) {
-  const payload = Object.prototype.hasOwnProperty.call(obj, 'error')
-    ? { ok: false, error: typeof obj.error === 'string' ? { message: obj.error } : obj.error }
-    : { ok: true, data: obj };
-  return { 
-    statusCode, 
-    headers: { 
-      'Content-Type': 'application/json', 
-      ...corsHeaders(origin), 
-      'x-correlation-id': correlationId 
-    }, 
-    body: JSON.stringify(payload) 
-  };
-}
+exports.handler = withCORS(handler);
+
 
 async function safeFetchWithRedirects(inputUrl, correlationId) {
   let current = new URL(inputUrl);

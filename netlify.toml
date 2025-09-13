@@ -10,6 +10,7 @@
   NPM_FLAGS = "--production=false"
 
 [functions]
+  directory = ".netlify/functions"
   node_bundler = "esbuild"
   included_files = ["prisma/**/*"]
 
@@ -102,3 +103,10 @@
   from = "/api/tasks/*"
   to = "/.netlify/functions/:splat"
   status = 200
+
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "https://edgescraperpro.com"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
