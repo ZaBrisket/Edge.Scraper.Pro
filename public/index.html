@@ -529,6 +529,11 @@
 
     <!-- JavaScript -->
     <script>
+    // Authentication Configuration:
+    // Option 1: Set window.AUTH_TOKEN before this script loads
+    // Option 2: Set localStorage.setItem('edgescraperpro_token', 'your-token')
+    // Option 3: Leave empty for development/unauthenticated mode
+    
     (function() {
         'use strict';
         
@@ -687,15 +692,24 @@
             if (!state.isProcessing) return;
             
             const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
-            const rate = state.processedCount / elapsed;
-            const remaining = Math.floor((state.urls.length - state.processedCount) / rate);
+            
+            // Avoid division by zero
+            if (elapsed > 0 && state.processedCount > 0) {
+                const rate = state.processedCount / elapsed;
+                const remaining = Math.floor((state.urls.length - state.processedCount) / rate);
+                elements.remaining.textContent = formatTime(remaining);
+            } else {
+                elements.remaining.textContent = 'calculating...';
+            }
             
             elements.elapsed.textContent = formatTime(elapsed);
-            elements.remaining.textContent = formatTime(remaining);
             elements.progressCount.textContent = state.processedCount;
             elements.progressTotal.textContent = state.urls.length;
             
-            requestAnimationFrame(updateProgress);
+            // Only continue animation if still processing
+            if (state.isProcessing) {
+                requestAnimationFrame(updateProgress);
+            }
         }
 
         // Scrape single URL
@@ -712,10 +726,16 @@
                     timeout: document.getElementById('timeout').value
                 });
                 
+                // Check for auth token in environment or localStorage
+                const authToken = window.AUTH_TOKEN || localStorage.getItem('edgescraperpro_token');
+                const headers = {};
+                
+                if (authToken) {
+                    headers['Authorization'] = `Bearer ${authToken}`;
+                }
+                
                 const response = await fetch(`/.netlify/functions/fetch-url?${params}`, {
-                    headers: {
-                        'Authorization': 'Bearer dev-token' // Development token
-                    }
+                    headers: headers
                 });
                 const result = await response.json();
                 
