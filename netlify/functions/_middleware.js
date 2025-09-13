@@ -39,12 +39,31 @@ exports.withCORS = (handler) => async (event, context) => {
     };
   } catch (error) {
     console.error(`[${correlationId}] Error:`, error);
+    
+    // If the error is already a properly formatted response, return it with CORS headers
+    if (error && typeof error === 'object' && error.statusCode && error.body) {
+      return {
+        ...error,
+        headers: {
+          ...headers,
+          ...(error.headers || {})
+        }
+      };
+    }
+    
+    // Otherwise, format the error response
     return {
       statusCode: error.statusCode || 500,
-      headers,
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
-        error: error.message || 'Internal server error',
-        correlationId
+        ok: false,
+        error: {
+          message: error.message || 'Internal server error',
+          code: error.code || 'INTERNAL'
+        }
       })
     };
   }

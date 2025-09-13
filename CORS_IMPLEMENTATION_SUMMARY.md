@@ -5,6 +5,14 @@ Successfully implemented CORS preflight handling and frontend state management f
 
 ## Key Accomplishments
 
+### IMPORTANT FIX: API Response Contract Preserved
+- The initial refactoring broke the API response contract by removing the `ok: true/false` wrapper
+- **Fixed** fetch-url.js to maintain the original response format:
+  - Success: `{ ok: true, data: { html, url } }`
+  - Error: `{ ok: false, error: { message, code?, html? } }`
+- Updated CORS middleware to properly handle both thrown errors and formatted error responses
+- All responses now include `Content-Type: application/json` header
+
 ### 1. CORS Middleware (`/.netlify/functions/_middleware.js`)
 - ✅ Created centralized CORS middleware that wraps Netlify Functions
 - ✅ Handles OPTIONS preflight requests with 204 status code

@@ -62,8 +62,8 @@ describe('CORS Middleware', () => {
     expect(result.statusCode).toBe(400);
     expect(result.headers['Access-Control-Allow-Origin']).toBeTruthy();
     const body = JSON.parse(result.body);
-    expect(body.error).toBe('Bad request');
-    expect(body.correlationId).toBeTruthy();
+    expect(body.ok).toBe(false);
+    expect(body.error.message).toBe('Bad request');
   });
 
   test('handles uncaught errors', async () => {
@@ -78,7 +78,8 @@ describe('CORS Middleware', () => {
     expect(result.statusCode).toBe(500);
     expect(result.headers['Access-Control-Allow-Origin']).toBeTruthy();
     const body = JSON.parse(result.body);
-    expect(body.error).toBe('Uncaught error');
+    expect(body.ok).toBe(false);
+    expect(body.error.message).toBe('Uncaught error');
   });
 
   test('uses default origin when not provided', async () => {

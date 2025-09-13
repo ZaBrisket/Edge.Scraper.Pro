@@ -56,29 +56,89 @@ const handler = async (event, context) => {
         }
       }
     } catch (e) {
-      throw { statusCode: 401, message: e.message || 'Unauthorized' };
+      return {
+        statusCode: 401,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: { message: e.message || 'Unauthorized' }
+        })
+      };
     }
     const urlParam = (event.queryStringParameters && event.queryStringParameters.url) || '';
-    if (!urlParam) throw { statusCode: 400, message: 'Missing ?url=' };
+    if (!urlParam) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: { message: 'Missing ?url=' }
+        })
+      };
+    }
 
     // Validate URL for security
     const urlValidation = ValidationUtils.validateUrl(urlParam);
     if (!urlValidation.isValid) {
-      throw { statusCode: 400, message: 'Invalid URL: ' + urlValidation.errors.join(', ') };
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: { message: 'Invalid URL: ' + urlValidation.errors.join(', ') }
+        })
+      };
     }
 
     const startUrl = new URL(urlParam);
-    if (!['http:', 'https:'].includes(startUrl.protocol)) throw { statusCode: 400, message: 'Only http/https are allowed' };
+    if (!['http:', 'https:'].includes(startUrl.protocol)) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: { message: 'Only http/https are allowed' }
+        })
+      };
+    }
 
     // Disallow non-standard ports (basic SSRF mitigation)
     const port = startUrl.port ? Number(startUrl.port) : (startUrl.protocol === 'http:' ? 80 : 443);
-    if (!ALLOWED_PORTS.has(port)) throw { statusCode: 400, message: 'Non-standard ports are blocked' };
+    if (!ALLOWED_PORTS.has(port)) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: { message: 'Non-standard ports are blocked' }
+        })
+      };
+    }
 
     // Resolve and block private IPs using cache
     try {
       await resolveHost(startUrl.hostname);
     } catch {
-      throw { statusCode: 400, message: 'Blocked by SSRF policy (private or local address)' };
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: { message: 'Blocked by SSRF policy (private or local address)' }
+        })
+      };
     }
 
     // robots.txt (best-effort) - check for toggle parameter
@@ -87,7 +147,18 @@ const handler = async (event, context) => {
     
     if (respectRobots) {
       const allowedByRobots = await robotsAllows(startUrl, correlationId);
-      if (!allowedByRobots) throw { statusCode: 403, message: 'Blocked by robots.txt' };
+      if (!allowedByRobots) {
+        return {
+          statusCode: 403,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            ok: false,
+            error: { message: 'Blocked by robots.txt' }
+          })
+        };
+      }
     } else {
       log(`[${correlationId}] WARNING: Bypassing robots.txt check as requested`);
     }
@@ -97,37 +168,75 @@ const handler = async (event, context) => {
     if (!(ct.includes('text/html') || ct.includes('application/xhtml'))) {
       // Allow text/plain as a fallback to still return html-like content
       if (!ct.includes('text/plain')) {
-        throw { statusCode: 415, message: `Unsupported content-type: ${ct || 'unknown'}` };
+        return {
+          statusCode: 415,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            ok: false,
+            error: { message: `Unsupported content-type: ${ct || 'unknown'}` }
+          })
+        };
       }
     }
 
     // Size limits
     const lenHeader = response.headers.get('content-length');
     if (lenHeader && Number(lenHeader) > MAX_BYTES) {
-      throw { statusCode: 413, message: `Content too large: ${lenHeader} bytes` };
+      return {
+        statusCode: 413,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: { message: `Content too large: ${lenHeader} bytes` }
+        })
+      };
     }
 
     const html = await readLimited(response, MAX_BYTES);
     log(`[${correlationId}] upstream [${response.status}] ${finalUrl}:`, html.substring(0, 200));
     if (!response.ok) {
-      throw { statusCode: response.status, message: `Upstream responded ${response.status}`, html };
+      return {
+        statusCode: response.status,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ok: false,
+          error: { message: `Upstream responded ${response.status}`, html }
+        })
+      };
     }
 
     return {
       statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
-        html,
-        url: finalUrl,
-        correlationId
+        ok: true,
+        data: {
+          html,
+          url: finalUrl
+        }
       })
     };
   } catch (err) {
-    if (err.statusCode) {
-      throw err;
-    }
     const code = err.code || 'INTERNAL';
     const message = err.message || 'Unknown error';
-    throw { statusCode: 500, message, code };
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ok: false,
+        error: { code, message }
+      })
+    };
   }
 };
 

@@ -6,6 +6,7 @@
 - Added loading states and error feedback to frontend
 - Created health check endpoint
 - Added correlation IDs for request tracing
+- **FIXED**: Maintained original API response contract with `ok: true/false` wrapper
 
 ### Files Modified
 
