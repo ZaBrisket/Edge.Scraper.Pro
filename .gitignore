@@ -1,42 +1,48 @@
+# Dependencies
 node_modules/
+.pnp
+.pnp.js
 
-# Local Netlify folder
-.netlify
+# Testing
+coverage/
+.nyc_output
 
-/src/generated/prisma
-
-# Runtime-generated files
-logs/*.log
-logs/*.json
-logs/*-summary.json
-*.log
-*-summary.json
-diagnostic-results-*.json
-test-results*.json
-test-export.json
-test-urls.json
-debug-*.html
-
-# Build outputs
-dist/
+# Production
 build/
+dist/
+out/
 
-# Environment files
-.env
+# Netlify
+.netlify/
+
+# Misc
+.DS_Store
 .env.local
-.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Editor directories and files
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS files
+Thumbs.db
 
 # Temporary files
 *.tmp
 *.temp
-test-output/
+*.log
 
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS files
-.DS_Store
-Thumbs.db
+# Build artifacts
+*.tsbuildinfo
