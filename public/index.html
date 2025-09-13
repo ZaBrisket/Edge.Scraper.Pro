@@ -1,3029 +1,1004 @@
-<!-- 
-  This application is a single-file, production-grade AI Web Scraper.
-  It uses a brutalist, early-web UI and all network requests
-  are handled by serverless Netlify Functions for security.
--->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Web Scraper</title>
-    <script src="pfr-validator.js"></script>
-    <script src="enhanced-url-validator.js"></script>
-    <script src="batch-processor.js"></script>
+    <title>EdgeScraperPro — Web Scraper</title>
     <style>
-        /* Brutalist, Early-Web UI Theme */
-        body { 
-            font-family: serif; 
-            background-color: #fff; 
+        /* Reset and base typography */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { 
+            font: 16px/1.4 Georgia, 'Times New Roman', Times, serif;
+            background: #fff;
             color: #000;
-            margin: 0;
-            padding: 1em;
-            display: flex;
-            justify-content: center;
         }
+        
+        /* Layout container */
         .container {
+            width: 960px;
+            margin: 0 auto;
+            padding: 40px 0 80px;
+        }
+        
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #000;
+            margin-bottom: 32px;
+        }
+        
+        .brand {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        
+        .nav a {
+            color: #0000FF;
+            text-decoration: underline;
+            margin-left: 24px;
+            font-size: 18px;
+        }
+        
+        .nav a:visited { color: #551A8B; }
+        .nav a.active { 
+            text-decoration: none;
+            border-bottom: 2px solid #000;
+            padding-bottom: 2px;
+            color: #000;
+        }
+        
+        /* Typography */
+        h1 {
+            font-size: 34px;
+            font-weight: 700;
+            margin: 32px 0 16px;
+        }
+        
+        h2 {
+            font-size: 18px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 32px 0 16px;
+            padding-top: 24px;
+            border-top: 1px solid #000;
+        }
+        
+        /* Form elements */
+        label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 8px;
+            font-variant: small-caps;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+        }
+        
+        textarea, 
+        input[type="text"], 
+        input[type="number"], 
+        select {
             width: 100%;
-            max-width: 900px;
+            padding: 12px;
             border: 1px solid #000;
-            padding: 1em;
-        }
-        h1 { font-size: 2em; margin-bottom: 0.5em; font-weight: bold; }
-        p { margin-bottom: 1em; }
-        a { color: #0000ff; }
-        a:visited { color: #800080; }
-
-        .section {
-            border: 1px solid #000;
-            padding: 1em;
-            margin-bottom: 1em;
-        }
-
-        input[type="url"], input[type="number"], textarea {
-            width: 100%;
-            padding: 0.5em;
-            font-family: monospace;
-            border: 1px solid #000;
-            margin-bottom: 1em;
-            box-sizing: border-box;
-        }
-        textarea {
-             min-height: 150px;
-        }
-
-        button {
-            padding: 0.5em 1em;
-            border: 1px solid #000;
-            background-color: #eee;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        button:hover { background-color: #ddd; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-
-        #resultsCode {
-            background-color: #f5f5f5;
-            border: 1px solid #000;
-            padding: 1em;
-            height: 400px;
-            overflow: auto;
-            font-family: monospace;
-            white-space: pre-wrap;
-            word-break: break-word;
+            font: inherit;
+            background: #fff;
         }
         
-        .spinner {
-            border: 4px solid #ccc;
-            border-radius: 50%;
-            border-top: 4px solid #000;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 2em auto;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        .hidden { display: none; }
-        
-        /* Validation Report Styles */
-        .validation-report {
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            padding: 1em;
-            margin-bottom: 1em;
+        textarea:focus, 
+        input:focus, 
+        select:focus {
+            outline: 2px solid #000;
+            outline-offset: 2px;
         }
         
-        .validation-report h3 {
-            margin-top: 0;
-            margin-bottom: 0.5em;
+        .field {
+            margin-bottom: 24px;
         }
         
-        .validation-report h4 {
-            margin-top: 1em;
-            margin-bottom: 0.5em;
+        .help {
+            color: #666;
+            font-size: 14px;
+            margin-top: 6px;
         }
         
-        .validation-report h5 {
-            margin-top: 0.5em;
-            margin-bottom: 0.25em;
-        }
-        
-        .validation-summary {
+        /* Grid layout for settings */
+        .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 0.5em;
-            margin-bottom: 1em;
-            padding: 0.5em;
-            background-color: #fff;
-            border: 1px solid #ccc;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
         }
         
-        .validation-section {
-            margin-top: 1em;
+        /* Dropzone */
+        .dropzone {
+            border: 2px dashed #000;
+            padding: 48px;
+            text-align: center;
+            margin: 32px 0;
+            background: #fff;
+            cursor: pointer;
+            transition: none;
         }
         
-        .validation-category {
-            margin-left: 1em;
+        .dropzone:hover,
+        .dropzone.dragover {
+            border-style: solid;
+            background: #f9f9f9;
         }
         
-        .invalid-url {
-            color: #d00;
+        .dropzone-text {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
         }
         
-        .validation-report ul {
-            margin: 0.5em 0;
-            padding-left: 1.5em;
+        .dropzone-subtext {
+            color: #666;
+            margin-bottom: 24px;
         }
         
-        .validation-report li {
-            margin: 0.25em 0;
+        /* Buttons */
+        button,
+        .btn {
+            padding: 14px 28px;
+            border: 1px solid #000;
+            background: #fff;
+            color: #000;
+            font: inherit;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
         }
         
-        /* Error Report Styles */
-        .error-report {
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            padding: 1em;
-            margin-top: 1em;
+        button:hover,
+        .btn:hover {
+            background: #000;
+            color: #fff;
         }
         
-        .error-summary {
-            padding: 0.5em;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            margin-bottom: 1em;
+        button:focus,
+        .btn:focus {
+            outline: 2px solid #000;
+            outline-offset: 2px;
         }
         
-        .error-recommendations {
-            margin-bottom: 1em;
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
-        .recommendation {
-            padding: 0.5em;
-            margin: 0.5em 0;
-            border: 1px solid #ccc;
+        .btn-primary {
+            font-size: 18px;
+            padding: 16px 32px;
+            margin-top: 32px;
         }
         
-        .error-high {
-            background-color: #fee;
-            border-color: #f99;
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 24px;
+            margin: 24px 0;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #000;
         }
         
-        .error-medium {
-            background-color: #fff9e6;
-            border-color: #ffcc66;
+        .tab {
+            color: #0000FF;
+            text-decoration: underline;
+            font-size: 16px;
+            cursor: pointer;
         }
         
-        .error-pattern-table {
+        .tab.active {
+            color: #000;
+            text-decoration: none;
+            font-weight: 700;
+        }
+        
+        /* Results section */
+        .results {
+            border: 1px solid #000;
+            padding: 24px;
+            margin: 32px 0;
+            background: #f9f9f9;
+            display: none;
+        }
+        
+        .results.active {
+            display: block;
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #000;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+        }
+        
+        /* Results table */
+        .results-table {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 24px;
         }
         
-        .error-pattern-table th,
-        .error-pattern-table td {
-            border: 1px solid #ddd;
-            padding: 0.5em;
+        .results-table th,
+        .results-table td {
             text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #000;
         }
         
-        .error-pattern-table th {
-            background-color: #f5f5f5;
+        .results-table th {
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
         }
         
-        /* File Upload Styles */
-        .file-upload-section {
-            margin-bottom: 1em;
+        .results-table td {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
         }
         
-        .file-upload-section h3 {
-            margin-top: 0;
-            margin-bottom: 0.5em;
-            font-weight: bold;
-        }
-        
-        .upload-area {
-            border: 2px dashed #ccc;
-            padding: 2em;
-            text-align: center;
-            transition: border-color 0.3s, background-color 0.3s;
-            margin-bottom: 1em;
-        }
-        
-        .upload-area.dragover {
-            border-color: #000;
-            background-color: #f9f9f9;
-        }
-        
-        .upload-prompt p {
-            margin: 0.5em 0;
-        }
-        
-        .file-info {
-            font-size: 0.9em;
-            color: #666;
-            font-weight: normal;
-        }
-        
-        .file-examples {
-            font-size: 0.85em;
-            color: #666;
-            margin-top: 1em;
-            text-align: left;
-            background-color: #f5f5f5;
-            padding: 0.5em;
-            border: 1px solid #ddd;
-        }
-        
-        #browseBtn {
-            background: none;
-            border: none;
-            color: #0000ff;
-            text-decoration: underline;
-            cursor: pointer;
-            padding: 0;
-            font: inherit;
-        }
-        
-        #browseBtn:hover {
-            color: #800080;
-        }
-        
-        .file-preview {
-            background-color: #f5f5f5;
-            padding: 1em;
-            text-align: left;
-            border: 1px solid #ddd;
-        }
-        
-        .file-preview h4 {
-            margin-top: 0;
-            margin-bottom: 0.5em;
-        }
-        
-        #fileDetails {
-            margin-bottom: 1em;
-            font-family: monospace;
-            font-size: 0.9em;
-        }
-        
-        .file-actions {
+        /* Footer */
+        .footer {
+            margin-top: 64px;
+            padding-top: 16px;
+            border-top: 1px solid #000;
             display: flex;
-            gap: 0.5em;
+            justify-content: space-between;
+            color: #666;
+            font-size: 14px;
         }
         
-        .file-actions button {
-            padding: 0.5em 1em;
+        .footer a {
+            color: #0000FF;
+            text-decoration: underline;
         }
         
-        /* Enhanced validation options */
-        .validation-options {
-            margin: 1em 0;
-            padding: 1em;
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-        }
-        
-        .validation-options label {
-            display: block;
-            margin-bottom: 0.5em;
-            font-weight: normal;
-        }
-        
-        .validation-options input[type="checkbox"] {
-            margin-right: 0.5em;
+        /* Hide file input */
+        input[type="file"] {
+            display: none;
         }
         
         /* Progress indicator */
-        .progress-bar-container {
-            width: 100%;
-            height: 20px;
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
-            margin: 0.5em 0;
+        .progress {
+            display: none;
+            margin: 24px 0;
+            font-family: 'Courier New', Courier, monospace;
         }
         
-        .progress-bar {
-            height: 100%;
-            background-color: #4CAF50;
-            width: 0%;
-            transition: width 0.3s ease;
+        .progress.active {
+            display: block;
         }
         
-        #validationStatus {
-            font-size: 0.9em;
-            color: #666;
-            margin-top: 0.5em;
+        .progress-text {
+            font-size: 24px;
+            font-weight: 700;
         }
         
-        .manual-input-section {
-            margin-top: 1em;
+        /* Error messages */
+        .error {
+            border: 1px solid #000;
+            background: #fff;
+            padding: 12px;
+            margin: 16px 0;
+            color: #c00;
         }
         
-        .manual-input-section h3 {
-            margin-top: 0;
-            margin-bottom: 0.5em;
-            font-weight: bold;
+        /* Checkbox and radio */
+        input[type="checkbox"],
+        input[type="radio"] {
+            margin-right: 8px;
         }
         
-        /* File processing status styles */
-        .file-processing {
-            background-color: #fff9e6;
-            border: 1px solid #ffcc66;
-            padding: 0.5em;
-            margin: 0.5em 0;
-            text-align: center;
+        .checkbox-group label,
+        .radio-group label {
+            font-weight: normal;
+            font-variant: normal;
+            margin-bottom: 8px;
+            cursor: pointer;
         }
         
-        .file-success {
-            background-color: #f0f8ff;
-            border: 1px solid #b0d4f1;
-            padding: 0.5em;
-            margin: 0.5em 0;
+        /* Results output area */
+        .results-output {
+            background-color: #f5f5f5;
+            border: 1px solid #000;
+            padding: 16px;
+            margin-top: 24px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 400px;
+            overflow-y: auto;
         }
         
-        .file-error {
-            background-color: #fee;
-            border: 1px solid #f99;
-            padding: 0.5em;
-            margin: 0.5em 0;
+        /* Loading spinner */
+        .spinner {
+            display: none;
+            width: 40px;
+            height: 40px;
+            margin: 20px auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #000;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        .spinner.active {
+            display: block;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>AI Web Scraper</h1>
-        <p>A tool to scrape websites in bulk. Built for function over form.</p>
+        <!-- Header -->
+        <header class="header">
+            <div class="brand">EdgeScraperPro</div>
+            <nav class="nav">
+                <a href="/" class="active">Scrape</a>
+                <a href="/targets">Target Lists</a>
+                <a href="https://github.com/ZaBrisket/Edge.Scraper.Pro">Documentation</a>
+            </nav>
+        </header>
 
-        <div id="bulkInputs" class="section">
-            <p><b>Step 1:</b> Add URLs to scrape by typing or uploading a file.</p>
-            
-            <!-- File Upload Section -->
-            <div class="file-upload-section">
-                <h3>Upload URL File</h3>
-                <div class="upload-area" id="uploadArea">
-                    <input type="file" id="fileInput" accept=".txt,.json" style="display: none;">
-                    <div class="upload-prompt" id="uploadPrompt">
-                        <p><strong>Drag and drop a TXT or JSON file here, or <button id="browseBtn" type="button">Browse Files</button></strong></p>
-                        <p class="file-info">Supports up to 1500 URLs • TXT (one per line) • JSON (array format)</p>
-                        <p class="file-examples">
-                            <strong>TXT format:</strong> One URL per line, # for comments<br>
-                            <strong>JSON format:</strong> Array of URLs or {"urls": [...]} object
-                        </p>
-                    </div>
-                    <div id="filePreview" class="hidden">
-                        <h4>File Preview:</h4>
-                        <div id="fileDetails"></div>
-                        
-                        <!-- Enhanced validation options -->
-                        <div class="validation-options">
-                            <label>
-                                <input type="checkbox" id="checkConnectivity">
-                                Check URL connectivity (verifies URLs are reachable) - May cause false negatives
-                            </label>
-                            <label>
-                                <input type="checkbox" id="enableSequencing" checked>
-                                Enable URL sequencing (optimizes scraping performance)
-                            </label>
-                        </div>
-                        
-                        <!-- Progress indicator for validation -->
-                        <div id="validationProgress" class="hidden">
-                            <div class="progress-bar-container">
-                                <div class="progress-bar" id="validationProgressBar"></div>
-                            </div>
-                            <div id="validationStatus">Validating URLs...</div>
-                        </div>
-                        
-                        <div class="file-actions">
-                            <button id="processFileBtn" type="button">Process URLs</button>
-                            <button id="clearFileBtn" type="button">Clear File</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Manual Input Section -->
-            <div class="manual-input-section">
-                <h3>Or Enter URLs Manually</h3>
-                <p><b>Instructions:</b> Paste a list of URLs (one per line) to scrape all text from each page.</p>
-                <textarea id="urlList" placeholder="https://example.com/page1&#10;https://example.com/page2"></textarea>
-            </div>
-            
-            <div id="validationReport" class="hidden"></div>
-            <div id="errorReport" class="hidden"></div>
+        <!-- Main heading -->
+        <h1>Web Scraper — Bulk URL Extraction</h1>
+
+        <!-- Tabs for scraping modes -->
+        <div class="tabs">
+            <span class="tab active" data-tab="general">General</span>
+            <span class="tab" data-tab="news">News</span>
+            <span class="tab" data-tab="sports">Sports</span>
+            <span class="tab" data-tab="companies">Companies</span>
         </div>
+
+        <!-- File upload dropzone -->
+        <div class="dropzone" id="dropzone">
+            <div class="dropzone-text">Drop files here</div>
+            <div class="dropzone-subtext">
+                TXT (one URL per line) or JSON • Maximum 1,500 URLs
+            </div>
+            <button id="selectFilesBtn" type="button">
+                Select Files
+            </button>
+            <input type="file" id="fileInput" accept=".txt,.json" multiple>
+        </div>
+
+        <!-- URL textarea -->
+        <div class="field">
+            <label for="urlInput">URLs</label>
+            <textarea 
+                id="urlInput" 
+                rows="10" 
+                placeholder="Paste URLs here, one per line. Lines starting with # are ignored."
+            ></textarea>
+            <div class="help">
+                Enter up to 1,500 URLs. Processing time: ~1.5 seconds per URL.
+            </div>
+        </div>
+
+        <!-- Extraction settings -->
+        <h2>Extraction Settings</h2>
         
-        <div class="section">
-            <p><b>Step 2:</b> Configure scrape settings and run.</p>
-            <div style="display: flex; align-items: center; gap: 1em; margin-bottom: 1em;">
-                <label for="delay">Delay between URLs (ms):</label>
-                <input id="delay" type="number" value="1500" style="width: 120px; margin-bottom: 0;"/>
-                <span style="font-size: 0.9em; color: #666;">Processing 1 URL at a time for maximum reliability</span>
+        <div class="grid">
+            <div class="field">
+                <label>Extraction Mode</label>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="extractContent" checked> Extract full content</label>
+                    <label><input type="checkbox" id="extractImages"> Extract images</label>
+                    <label><input type="checkbox" id="extractMeta"> Extract metadata</label>
+                    <label><input type="checkbox" id="sportsMode"> Sports statistics mode</label>
+                </div>
             </div>
-            <div style="background-color: #f0f8ff; border: 1px solid #b0d4f1; padding: 0.5em; margin-bottom: 1em; font-size: 0.9em;">
-                <strong>Reliability Mode:</strong> URLs are processed sequentially with optimal delays to minimize errors and avoid rate limiting. This approach trades speed for maximum success rate.
-            </div>
-             <div style="display: flex; gap: 1em;">
-                <button id="scrapeBtn" style="width: 100%;">Scrape</button>
-                <button id="pauseBtn" class="hidden">Pause</button>
-                <button id="resumeBtn" class="hidden">Resume</button>
-                <button id="stopBtn" class="hidden">Stop</button>
+
+            <div class="field">
+                <label>Export Format</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="format" value="jsonl" checked> JSON Lines</label>
+                    <label><input type="radio" name="format" value="csv"> CSV</label>
+                    <label><input type="radio" name="format" value="txt"> Plain Text</label>
+                    <label><input type="radio" name="format" value="structured"> Structured JSON</label>
+                </div>
             </div>
         </div>
 
-        <div class="section">
-             <p><b>Step 3:</b> Review and export results.</p>
-            <div id="statusContainer" class="hidden">
-                <div class="spinner"></div>
-                <p id="statusText" style="text-align: center;"></p>
+        <!-- Performance settings -->
+        <h2>Performance Settings</h2>
+        
+        <div class="grid">
+            <div class="field">
+                <label for="concurrency">Concurrent Requests</label>
+                <input type="number" id="concurrency" value="5" min="1" max="20">
+                <div class="help">Higher values increase speed but may trigger rate limits</div>
             </div>
-            <div id="errorBox" class="hidden" style="color: red; border: 1px solid red; padding: 1em; margin-bottom: 1em;">
-                <b>Error:</b> <span id="errorMessage"></span>
+
+            <div class="field">
+                <label for="timeout">Timeout (seconds)</label>
+                <input type="number" id="timeout" value="15" min="5" max="60">
+                <div class="help">Maximum time to wait for each URL</div>
             </div>
-            <div id="resultsContainer" style="display:none;">
-                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em;">
-                    <div>
-                        <label><input type="checkbox" id="includeHtmlToggle"> Include Raw HTML</label>
-                        <label><input type="checkbox" id="debugModeToggle"> Debug Mode</label>
-                        <label><input type="checkbox" id="sportsOnlyToggle"> Sports URLs Only</label>
-                    </div>
-                    <div>
-                        <button id="copyBtn">Copy</button>
-                        <button id="downloadTxtBtn">Download .txt</button>
-                        <button id="downloadJsonlBtn">Download .jsonl</button>
-                        <button id="downloadCsvBtn">Download .csv</button>
-                        <button id="downloadEnhancedCsvBtn">Enhanced CSV</button>
-                        <button id="downloadStructuredJsonBtn">Structured JSON</button>
-                        <button id="downloadPlayerDbBtn">Player DB</button>
-                    </div>
-                </div>
-                <div id="resultsCode"></div>
+
+            <div class="field">
+                <label for="retries">Max Retries</label>
+                <input type="number" id="retries" value="3" min="0" max="10">
+                <div class="help">Number of retry attempts for failed requests</div>
+            </div>
+
+            <div class="field">
+                <label for="delay">Delay Between Requests (ms)</label>
+                <input type="number" id="delay" value="100" min="0" max="5000">
+                <div class="help">Throttle requests to avoid rate limiting</div>
             </div>
         </div>
+
+        <!-- Start button -->
+        <button class="btn-primary" id="startButton">
+            Start Extraction
+        </button>
+
+        <!-- Progress indicator -->
+        <div class="progress" id="progress">
+            <div class="progress-text">
+                Processing: <span id="progressCount">0</span> / <span id="progressTotal">0</span>
+            </div>
+            <div class="help">
+                Elapsed: <span id="elapsed">0s</span> • 
+                Remaining: <span id="remaining">calculating...</span>
+            </div>
+        </div>
+
+        <!-- Loading spinner -->
+        <div class="spinner" id="spinner"></div>
+
+        <!-- Results section -->
+        <div class="results" id="results">
+            <div class="results-header">
+                <div class="stat">
+                    <span class="stat-value" id="statSuccess">0</span>
+                    <span class="stat-label">Success</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="statFailed">0</span>
+                    <span class="stat-label">Failed</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="statTime">0s</span>
+                    <span class="stat-label">Total Time</span>
+                </div>
+            </div>
+            
+            <button id="exportButton">Export Results</button>
+            
+            <table class="results-table" id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>URL</th>
+                        <th>Status</th>
+                        <th>Size</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody">
+                </tbody>
+            </table>
+            
+            <div class="results-output" id="resultsOutput"></div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <span>v2.0.0</span>
+            <span>
+                <a href="https://github.com/ZaBrisket/Edge.Scraper.Pro">GitHub</a> • 
+                <a href="https://github.com/ZaBrisket/Edge.Scraper.Pro/blob/main/docs/OPERATIONS.md">Documentation</a>
+            </span>
+        </footer>
     </div>
 
+    <!-- JavaScript -->
     <script>
-        // Import sports extraction functionality
-        const SPORTS_ENABLED = true; // Enable sports-specific extraction
+    // Authentication Configuration:
+    // Option 1: Set window.AUTH_TOKEN before this script loads
+    // Option 2: Set localStorage.setItem('edgescraperpro_token', 'your-token')
+    // Option 3: Leave empty for development/unauthenticated mode
+    
+    (function() {
+        'use strict';
         
-        const dom = {
-            bulkInputs: document.getElementById('bulkInputs'),
-            urlList: document.getElementById('urlList'),
-            scrapeBtn: document.getElementById('scrapeBtn'),
-            statusContainer: document.getElementById('statusContainer'),
-            statusText: document.getElementById('statusText'),
-            errorBox: document.getElementById('errorBox'),
-            errorMessage: document.getElementById('errorMessage'),
-            resultsContainer: document.getElementById('resultsContainer'),
-            resultsCode: document.getElementById('resultsCode'),
-            copyBtn: document.getElementById('copyBtn'),
-            downloadTxtBtn: document.getElementById('downloadTxtBtn'),
-            downloadJsonlBtn: document.getElementById('downloadJsonlBtn'),
-            downloadCsvBtn: document.getElementById('downloadCsvBtn'),
-            downloadEnhancedCsvBtn: document.getElementById('downloadEnhancedCsvBtn'),
-            downloadStructuredJsonBtn: document.getElementById('downloadStructuredJsonBtn'),
-            downloadPlayerDbBtn: document.getElementById('downloadPlayerDbBtn'),
-            delayInput: document.getElementById('delay'),
-            pauseBtn: document.getElementById('pauseBtn'),
-            resumeBtn: document.getElementById('resumeBtn'),
-            stopBtn: document.getElementById('stopBtn'),
-            includeHtmlToggle: document.getElementById('includeHtmlToggle'),
-            debugModeToggle: document.getElementById('debugModeToggle'),
-            sportsOnlyToggle: document.getElementById('sportsOnlyToggle'),
-            validationReport: document.getElementById('validationReport'),
-            errorReport: document.getElementById('errorReport'),
-            // File upload elements
-            uploadArea: document.getElementById('uploadArea'),
-            fileInput: document.getElementById('fileInput'),
-            browseBtn: document.getElementById('browseBtn'),
-            uploadPrompt: document.getElementById('uploadPrompt'),
-            filePreview: document.getElementById('filePreview'),
-            fileDetails: document.getElementById('fileDetails'),
-            processFileBtn: document.getElementById('processFileBtn'),
-            clearFileBtn: document.getElementById('clearFileBtn'),
-            checkConnectivity: document.getElementById('checkConnectivity'),
-            enableSequencing: document.getElementById('enableSequencing'),
-            validationProgress: document.getElementById('validationProgress'),
-            validationProgressBar: document.getElementById('validationProgressBar'),
-            validationStatus: document.getElementById('validationStatus'),
-        };
-        
-        // Initialize PFR validator and batch processor
-        const pfrValidator = new PFRValidator();
-        
-        // Get timeout from environment or use default (increased for single URL processing)
-        const TIMEOUT_MS = parseInt(window.HTTP_DEADLINE_MS || '15000', 10);
-
+        // State management
         let state = {
-            scrapeResults: [],
-            runControls: { paused: false, aborted: false },
-            batchProcessor: null,
-            errorReportData: null
+            urls: [],
+            results: [],
+            isProcessing: false,
+            startTime: null,
+            processedCount: 0,
+            currentMode: 'general'
+        };
+        
+        // Cache DOM elements
+        const elements = {
+            dropzone: document.getElementById('dropzone'),
+            fileInput: document.getElementById('fileInput'),
+            urlInput: document.getElementById('urlInput'),
+            startButton: document.getElementById('startButton'),
+            progress: document.getElementById('progress'),
+            progressCount: document.getElementById('progressCount'),
+            progressTotal: document.getElementById('progressTotal'),
+            elapsed: document.getElementById('elapsed'),
+            remaining: document.getElementById('remaining'),
+            results: document.getElementById('results'),
+            resultsBody: document.getElementById('resultsBody'),
+            resultsOutput: document.getElementById('resultsOutput'),
+            spinner: document.getElementById('spinner'),
+            exportButton: document.getElementById('exportButton'),
+            statSuccess: document.getElementById('statSuccess'),
+            statFailed: document.getElementById('statFailed'),
+            statTime: document.getElementById('statTime'),
+            tabs: document.querySelectorAll('.tab')
         };
 
-        const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+        // Tab switching
+        elements.tabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelector('.tab.active').classList.remove('active');
+                this.classList.add('active');
+                state.currentMode = this.dataset.tab;
+                // Update sports mode checkbox based on tab
+                document.getElementById('sportsMode').checked = (state.currentMode === 'sports');
+            });
+        });
 
-        const DEBUG = true;
-        const log = (...args) => { if (DEBUG) console.log(new Date().toISOString(), ...args); };
+        // Drag and drop handlers
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            elements.dropzone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
 
-        class NetworkError extends Error {
-            constructor(message, status) { super(message); this.name = 'NetworkError'; this.status = status; }
-        }
-        class ParseError extends Error {
-            constructor(message, status) { super(message); this.name = 'ParseError'; this.status = status; }
-        }
-        class ValidationError extends Error {
-            constructor(message) { super(message); this.name = 'ValidationError'; }
-        }
-
-        // Request debouncing system
-        class RequestDebouncer {
-            constructor() {
-                this.pendingRequests = new Map();
-                this.debounceDelay = 300; // 300ms debounce
-            }
-
-            async debouncedFetch(url, options = {}) {
-                const key = `${url}_${JSON.stringify(options)}`;
-                
-                // Cancel existing request for same URL
-                if (this.pendingRequests.has(key)) {
-                    const existingController = this.pendingRequests.get(key);
-                    existingController.abort();
-                }
-
-                // Create new abort controller
-                const controller = new AbortController();
-                this.pendingRequests.set(key, controller);
-
-                try {
-                    const response = await fetch(url, {
-                        ...options,
-                        signal: controller.signal
-                    });
-                    
-                    // Remove from pending requests on success
-                    this.pendingRequests.delete(key);
-                    return response;
-                } catch (error) {
-                    // Remove from pending requests on error
-                    this.pendingRequests.delete(key);
-                    throw error;
-                }
-            }
-
-            cancelAll() {
-                for (const [key, controller] of this.pendingRequests.entries()) {
-                    controller.abort();
-                }
-                this.pendingRequests.clear();
-            }
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
         }
 
-        const requestDebouncer = new RequestDebouncer();
+        ['dragenter', 'dragover'].forEach(eventName => {
+            elements.dropzone.addEventListener(eventName, () => {
+                elements.dropzone.classList.add('dragover');
+            });
+        });
 
-        const api = {
-            async fetchUrl(url) {
-                return await safeAsyncOperation(async () => {
-                    const response = await requestDebouncer.debouncedFetch(`/api/fetch-url?url=${encodeURIComponent(url)}`);
-                    const responseText = await response.text();
-                    const correlationId = response.headers.get('x-correlation-id');
-                    log(correlationId ? `[${correlationId}]` : '', `[fetchUrl] [${response.status}] ${url}:`, responseText.substring(0, 200));
-                    
-                    if (!response.ok) {
-                        let error;
-                        try {
-                            const parsed = JSON.parse(responseText);
-                            error = parsed.error || parsed;
-                        } catch {
-                            error = { message: responseText, status: response.status };
-                        }
-                        const errorMessage = typeof error === 'object'
-                            ? (error.message || error.code || JSON.stringify(error))
-                            : String(error);
-                        throw new NetworkError(`[${response.status}] ${errorMessage}`, response.status);
-                    }
-                    
-                    try {
-                        const parsed = JSON.parse(responseText);
-                        return parsed.data?.html || parsed.html || '';
-                    } catch {
-                        throw new ParseError('Failed to parse fetch-url response', response.status);
-                    }
-                }, 'API Fetch URL');
+        ['dragleave', 'drop'].forEach(eventName => {
+            elements.dropzone.addEventListener(eventName, () => {
+                elements.dropzone.classList.remove('dragover');
+            });
+        });
+
+        elements.dropzone.addEventListener('drop', handleDrop);
+
+        function handleDrop(e) {
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        }
+
+        elements.fileInput.addEventListener('change', function(e) {
+            handleFiles(e.target.files);
+        });
+
+        // Add click handler for select files button
+        const selectFilesBtn = document.getElementById('selectFilesBtn');
+        if (selectFilesBtn) {
+            selectFilesBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                elements.fileInput.click();
+            });
+        }
+
+        // Make entire dropzone clickable (except when clicking on button)
+        elements.dropzone.addEventListener('click', function(e) {
+            if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                elements.fileInput.click();
             }
-        };
+        });
 
-        const validate = {
-            url: (str) => {
-                try {
-                    const url = new URL(str);
-                    if (!['http:', 'https:'].includes(url.protocol)) throw new ValidationError('Invalid protocol.');
-                    return url.href;
-                } catch {
-                    throw new ValidationError(`Invalid URL: ${str}`);
-                }
-            }
-        };
-
-        const showError = message => { dom.errorMessage.textContent = message; dom.errorBox.classList.remove('hidden'); };
-
-        // Comprehensive error boundary system
-        class ErrorBoundary {
-            constructor() {
-                this.errorCount = 0;
-                this.maxErrors = 10;
-                this.errorHistory = [];
-            }
-
-            handleError(error, context = 'Unknown') {
-                this.errorCount++;
-                const errorInfo = {
-                    message: error.message || 'Unknown error',
-                    stack: error.stack || 'No stack trace',
-                    context,
-                    timestamp: new Date().toISOString(),
-                    errorCount: this.errorCount
-                };
-                
-                this.errorHistory.push(errorInfo);
-                
-                // Keep only last 50 errors
-                if (this.errorHistory.length > 50) {
-                    this.errorHistory = this.errorHistory.slice(-50);
-                }
-                
-                console.error(`[ErrorBoundary] ${context}:`, errorInfo);
-                
-                // Show user-friendly error message
-                if (this.errorCount <= this.maxErrors) {
-                    showError(`Error in ${context}: ${errorInfo.message}`);
+        function handleFiles(files) {
+            console.log('handleFiles called with', files.length, 'files');
+            [...files].forEach(file => {
+                console.log('Processing file:', file.name, 'Type:', file.type);
+                if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+                    readTextFile(file);
+                } else if (file.type === 'application/json' || file.name.endsWith('.json')) {
+                    readJsonFile(file);
                 } else {
-                    showError('Multiple errors occurred. Please refresh the page.');
+                    console.warn('Unsupported file type:', file.type, 'for file:', file.name);
+                }
+            });
+        }
+
+        function readTextFile(file) {
+            console.log('Reading text file:', file.name);
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const urls = e.target.result
+                    .split('\n')
+                    .filter(line => line.trim() && !line.startsWith('#'))
+                    .join('\n');
+                elements.urlInput.value = urls;
+                console.log('Text file loaded, URLs found:', urls.split('\n').filter(u => u).length);
+            };
+            reader.onerror = function(e) {
+                console.error('Error reading file:', e);
+                alert('Error reading file: ' + file.name);
+            };
+            reader.readAsText(file);
+        }
+
+        function readJsonFile(file) {
+            console.log('Reading JSON file:', file.name);
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    const urls = Array.isArray(data) ? data : (data.urls || []);
+                    elements.urlInput.value = urls.join('\n');
+                    console.log('JSON file loaded, URLs found:', urls.length);
+                } catch (err) {
+                    console.error('Invalid JSON file:', err);
+                    alert('Invalid JSON file format: ' + err.message);
+                }
+            };
+            reader.onerror = function(e) {
+                console.error('Error reading JSON file:', e);
+                alert('Error reading file: ' + file.name);
+            };
+            reader.readAsText(file);
+        }
+
+        // Parse URLs from textarea
+        function parseUrls() {
+            const text = elements.urlInput.value;
+            const urls = text
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line && !line.startsWith('#'))
+                .filter(line => {
+                    try {
+                        new URL(line);
+                        return true;
+                    } catch {
+                        return false;
+                    }
+                });
+            
+            return [...new Set(urls)]; // Remove duplicates
+        }
+
+        // Format bytes to human readable
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Format time
+        function formatTime(seconds) {
+            if (seconds < 60) return seconds + 's';
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${minutes}m ${secs}s`;
+        }
+
+        // Update progress
+        function updateProgress() {
+            if (!state.isProcessing) return;
+            
+            const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+            
+            // Avoid division by zero
+            if (elapsed > 0 && state.processedCount > 0) {
+                const rate = state.processedCount / elapsed;
+                const remaining = Math.floor((state.urls.length - state.processedCount) / rate);
+                elements.remaining.textContent = formatTime(remaining);
+            } else {
+                elements.remaining.textContent = 'calculating...';
+            }
+            
+            elements.elapsed.textContent = formatTime(elapsed);
+            elements.progressCount.textContent = state.processedCount;
+            elements.progressTotal.textContent = state.urls.length;
+            
+            // Only continue animation if still processing
+            if (state.isProcessing) {
+                requestAnimationFrame(updateProgress);
+            }
+        }
+
+        // Scrape single URL
+        async function scrapeUrl(url) {
+            const startTime = Date.now();
+            
+            try {
+                const params = new URLSearchParams({
+                    url: url,
+                    extractContent: document.getElementById('extractContent').checked,
+                    extractImages: document.getElementById('extractImages').checked,
+                    extractMeta: document.getElementById('extractMeta').checked,
+                    sportsMode: document.getElementById('sportsMode').checked,
+                    timeout: document.getElementById('timeout').value
+                });
+                
+                // Check for auth token in environment or localStorage
+                const authToken = window.AUTH_TOKEN || localStorage.getItem('edgescraperpro_token');
+                const headers = {};
+                
+                if (authToken) {
+                    headers['Authorization'] = `Bearer ${authToken}`;
                 }
                 
-                return errorInfo;
-            }
-
-            reset() {
-                this.errorCount = 0;
-                this.errorHistory = [];
-            }
-
-            getErrorSummary() {
+                const response = await fetch(`/.netlify/functions/fetch-url?${params}`, {
+                    headers: headers
+                });
+                const result = await response.json();
+                
+                const endTime = Date.now();
+                const duration = Math.floor((endTime - startTime) / 1000);
+                
+                // Process the response
+                let processedData = null;
+                let error = null;
+                
+                if (result.ok && result.data) {
+                    // Extract content from HTML
+                    const html = result.data.html || '';
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    
+                    // Extract title
+                    const title = doc.querySelector('title')?.textContent || '';
+                    
+                    // Extract text content
+                    const content = doc.body?.textContent || '';
+                    
+                    // Extract images if requested
+                    const images = document.getElementById('extractImages').checked 
+                        ? Array.from(doc.querySelectorAll('img')).map(img => img.src)
+                        : [];
+                    
+                    // Extract metadata if requested
+                    const meta = document.getElementById('extractMeta').checked
+                        ? Array.from(doc.querySelectorAll('meta')).reduce((acc, tag) => {
+                            const name = tag.getAttribute('name') || tag.getAttribute('property');
+                            const content = tag.getAttribute('content');
+                            if (name && content) acc[name] = content;
+                            return acc;
+                        }, {})
+                        : {};
+                    
+                    processedData = {
+                        url: result.data.url || url,
+                        title,
+                        content,
+                        images,
+                        meta,
+                        html: html // Keep raw HTML for export
+                    };
+                } else {
+                    error = result.error?.message || 'Failed to fetch URL';
+                }
+                
                 return {
-                    totalErrors: this.errorCount,
-                    recentErrors: this.errorHistory.slice(-5),
-                    isHealthy: this.errorCount < this.maxErrors
+                    url: url,
+                    status: result.ok ? 'success' : 'failed',
+                    data: processedData,
+                    size: processedData ? JSON.stringify(processedData).length : 0,
+                    time: duration,
+                    error: error
+                };
+            } catch (error) {
+                return {
+                    url: url,
+                    status: 'failed',
+                    data: null,
+                    size: 0,
+                    time: Math.floor((Date.now() - startTime) / 1000),
+                    error: error.message
                 };
             }
         }
 
-        const errorBoundary = new ErrorBoundary();
-
-        // Global error handlers
-        window.addEventListener('error', (event) => {
-            errorBoundary.handleError(event.error, 'Global Error Handler');
-        });
-
-        window.addEventListener('unhandledrejection', (event) => {
-            errorBoundary.handleError(event.reason, 'Unhandled Promise Rejection');
-            event.preventDefault(); // Prevent console error
-        });
-
-        // Safe DOM operations wrapper
-        function safeDOMOperation(operation, context = 'DOM Operation') {
-            try {
-                return operation();
-            } catch (error) {
-                errorBoundary.handleError(error, context);
-                return null;
-            }
-        }
-
-        // Safe async operation wrapper
-        async function safeAsyncOperation(operation, context = 'Async Operation') {
-            try {
-                return await operation();
-            } catch (error) {
-                errorBoundary.handleError(error, context);
-                throw error; // Re-throw for caller handling
-            }
-        }
-
-        async function verifyBackend() {
-            try {
-                const res = await fetch('/api/health');
-                const text = await res.text();
-                log(`[verifyBackend] [${res.status}]`, text.substring(0, 200));
-                if (!res.ok) throw new Error(`Backend returned ${res.status}`);
-                return true;
-            } catch (e) {
-                showError(`Backend verification failed: ${e.message}. Check Netlify deployment.`);
-                return false;
-            }
-        }
-
-        const updateRunButtons = (isScraping) => {
-            dom.scrapeBtn.classList.toggle('hidden', isScraping);
-            dom.pauseBtn.classList.toggle('hidden', !isScraping);
-            dom.stopBtn.classList.toggle('hidden', !isScraping);
-            dom.resumeBtn.classList.add('hidden');
-        };
-
-        dom.scrapeBtn.addEventListener('click', async () => {
-            await safeAsyncOperation(async () => {
-                dom.errorBox.classList.add('hidden');
-                dom.resultsContainer.style.display = 'none';
-                dom.statusContainer.classList.remove('hidden');
-                updateRunButtons(true);
-                
-                // Reset error boundary for new scraping session
-                errorBoundary.reset();
-                
-                state.runControls = { paused: false, aborted: false };
-                state.scrapeResults = [];
-                dom.resultsCode.textContent = '';
-
-                try {
-                    await runBulkScrape();
-                } catch (error) {
-                    if (!state.runControls.aborted) {
-                        // Use enhanced error handling for large batches
-                        handleLargeBatchError(error, 'Bulk Scraping');
-                        errorBoundary.handleError(error, 'Bulk Scraping');
-                    }
-                } finally {
-                    dom.statusContainer.classList.add('hidden');
-                    updateRunButtons(false);
-                    hideProgressBar();
-                    clearProcessingState();
-                }
-            }, 'Scrape Button Click');
-        });
-        
-        dom.pauseBtn.addEventListener('click', () => {
-            if (state.batchProcessor) {
-                state.batchProcessor.pause();
-            }
-            state.runControls.paused = true;
-            dom.pauseBtn.classList.add('hidden');
-            dom.resumeBtn.classList.remove('hidden');
-            dom.statusText.textContent = 'Scraping paused...';
-        });
-        dom.resumeBtn.addEventListener('click', () => {
-            if (state.batchProcessor) {
-                state.batchProcessor.resume();
-            }
-            state.runControls.paused = false;
-            dom.resumeBtn.classList.add('hidden');
-            dom.pauseBtn.classList.remove('hidden');
-        });
-        dom.stopBtn.addEventListener('click', () => {
-            safeDOMOperation(() => {
-                if (state.batchProcessor) {
-                    state.batchProcessor.stop();
-                }
-                state.runControls.aborted = true;
-                dom.statusText.textContent = 'Scraping stopped by user.';
-                
-                // Cancel all pending requests
-                requestDebouncer.cancelAll();
-                
-                // Reset error boundary
-                errorBoundary.reset();
-            }, 'Stop Button Click');
-        });
-
-        const cooperativelyYield = async () => {
-            while (state.runControls.paused) await delay(200);
-            if (state.runControls.aborted) throw new Error('Run aborted by user');
-        };
-
-        const cleanUrl = (href) => {
-            try {
-                const url = new URL(href);
-                url.hash = '';
-                ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid'].forEach(p => url.searchParams.delete(p));
-                return url.href;
-            } catch { return href; }
-        };
-
-        async function runBulkScrape() {
-            if (!await verifyBackend()) return;
+        // Process URLs with concurrency control
+        async function processUrls() {
+            const concurrency = parseInt(document.getElementById('concurrency').value);
+            const delay = parseInt(document.getElementById('delay').value);
+            const retries = parseInt(document.getElementById('retries').value);
             
-            // Get raw URLs from input
-            const rawUrls = dom.urlList.value.trim().split('\n').filter(Boolean);
-            if (rawUrls.length === 0) throw new Error('Please paste at least one valid URL.');
+            state.processedCount = 0;
+            state.results = [];
             
-            // Initialize batch processor with current settings
-            state.batchProcessor = new BatchProcessor({
-                concurrency: 1, // Process one URL at a time for maximum reliability
-                delayMs: parseInt(dom.delayInput.value, 10),
-                timeout: TIMEOUT_MS,
-                onProgress: (progress) => {
-                    if (progress.phase === 'validation') {
-                        dom.statusText.textContent = `Validating ${progress.total} URLs...`;
-                        // Show validation report
-                        if (progress.invalid > 0 || progress.duplicates > 0) {
-                            const reportHTML = pfrValidator.generateHTMLReport(progress.validationDetails);
-                            dom.validationReport.innerHTML = reportHTML;
-                            dom.validationReport.classList.remove('hidden');
-                        }
-                    } else if (progress.phase === 'processing') {
-                        // Enhanced progress display for chunked processing
-                        let statusText = `Scraping URLs (${progress.completed}/${progress.total}) - ${progress.percentage}%`;
-                        
-                        // Add chunk information if available
-                        if (progress.currentChunk && progress.totalChunks) {
-                            statusText += ` | Chunk ${progress.currentChunk}/${progress.totalChunks}`;
-                        }
-                        
-                        // Add current URL if available
-                        if (progress.currentUrl) {
-                            statusText += `\nCurrent: ${progress.currentUrl.substring(0, 60)}...`;
-                        }
-                        
-                        dom.statusText.textContent = statusText;
-                        
-                        // Update progress indicator if we have a progress bar
-                        updateProgressBar(progress.percentage);
-                        
-                        // Save processing state for resume capability
-                        if (progress.completed > 0) {
-                            saveProcessingState({ length: progress.total }, progress.completed);
-                        }
-                    }
-                },
-                onError: (error) => {
-                    console.error('Batch processing error:', error);
-                },
-                onComplete: (result) => {
-                    // Display error report if there were failures
-                    if (result.errorReport.totalErrors > 0) {
-                        const errorHTML = state.batchProcessor.generateHTMLErrorReport(result.errorReport);
-                        dom.errorReport.innerHTML = errorHTML;
-                        dom.errorReport.classList.remove('hidden');
-                        state.errorReportData = result.errorReport;
-                    }
+            // Process in batches
+            for (let i = 0; i < state.urls.length; i += concurrency) {
+                const batch = state.urls.slice(i, i + concurrency);
+                const promises = batch.map(url => scrapeUrl(url));
+                
+                const batchResults = await Promise.all(promises);
+                state.results.push(...batchResults);
+                state.processedCount += batch.length;
+                
+                // Update UI with batch results
+                updateResults(batchResults);
+                
+                // Add delay between batches
+                if (i + concurrency < state.urls.length && delay > 0) {
+                    await new Promise(resolve => setTimeout(resolve, delay));
                 }
+            }
+        }
+
+        // Update results table
+        function updateResults(newResults) {
+            newResults.forEach(result => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${result.url}</td>
+                    <td>${result.status}</td>
+                    <td>${formatBytes(result.size)}</td>
+                    <td>${result.time}s</td>
+                `;
+                elements.resultsBody.appendChild(row);
             });
             
-            // Use PFR validator for sports URLs, regular validator for others
-            const validator = rawUrls.some(url => isSportsURL(url)) ? pfrValidator : null;
+            // Update stats
+            const successCount = state.results.filter(r => r.status === 'success').length;
+            const failedCount = state.results.filter(r => r.status === 'failed').length;
+            const totalTime = Math.floor((Date.now() - state.startTime) / 1000);
             
-            try {
-                const result = await state.batchProcessor.processBatch(rawUrls, async (url, item) => {
-                    // Process URL using existing logic
-                    const html = await api.fetchUrl(url);
-                    const doc = new DOMParser().parseFromString(html, 'text/html');
-                    const metadata = safeDOMOperation(() => extractMetadata(doc), 'Metadata Extraction');
-                    const extractionResult = safeDOMOperation(() => extractMainContentWithDebug(doc, url), 'Content Extraction');
-                    const text = extractionResult?.content || '';
-                    
-                    return {
-                        url,
-                        text,
-                        metadata: metadata || {},
-                        html: dom.includeHtmlToggle.checked ? html : null,
-                        success: true,
-                        extractionDebug: extractionResult?.debug
-                    };
-                });
-                
-                // Store results in original format for compatibility
-                state.scrapeResults = result.results.map(r => ({
-                    index: r.index,
-                    url: r.url,
-                    text: r.result?.text || '',
-                    metadata: r.result?.metadata || {},
-                    html: r.result?.html || null,
-                    success: r.success,
-                    error: r.error,
-                    errorDetails: r.errorDetails,
-                    extractionDebug: r.result?.extractionDebug
-                }));
-                
-                // Render results
-                renderResults();
-                
-                if (!state.runControls.aborted) {
-                    dom.statusText.textContent = result.summary.overview;
-                }
-                
-            } catch (error) {
-                if (error.message.includes('No valid URLs')) {
-                    // Show validation report for all invalid URLs
-                    const validationResult = state.batchProcessor.validateAndDeduplicate(rawUrls);
-                    const reportHTML = pfrValidator.generateHTMLReport({
-                        total: validationResult.total,
-                        valid: validationResult.validUrls,
-                        invalid: validationResult.invalidUrls.reduce((acc, item) => {
-                            const category = item.category || 'malformed';
-                            if (!acc[category]) acc[category] = [];
-                            acc[category].push(item);
-                            return acc;
-                        }, {}),
-                        duplicates: validationResult.duplicates,
-                        summary: validationResult.summary
-                    });
-                    dom.validationReport.innerHTML = reportHTML;
-                    dom.validationReport.classList.remove('hidden');
-                }
-                throw error;
-            }
+            elements.statSuccess.textContent = successCount;
+            elements.statFailed.textContent = failedCount;
+            elements.statTime.textContent = formatTime(totalTime);
         }
 
-        const renderResults = () => {
-                let results = state.scrapeResults.filter(Boolean).sort((a, b) => a.index - b.index);
-                
-                // Filter for sports URLs only if enabled
-                if (dom.sportsOnlyToggle.checked) {
-                    results = results.filter(r => isSportsURL(r.url));
-                }
-                
-                // Show the results container
-                dom.resultsContainer.style.display = 'block';
-                
-                dom.resultsCode.textContent = results.map(r => {
-                    let output = `\n\n--- Content from ${r.url} ---\n\n`;
-                    
-                    if(r.error) {
-                        output += `Error: ${r.error}`;
-                    } else {
-                        // Basic metadata
-                        if(r.metadata.title) output += `Title: ${r.metadata.title}\n`;
-                        if(r.metadata.author) output += `Author: ${r.metadata.author}\n`;
-                        if(r.metadata.published_at) output += `Published: ${r.metadata.published_at}\n`;
-                        if(r.metadata.description) output += `Description: ${r.metadata.description}\n`;
-                        
-                        // Debug information if enabled
-                        if (dom.debugModeToggle.checked && r.extractionDebug) {
-                            output += `\n=== DEBUG INFORMATION ===\n`;
-                            output += `Extraction Method: ${r.extractionDebug.method}\n`;
-                            output += `Content Score: ${r.extractionDebug.score}\n`;
-                            output += `Candidates Found: ${r.extractionDebug.candidates}\n`;
-                            output += `Content Length: ${r.extractionDebug.contentLength}\n`;
-                            
-                            // Sports-specific debug info
-                            if (r.extractionDebug.structuredData) {
-                                const player = r.extractionDebug.structuredData.player || {};
-                                const stats = r.extractionDebug.structuredData.statistics || {};
-                                
-                                output += `\n--- Structured Data Extracted ---\n`;
-                                if (player.name) output += `Player: ${player.name}\n`;
-                                if (player.position) output += `Position: ${player.position}\n`;
-                                if (player.height) output += `Height: ${player.height}\n`;
-                                if (player.weight) output += `Weight: ${player.weight}\n`;
-                                if (player.college) output += `College: ${player.college}\n`;
-                                
-                                output += `Career Stats: ${Object.keys(stats.career || {}).length} fields\n`;
-                                output += `Season Stats: ${(stats.seasons || []).length} seasons\n`;
-                                output += `Achievements: ${(r.extractionDebug.structuredData.achievements || []).length} items\n`;
-                            }
-                            
-                            // Sports validation info
-                            if (r.extractionDebug.sportsValidation) {
-                                const validation = r.extractionDebug.sportsValidation;
-                                output += `\n--- Sports Validation ---\n`;
-                                output += `Valid: ${validation.isValid}\n`;
-                                output += `Score: ${validation.score}/6\n`;
-                                if (validation.reasons && validation.reasons.length > 0) {
-                                    output += `Issues: ${validation.reasons.join(', ')}\n`;
-                                }
-                            }
-                        }
-                        
-                        output += `\n=== CONTENT ===\n`;
-                        output += r.text;
-                    }
-                    return output;
-                }).join('');
-            };
-
-        function extractMetadata(doc) {
-            const get = (selector, attr = 'content') => doc.querySelector(selector)?.getAttribute(attr) || '';
-            return {
-                title: get('meta[property="og:title"]') || doc.title || '',
-                description: get('meta[name="description"]') || get('meta[property="og:description"]') || '',
-                author: get('meta[name="author"]') || '',
-                published_at: get('meta[property="article:published_time"]') || get('meta[name="date"]') || ''
-            };
-        }
-
-        function extractMainContentWithDebug(doc, url = '') {
-            // Use sports extraction if enabled and URL suggests sports content
-            if (SPORTS_ENABLED && isSportsURL(url)) {
-                return extractSportsContentWithDebug(doc, url);
-            }
+        // Export results
+        function exportResults() {
+            const format = document.querySelector('input[name="format"]:checked').value;
+            let content = '';
+            let filename = 'scrape-results';
+            let mimeType = 'text/plain';
             
-            const result = extractMainContentInternal(doc);
-            return {
-                content: result.content,
-                method: result.selectedContent?.source || 'fallback',
-                score: result.selectedContent?.score || 0,
-                candidatesCount: result.candidatesCount,
-                debug: {
-                    method: result.selectedContent?.source || 'fallback',
-                    score: result.selectedContent?.score || 0,
-                    candidates: result.candidatesCount,
-                    contentLength: result.content.length
-                }
-            };
-        }
-
-        function isSportsURL(url) {
-            if (!url) return false;
-            const sportsPatterns = [
-                'pro-football-reference.com',
-                'basketball-reference.com', 
-                'baseball-reference.com',
-                'hockey-reference.com',
-                'sports-reference.com',
-                '/players/',
-                '/player/',
-                'nfl.com/players',
-                'nba.com/player',
-                'mlb.com/player',
-                'nhl.com/player'
-            ];
-            return sportsPatterns.some(pattern => url.toLowerCase().includes(pattern));
-        }
-
-        function extractSportsContentWithDebug(doc, url = '') {
-            const siteConfig = getSportsConfig(url);
-            const structuredData = extractStructuredSportsData(doc, siteConfig);
-            const contentResult = extractSportsContent(doc, siteConfig, structuredData);
-            
-            return {
-                content: contentResult.content,
-                method: contentResult.method,
-                score: contentResult.score,
-                candidatesCount: contentResult.candidatesCount,
-                debug: {
-                    method: contentResult.method,
-                    score: contentResult.score,
-                    candidates: contentResult.candidatesCount,
-                    contentLength: contentResult.content.length,
-                    structuredData: structuredData,
-                    sportsValidation: validateSportsContent(contentResult.content)
-                }
-            };
-        }
-
-        function extractMainContent(doc) {
-            return extractMainContentInternal(doc).content;
-        }
-
-        function extractMainContentInternal(doc) {
-            // Multi-pass content detection with comprehensive selector patterns
-            const docClone = doc.cloneNode(true);
-            
-            // Phase 1: Surgical content cleaning - preserve content-bearing elements
-            const removeSelectors = [
-                'script', 'style', 'noscript', 'iframe', 'object', 'embed',
-                'nav:not([class*="content"]):not([id*="content"])', 
-                'footer:not([class*="content"]):not([id*="content"])', 
-                'header:not([class*="content"]):not([id*="content"])',
-                'aside:not([class*="content"]):not([id*="content"]):not([class*="article"])',
-                'form:not([class*="content"]):not([id*="content"])',
-                '[role="navigation"]:not([class*="content"])', 
-                '[role="banner"]:not([class*="content"])', 
-                '[role="complementary"]:not([class*="content"])',
-                '[class*="advertisement"]', '[class*="ads"]', '[id*="ads"]',
-                '[class*="sidebar"]:not([class*="content"])', '[class*="widget"]:not([class*="content"])',
-                '[class*="menu"]:not([class*="content"])', '[class*="navigation"]:not([class*="content"])',
-                '[class*="social"]:not([class*="content"])', '[class*="share"]:not([class*="content"])',
-                '[class*="comment"]:not([class*="content"])', '[class*="footer"]:not([class*="content"])',
-                '[class*="header"]:not([class*="content"])', '.skip-link', '[aria-hidden="true"]'
-            ];
-            
-            removeSelectors.forEach(selector => {
-                try {
-                    docClone.querySelectorAll(selector).forEach(el => el.remove());
-                } catch (e) {
-                    // Continue if selector fails
-                }
-            });
-
-            // Phase 2: Multi-pass content detection
-            const contentResults = [];
-            
-            // Pass 1: Standard semantic selectors
-            const semanticSelectors = [
-                'main', 'article', '[role="main"]', '[role="article"]'
-            ];
-            contentResults.push(...findContentBySelectors(docClone, semanticSelectors, 'semantic'));
-            
-            // Pass 2: Comprehensive CSS class-based detection
-            const classBasedSelectors = [
-                // Content containers
-                '[class*="content"]', '[class*="article"]', '[class*="story"]', '[class*="post"]',
-                '[id*="content"]', '[id*="article"]', '[id*="story"]', '[id*="post"]',
-                
-                // News/blog specific
-                '.post-body', '.entry-content', '.article-body', '.story-body', '.news-content',
-                '.blog-post', '.blog-content', '.entry', '.post-content', '.article-content',
-                '.main-content', '.primary-content', '.page-content', '.site-content',
-                
-                // Publication specific
-                '.text', '.body', '.copy', '.editorial', '.journalism', '.reporting',
-                '.publication', '.manuscript', '.document', '.paper', '.report',
-                
-                // Layout containers
-                '.main', '.primary', '.central', '.center', '.middle',
-                '[class*="main"]', '[class*="primary"]', '[class*="central"]',
-                
-                // Generic content indicators
-                '.prose', '.rich-text', '.formatted-text', '.wysiwyg',
-                '[class*="text"]', '[class*="body"]', '[class*="copy"]'
-            ];
-            contentResults.push(...findContentBySelectors(docClone, classBasedSelectors, 'class-based'));
-            
-            // Pass 3: Structured content sections
-            const structuredSelectors = [
-                'section[class*="content"]', 'section[id*="content"]', 'section[class*="article"]',
-                'div[class*="content"]', 'div[id*="content"]', 'div[class*="article"]',
-                'section:has(h1)', 'section:has(h2)', 'section:has(p)',
-                '.container:has(p)', '.wrapper:has(p)', '.inner:has(p)'
-            ];
-            contentResults.push(...findContentBySelectors(docClone, structuredSelectors, 'structured'));
-            
-            // Pass 4: Largest text block analysis (fallback)
-            const allTextContainers = Array.from(docClone.querySelectorAll('div, section, article, p'))
-                .filter(el => el.innerText && el.innerText.trim().length > 100);
-            contentResults.push(...allTextContainers.map(el => ({ element: el, source: 'text-block' })));
-            
-            // Add body as final fallback
-            if (docClone.body) {
-                contentResults.push({ element: docClone.body, source: 'body-fallback' });
-            }
-
-            // Phase 3: Advanced content scoring and selection
-            const scoredResults = contentResults
-                .filter(result => result.element && result.element.innerText)
-                .map(result => ({
-                    ...result,
-                    score: advancedScoreNode(result.element),
-                    text: result.element.innerText.trim()
-                }))
-                .filter(result => result.score > 0)
-                .sort((a, b) => b.score - a.score);
-
-            // Phase 4: Content validation and selection
-            let selectedContent = null;
-            const minContentThreshold = 300; // Minimum characters for substantial content
-            
-            for (const result of scoredResults) {
-                if (result.text.length >= minContentThreshold && validateContentQuality(result.element)) {
-                    selectedContent = result;
+            switch (format) {
+                case 'jsonl':
+                    content = state.results
+                        .filter(r => r.status === 'success')
+                        .map(r => JSON.stringify(r.data))
+                        .join('\n');
+                    filename += '.jsonl';
+                    mimeType = 'application/x-ndjson';
                     break;
-                }
-            }
-            
-            // If no substantial content found, try with lower threshold
-            if (!selectedContent && scoredResults.length > 0) {
-                selectedContent = scoredResults.find(r => r.text.length >= 100) || scoredResults[0];
-            }
-            
-            // Phase 5: Enhanced output formatting
-            let mainText = selectedContent?.text || '';
-            
-            // Fallback to meta description if content is still insufficient
-            if (mainText.length < 200) {
-                const metaDescription = extractMetadata(doc).description;
-                if (metaDescription && metaDescription.length > mainText.length) {
-                    mainText = metaDescription;
-                }
-            }
-            
-            // Structure and clean the extracted content
-            const finalContent = structureExtractedContent(mainText, selectedContent?.element);
-            
-            return {
-                content: finalContent,
-                selectedContent,
-                candidatesCount: scoredResults.length
-            };
-        }
-
-        function findContentBySelectors(docClone, selectors, source) {
-            const results = [];
-            for (const selector of selectors) {
-                try {
-                    const elements = Array.from(docClone.querySelectorAll(selector));
-                    results.push(...elements.map(el => ({ element: el, source })));
-                } catch (e) {
-                    // Continue if selector fails
-                }
-            }
-            return results;
-        }
-
-        function advancedScoreNode(node) {
-            if (!node || !node.innerText) return 0;
-            
-            const text = node.innerText.trim();
-            const textLength = text.length;
-            if (textLength < 50) return 0;
-            
-            // Basic metrics
-            const words = text.split(/\s+/);
-            const wordCount = words.length;
-            const linkCount = node.querySelectorAll('a').length;
-            const paragraphCount = node.querySelectorAll('p').length;
-            const headingCount = node.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
-            const listCount = node.querySelectorAll('ul, ol').length;
-            const listItemCount = node.querySelectorAll('li').length;
-            
-            // Quality indicators
-            const sentenceCount = (text.match(/[.!?]+/g) || []).length;
-            const avgWordsPerSentence = sentenceCount > 0 ? wordCount / sentenceCount : 0;
-            const hasProperPunctuation = /[.!?]/.test(text);
-            const hasCapitalization = /[A-Z]/.test(text);
-            
-            // Content structure scoring
-            let structureScore = 0;
-            structureScore += paragraphCount * 30; // Reward paragraph structure
-            structureScore += headingCount * 80; // Reward heading hierarchy
-            structureScore += listCount * 20; // Reward organized lists
-            structureScore += Math.min(listItemCount * 5, 100); // Cap list item bonus
-            
-            // Text quality scoring
-            let qualityScore = 0;
-            qualityScore += textLength * 0.5; // Base text length score
-            qualityScore += Math.min(wordCount * 2, 1000); // Word count bonus (capped)
-            qualityScore += sentenceCount * 10; // Sentence structure bonus
-            
-            if (avgWordsPerSentence >= 8 && avgWordsPerSentence <= 25) {
-                qualityScore += 100; // Reward good sentence length
-            }
-            if (hasProperPunctuation) qualityScore += 50;
-            if (hasCapitalization) qualityScore += 50;
-            
-            // Link density penalty (but not as harsh)
-            const linkDensity = linkCount / (wordCount + 1);
-            const linkPenalty = linkDensity > 0.1 ? (linkDensity - 0.1) * 500 : 0;
-            
-            // Content-to-noise ratio
-            const noiseElements = node.querySelectorAll('script, style, nav, footer, aside, .ad, .advertisement');
-            const noisePenalty = noiseElements.length * 20;
-            
-            // Semantic relevance indicators
-            let semanticBonus = 0;
-            const className = node.className || '';
-            const id = node.id || '';
-            const semanticKeywords = ['content', 'article', 'story', 'post', 'body', 'text', 'main'];
-            
-            semanticKeywords.forEach(keyword => {
-                if (className.toLowerCase().includes(keyword)) semanticBonus += 100;
-                if (id.toLowerCase().includes(keyword)) semanticBonus += 100;
-            });
-            
-            const finalScore = structureScore + qualityScore + semanticBonus - linkPenalty - noisePenalty;
-            return Math.max(0, finalScore);
-        }
-
-        function validateContentQuality(element) {
-            if (!element || !element.innerText) return false;
-            
-            const text = element.innerText.trim();
-            const words = text.split(/\s+/);
-            
-            // Basic quality checks
-            if (words.length < 20) return false; // Too short
-            if (text.length / words.length < 3) return false; // Words too short on average
-            
-            // Check for reasonable sentence structure
-            const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-            if (sentences.length === 0) return false;
-            
-            const avgWordsPerSentence = words.length / sentences.length;
-            if (avgWordsPerSentence < 3 || avgWordsPerSentence > 50) return false;
-            
-            // Check for excessive link density
-            const linkCount = element.querySelectorAll('a').length;
-            const linkDensity = linkCount / words.length;
-            if (linkDensity > 0.3) return false; // Too many links relative to content
-            
-            // Check for reasonable character distribution
-            const alphaCount = (text.match(/[a-zA-Z]/g) || []).length;
-            const alphaRatio = alphaCount / text.length;
-            if (alphaRatio < 0.5) return false; // Too few alphabetic characters
-            
-            return true;
-        }
-
-        function structureExtractedContent(text, sourceElement) {
-            if (!text) return '';
-            
-            // Clean up excessive whitespace while preserving paragraph breaks
-            let cleanedText = text
-                .replace(/[\r\n\t]+/g, '\n') // Normalize line breaks
-                .replace(/[ \u00A0]+/g, ' ') // Normalize spaces (including non-breaking)
-                .replace(/\n\s*\n\s*\n+/g, '\n\n') // Reduce multiple line breaks to double
-                .trim();
-            
-            // If we have access to the source element, try to preserve some structure
-            if (sourceElement) {
-                // Try to maintain heading structure
-                const headings = sourceElement.querySelectorAll('h1, h2, h3, h4, h5, h6');
-                if (headings.length > 0) {
-                    // Add extra spacing around headings in the text
-                    headings.forEach(heading => {
-                        const headingText = heading.innerText.trim();
-                        if (headingText && cleanedText.includes(headingText)) {
-                            cleanedText = cleanedText.replace(
-                                new RegExp(`(^|\\n)(${escapeRegex(headingText)})($|\\n)`, 'g'),
-                                `$1\n$2\n$3`
-                            );
+                    
+                case 'csv':
+                    // Create CSV header
+                    content = 'URL,Title,Content Length,Images,Status\n';
+                    state.results.forEach(r => {
+                        if (r.status === 'success' && r.data) {
+                            content += `"${r.url}","${r.data.title || ''}",${r.data.content?.length || 0},${r.data.images?.length || 0},"${r.status}"\n`;
                         }
                     });
-                }
-            }
-            
-            // Final cleanup
-            return cleanedText.replace(/\n\s*\n\s*\n+/g, '\n\n').trim();
-        }
-
-        function escapeRegex(string) {
-            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        }
-
-        // Test function to validate extraction improvements
-        function testExtractionImprovements() {
-            const testHtml = `
-                <html>
-                <head>
-                    <title>Test Article</title>
-                    <meta name="description" content="A test article for validating extraction improvements">
-                </head>
-                <body>
-                    <nav class="navigation">Navigation content</nav>
-                    <header class="site-header">Site header</header>
-                    <aside class="sidebar">Sidebar content</aside>
-                    
-                    <main class="main-content">
-                        <article class="article-body">
-                            <h1>Main Article Title</h1>
-                            <p>This is the first paragraph of the main article content. It contains substantial text that should be extracted by the improved algorithm.</p>
-                            <p>This is the second paragraph with more detailed information. The enhanced scraper should identify this as primary content due to its structure and length.</p>
-                            <h2>Subheading</h2>
-                            <p>Additional content under a subheading. This demonstrates the hierarchical structure that the new scoring system should recognize and reward.</p>
-                            <ul>
-                                <li>List item one</li>
-                                <li>List item two</li>
-                            </ul>
-                            <p>Final paragraph with concluding thoughts and substantial content that validates the extraction quality.</p>
-                        </article>
-                    </main>
-                    
-                    <footer class="site-footer">Footer content</footer>
-                    <div class="advertisement">Ad content</div>
-                </body>
-                </html>
-            `;
-            
-            const doc = new DOMParser().parseFromString(testHtml, 'text/html');
-            const result = extractMainContentWithDebug(doc);
-            
-            console.log('Test Extraction Results:', {
-                method: result.method,
-                score: result.score,
-                candidates: result.candidatesCount,
-                contentLength: result.content.length,
-                content: result.content.substring(0, 200) + '...'
-            });
-            
-            // Validate that key content is extracted
-            const expectedContent = ['Main Article Title', 'first paragraph', 'second paragraph', 'Subheading', 'List item', 'Final paragraph'];
-            const hasAllContent = expectedContent.every(text => result.content.includes(text));
-            
-            console.log('Content validation:', hasAllContent ? 'PASSED' : 'FAILED');
-            console.log('Expected content found:', expectedContent.map(text => ({ 
-                text, 
-                found: result.content.includes(text) 
-            })));
-            
-            return result;
-        }
-
-        // Make test function available globally for debugging
-        window.testExtractionImprovements = testExtractionImprovements;
-
-        // Sports-specific extraction functions
-        function getSportsConfig(url) {
-            const siteConfigs = {
-                'pro-football-reference.com': {
-                    playerPagePattern: '/players/',
-                    primaryContentSelector: '#content',
-                    statsTablesSelector: '.stats_table',
-                    bioSelector: '.necro-jersey, .player-info',
-                    excludeSelectors: ['.advertisement', '.social-media', '#header', '#footer']
-                },
-                'basketball-reference.com': {
-                    playerPagePattern: '/players/',
-                    primaryContentSelector: '#content',
-                    statsTablesSelector: '.stats_table',
-                    bioSelector: '.necro-jersey, .player-info',
-                    excludeSelectors: ['.advertisement', '.social-media']
-                }
-            };
-            
-            try {
-                const urlObj = new URL(url);
-                const hostname = urlObj.hostname.toLowerCase();
-                
-                for (const [domain, config] of Object.entries(siteConfigs)) {
-                    // Use exact suffix match to prevent subdomain attacks
-                    if (hostname === domain || hostname.endsWith('.' + domain)) {
-                        return { ...config, domain };
-                    }
-                }
-            } catch (e) {
-                // Invalid URL, use default config
-            }
-            
-            return siteConfigs['pro-football-reference.com']; // Default to NFL
-        }
-
-        function extractStructuredSportsData(doc, siteConfig) {
-            const structuredData = {
-                player: {},
-                statistics: { career: {}, seasons: [], playoffs: {} },
-                achievements: []
-            };
-
-            // Extract player biographical information
-            structuredData.player = extractPlayerBiography(doc, siteConfig);
-            
-            // Extract statistical tables
-            const statsTables = extractStatisticalTables(doc, siteConfig);
-            structuredData.statistics = { ...structuredData.statistics, ...statsTables };
-            
-            // Extract achievements
-            structuredData.achievements = extractAchievements(doc);
-
-            return structuredData;
-        }
-
-        function extractPlayerBiography(doc, siteConfig) {
-            const bio = {};
-            
-            // Extract player name
-            const nameSelectors = ['h1[itemprop="name"]', 'h1 span', 'h1', '.player-name'];
-            for (const selector of nameSelectors) {
-                const nameEl = doc.querySelector(selector);
-                if (nameEl && nameEl.textContent.trim()) {
-                    bio.name = nameEl.textContent.trim();
+                    filename += '.csv';
+                    mimeType = 'text/csv';
                     break;
-                }
-            }
-            
-            // Extract position and jersey number
-            const jerseyEl = doc.querySelector('.necro-jersey, .player-position');
-            if (jerseyEl) {
-                const jerseyText = jerseyEl.textContent;
-                const positionMatch = jerseyText.match(/([A-Z]{1,3})\s*(?:#(\d+))?/);
-                if (positionMatch) {
-                    bio.position = positionMatch[1];
-                    if (positionMatch[2]) bio.jerseyNumber = positionMatch[2];
-                }
-            }
-            
-            // Extract biographical data from text content
-            const bioElements = doc.querySelectorAll('.player-info, .bio, .necro-jersey, .question, p');
-            bioElements.forEach(el => {
-                const text = el.textContent;
-                
-                // Height and weight
-                const heightMatch = text.match(/(?:Height|Ht):\s*(\d+'\s*\d+"?)/i);
-                if (heightMatch) bio.height = heightMatch[1];
-                
-                const weightMatch = text.match(/(?:Weight|Wt):\s*(\d+)\s*lbs?/i);
-                if (weightMatch) bio.weight = `${weightMatch[1]} lbs`;
-                
-                // Birth date and location
-                const birthMatch = text.match(/Born:\s*([^,]+),?\s*(.+)/i);
-                if (birthMatch) {
-                    bio.birthDate = birthMatch[1].trim();
-                    bio.birthPlace = birthMatch[2].trim();
-                }
-                
-                // College
-                const collegeMatch = text.match(/College:\s*([^\n]+)/i);
-                if (collegeMatch) bio.college = collegeMatch[1].trim();
-                
-                // Draft information
-                const draftMatch = text.match(/Draft:\s*(\d{4}).*?(\w+).*?(\d+).*?(\d+)/i);
-                if (draftMatch) {
-                    bio.draft = {
-                        year: parseInt(draftMatch[1]),
-                        team: draftMatch[2],
-                        round: parseInt(draftMatch[3]),
-                        pick: parseInt(draftMatch[4])
-                    };
-                }
-            });
-            
-            return bio;
-        }
-
-        function extractStatisticalTables(doc, siteConfig) {
-            const statistics = { career: {}, seasons: [], playoffs: {} };
-            
-            const tableSelectors = ['.stats_table', '.sortable_stats', 'table[class*="stats"]', 'table[id*="stats"]'];
-            const tables = [];
-            
-            tableSelectors.forEach(selector => {
-                try {
-                    const foundTables = Array.from(doc.querySelectorAll(selector));
-                    tables.push(...foundTables);
-                } catch (e) {
-                    // Continue if selector fails
-                }
-            });
-            
-            tables.forEach(table => {
-                try {
-                    const tableData = parseStatisticalTable(table);
-                    if (tableData && tableData.rows.length > 0) {
-                        const tableType = classifyStatisticalTable(tableData, table);
-                        
-                        switch (tableType) {
-                            case 'season':
-                                statistics.seasons.push(...tableData.rows);
-                                break;
-                            case 'career':
-                                statistics.career = tableData.rows[0] || {};
-                                break;
-                            case 'playoffs':
-                                statistics.playoffs = tableData.rows[0] || {};
-                                break;
-                        }
-                    }
-                } catch (e) {
-                    console.log('Error parsing table:', e.message);
-                }
-            });
-            
-            return statistics;
-        }
-
-        function parseStatisticalTable(table) {
-            const headers = [];
-            const rows = [];
-            
-            // Extract headers
-            const headerRow = table.querySelector('thead tr, tr:first-child');
-            if (headerRow) {
-                const headerCells = headerRow.querySelectorAll('th, td');
-                headerCells.forEach(cell => {
-                    headers.push(cell.textContent.trim());
-                });
-            }
-            
-            // Extract data rows
-            const dataRows = table.querySelectorAll('tbody tr, tr:not(:first-child)');
-            dataRows.forEach(row => {
-                const cells = row.querySelectorAll('td, th');
-                if (cells.length === 0) return;
-                
-                const rowData = {};
-                cells.forEach((cell, index) => {
-                    const header = headers[index] || `column_${index}`;
-                    let value = cell.textContent.trim();
                     
-                    // Try to convert numeric values
-                    if (value && !isNaN(value) && value !== '') {
-                        const numValue = parseFloat(value);
-                        if (!isNaN(numValue)) {
-                            value = numValue;
-                        }
-                    }
+                case 'txt':
+                    content = state.results
+                        .filter(r => r.status === 'success' && r.data?.content)
+                        .map(r => `URL: ${r.url}\n\n${r.data.content}\n\n${'='.repeat(80)}\n`)
+                        .join('\n');
+                    filename += '.txt';
+                    break;
                     
-                    rowData[header] = value;
-                });
-                
-                if (Object.keys(rowData).length > 0) {
-                    rows.push(rowData);
-                }
-            });
-            
-            return { headers, rows };
-        }
-
-        function classifyStatisticalTable(tableData, tableElement) {
-            const tableText = tableElement.textContent.toLowerCase();
-            const tableId = tableElement.id?.toLowerCase() || '';
-            const tableClass = tableElement.className?.toLowerCase() || '';
-            
-            // Check for career/totals indicators
-            if (tableText.includes('career') || tableText.includes('total') || 
-                tableId.includes('career') || tableClass.includes('career') ||
-                tableId.includes('total') || tableClass.includes('total')) {
-                return 'career';
+                case 'structured':
+                    content = JSON.stringify(state.results.filter(r => r.status === 'success'), null, 2);
+                    filename += '.json';
+                    mimeType = 'application/json';
+                    break;
             }
             
-            // Check for playoff indicators
-            if (tableText.includes('playoff') || tableText.includes('postseason') ||
-                tableId.includes('playoff') || tableClass.includes('playoff')) {
-                return 'playoffs';
-            }
-            
-            // Check if it has year columns (season-by-season data)
-            const hasYearColumn = tableData.headers.some(header => 
-                /year|season|\d{4}/i.test(header)
-            );
-            
-            if (hasYearColumn) {
-                return 'season';
-            }
-            
-            return 'general';
-        }
-
-        function extractAchievements(doc) {
-            const achievements = [];
-            const achievementSelectors = ['.awards', '.honors', '.achievements', '.accolades', '.question'];
-            
-            achievementSelectors.forEach(selector => {
-                try {
-                    const elements = doc.querySelectorAll(selector);
-                    elements.forEach(el => {
-                        const text = el.textContent.trim();
-                        if (text && text.length > 5) {
-                            // Extract individual achievements
-                            const achievementList = text.split(/[,;]|\n/).map(a => a.trim()).filter(a => a.length > 3);
-                            achievements.push(...achievementList);
-                        }
-                    });
-                } catch (e) {
-                    // Continue if selector fails
-                }
-            });
-            
-            return [...new Set(achievements)]; // Remove duplicates
-        }
-
-        function extractSportsContent(doc, siteConfig, structuredData) {
-            const docClone = doc.cloneNode(true);
-            
-            // Clean document for sports content
-            cleanDocumentForSports(docClone, siteConfig);
-            
-            // Perform sports-specific content detection
-            const contentResults = performSportsContentDetection(docClone, siteConfig);
-            
-            // Score and select best content
-            const scoredResults = scoreSportsContent(contentResults, structuredData);
-            const selectedContent = selectBestSportsContent(scoredResults);
-            
-            return {
-                content: formatSportsContent(selectedContent, structuredData),
-                method: selectedContent?.source || 'fallback',
-                score: selectedContent?.score || 0,
-                candidatesCount: contentResults.length
-            };
-        }
-
-        function cleanDocumentForSports(docClone, siteConfig) {
-            const removeSelectors = [
-                'script', 'style', 'noscript', 'iframe', 'object', 'embed',
-                'nav:not([class*="content"])', 'footer:not([class*="content"])', 
-                'header:not([class*="content"])', 'aside:not([class*="content"]):not([class*="stats"])',
-                '[class*="advertisement"]', '[class*="ads"]', '[id*="ads"]',
-                '[class*="social"]:not([class*="content"])', '[class*="share"]:not([class*="content"])',
-                ...siteConfig.excludeSelectors
-            ];
-            
-            removeSelectors.forEach(selector => {
-                try {
-                    docClone.querySelectorAll(selector).forEach(el => el.remove());
-                } catch (e) {
-                    // Continue if selector fails
-                }
-            });
-        }
-
-        function performSportsContentDetection(docClone, siteConfig) {
-            const contentResults = [];
-            
-            // Sports-specific semantic selectors
-            const sportsSemanticSelectors = [
-                siteConfig.primaryContentSelector,
-                'main', 'article', '[role="main"]', '[role="article"]',
-                '.player-page', '.stats-page', '.player-content'
-            ];
-            contentResults.push(...findContentBySelectors(docClone, sportsSemanticSelectors, 'sports-semantic'));
-            
-            // Sports content containers
-            const sportsSelectors = [
-                '.player-info', '.bio', '.profile-header', '.player-details',
-                '.stats_table', '.sortable_stats', 'table[class*="stats"]',
-                '.career-stats', '.totals', '.career-totals'
-            ];
-            contentResults.push(...findContentBySelectors(docClone, sportsSelectors, 'sports-specific'));
-            
-            // General content selectors
-            const generalSelectors = [
-                '[class*="content"]', '[class*="article"]', '.main-content', '.primary-content'
-            ];
-            contentResults.push(...findContentBySelectors(docClone, generalSelectors, 'general-content'));
-            
-            return contentResults;
-        }
-
-        function scoreSportsContent(contentResults, structuredData) {
-            return contentResults
-                .filter(result => result.element && result.element.innerText)
-                .map(result => ({
-                    ...result,
-                    score: calculateSportsContentScore(result.element, result.source, structuredData),
-                    text: result.element.innerText.trim()
-                }))
-                .filter(result => result.score > 0)
-                .sort((a, b) => b.score - a.score);
-        }
-
-        function calculateSportsContentScore(element, source, structuredData) {
-            if (!element || !element.innerText) return 0;
-            
-            const text = element.innerText.trim();
-            const textLength = text.length;
-            if (textLength < 50) return 0;
-            
-            // Base scoring
-            let baseScore = advancedScoreNode(element);
-            
-            // Sports-specific bonuses
-            let sportsBonus = 0;
-            
-            // Source bonuses
-            const sourceBonuses = {
-                'sports-semantic': 200,
-                'sports-specific': 150,
-                'general-content': 50
-            };
-            sportsBonus += sourceBonuses[source] || 0;
-            
-            // Sports keyword density
-            const sportsKeywords = ['stats', 'statistics', 'season', 'career', 'games', 'player', 'team', 'yards', 'touchdown', 'points'];
-            const lowerText = text.toLowerCase();
-            sportsKeywords.forEach(keyword => {
-                const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
-                const matches = (lowerText.match(regex) || []).length;
-                sportsBonus += matches * 5;
-            });
-            
-            // Table presence bonus
-            const tableCount = element.querySelectorAll('table').length;
-            sportsBonus += Math.min(tableCount * 100, 500);
-            
-            // Player name correlation
-            if (structuredData.player.name && text.includes(structuredData.player.name)) {
-                sportsBonus += 100;
-            }
-            
-            return baseScore + sportsBonus;
-        }
-
-        function selectBestSportsContent(scoredResults) {
-            if (scoredResults.length === 0) return null;
-            
-            const minContentThreshold = 200;
-            
-            for (const result of scoredResults) {
-                if (result.text.length >= minContentThreshold) {
-                    return result;
-                }
-            }
-            
-            return scoredResults[0];
-        }
-
-        function formatSportsContent(selectedContent, structuredData) {
-            if (!selectedContent) return '';
-            
-            let content = selectedContent.text;
-            
-            // Add structured data summary
-            if (structuredData.player.name) {
-                let summary = `\n=== PLAYER INFORMATION ===\n`;
-                
-                if (structuredData.player.name) summary += `Name: ${structuredData.player.name}\n`;
-                if (structuredData.player.position) summary += `Position: ${structuredData.player.position}\n`;
-                if (structuredData.player.height) summary += `Height: ${structuredData.player.height}\n`;
-                if (structuredData.player.weight) summary += `Weight: ${structuredData.player.weight}\n`;
-                if (structuredData.player.college) summary += `College: ${structuredData.player.college}\n`;
-                
-                if (structuredData.achievements.length > 0) {
-                    summary += `\nAchievements: ${structuredData.achievements.slice(0, 5).join(', ')}\n`;
-                }
-                
-                summary += `\n=== CONTENT ===\n`;
-                content = summary + content;
-            }
-            
-            return content.replace(/[\r\n\t]+/g, '\n').replace(/[ \u00A0]+/g, ' ').replace(/\n\s*\n\s*\n+/g, '\n\n').trim();
-        }
-
-        function validateSportsContent(content) {
-            if (!content) return { isValid: false, score: 0, reasons: ['No content'] };
-            
-            const validationRules = {
-                hasPlayerName: content => /^[A-Z][a-z]+\s+[A-Z][a-z]+/.test(content),
-                hasStats: content => /\d+\s*(yards|points|touchdowns|sacks|tackles)/i.test(content),
-                hasSeasons: content => /20\d{2}|19\d{2}/.test(content),
-                hasBiography: content => /born|height|weight|college/i.test(content),
-                hasSportsKeywords: content => /(stats|statistics|season|career|games|player|team)/i.test(content),
-                hasNumericalData: content => /\d+/.test(content)
-            };
-            
-            const results = {};
-            let score = 0;
-            
-            Object.entries(validationRules).forEach(([rule, test]) => {
-                const passed = test(content);
-                results[rule] = passed;
-                if (passed) score += 1;
-            });
-            
-            const isValid = score >= 3;
-            const reasons = Object.entries(results)
-                .filter(([_, passed]) => !passed)
-                .map(([rule, _]) => rule);
-            
-            return { isValid, score, results, reasons };
-        }
-
-        // Enhanced export functions
-        function processScrapeResults(scrapeResults) {
-            return scrapeResults
-                .filter(Boolean)
-                .sort((a, b) => a.index - b.index)
-                .map(result => {
-                    const processed = {
-                        ...result,
-                        sportsData: result.extractionDebug?.structuredData || {},
-                        sportsValidation: result.extractionDebug?.sportsValidation || {}
-                    };
-                    
-                    if (result.extractionDebug?.structuredData) {
-                        processed.hasStructuredData = true;
-                        processed.structuredDataQuality = assessStructuredDataQuality(result.extractionDebug.structuredData);
-                    }
-                    
-                    return processed;
-                });
-        }
-
-        function exportEnhancedCSV(scrapeResults) {
-            const processedResults = processScrapeResults(scrapeResults);
-            
-            const headers = [
-                'url', 'success', 'error',
-                'player_name', 'position', 'jersey_number', 'height', 'weight',
-                'birth_date', 'birth_place', 'college',
-                'draft_year', 'draft_team', 'draft_round', 'draft_pick',
-                'content_length', 'extraction_method', 'sports_validation_score',
-                'has_structured_data', 'structured_data_quality',
-                'achievements_count', 'top_achievements',
-                'career_stats_available', 'season_stats_count', 'playoff_stats_available',
-                'title', 'author', 'published_at', 'description', 'text'
-            ];
-            
-            const rows = processedResults.map(result => {
-                const player = result.sportsData?.player || {};
-                const stats = result.sportsData?.statistics || {};
-                const achievements = result.sportsData?.achievements || [];
-                
-                return [
-                    result.url,
-                    result.success,
-                    result.error || '',
-                    player.name || '',
-                    player.position || '',
-                    player.jerseyNumber || '',
-                    player.height || '',
-                    player.weight || '',
-                    player.birthDate || '',
-                    player.birthPlace || '',
-                    player.college || '',
-                    player.draft?.year || '',
-                    player.draft?.team || '',
-                    player.draft?.round || '',
-                    player.draft?.pick || '',
-                    result.text?.length || 0,
-                    result.extractionDebug?.selectedMethod || '',
-                    result.sportsValidation?.score || 0,
-                    result.hasStructuredData || false,
-                    result.structuredDataQuality || 0,
-                    achievements.length,
-                    achievements.slice(0, 3).join('; '),
-                    Object.keys(stats.career || {}).length > 0,
-                    stats.seasons?.length || 0,
-                    Object.keys(stats.playoffs || {}).length > 0,
-                    result.metadata?.title || '',
-                    result.metadata?.author || '',
-                    result.metadata?.published_at || '',
-                    result.metadata?.description || '',
-                    result.text || ''
-                ];
-            });
-            
-            return arrayToCSV([headers, ...rows]);
-        }
-
-        function exportStructuredJSON(scrapeResults) {
-            const processedResults = processScrapeResults(scrapeResults);
-            
-            const structuredData = {
-                exportInfo: {
-                    timestamp: new Date().toISOString(),
-                    totalPlayers: processedResults.length,
-                    successfulExtractions: processedResults.filter(r => r.success).length,
-                    format: 'structured-json'
-                },
-                players: processedResults.map(result => createPlayerObject(result))
-            };
-            
-            return JSON.stringify(structuredData, null, 2);
-        }
-
-        function exportPlayerDatabase(scrapeResults) {
-            const processedResults = processScrapeResults(scrapeResults);
-            
-            const database = {
-                players: [],
-                statistics: [],
-                achievements: [],
-                draft_info: [],
-                metadata: {
-                    exported_at: new Date().toISOString(),
-                    total_records: processedResults.length,
-                    schema_version: '1.0'
-                }
-            };
-            
-            processedResults.forEach((result, index) => {
-                const playerId = `player_${index + 1}`;
-                const player = result.sportsData?.player || {};
-                const stats = result.sportsData?.statistics || {};
-                const achievements = result.sportsData?.achievements || [];
-                
-                database.players.push({
-                    id: playerId,
-                    name: player.name || null,
-                    position: player.position || null,
-                    jersey_number: player.jerseyNumber || null,
-                    height: player.height || null,
-                    weight: player.weight || null,
-                    birth_date: player.birthDate || null,
-                    birth_place: player.birthPlace || null,
-                    college: player.college || null,
-                    source_url: result.url,
-                    extraction_success: result.success,
-                    extraction_date: new Date().toISOString()
-                });
-                
-                if (player.draft) {
-                    database.draft_info.push({
-                        player_id: playerId,
-                        draft_year: player.draft.year,
-                        draft_team: player.draft.team,
-                        draft_round: player.draft.round,
-                        draft_pick: player.draft.pick
-                    });
-                }
-                
-                if (stats.career && Object.keys(stats.career).length > 0) {
-                    database.statistics.push({
-                        player_id: playerId,
-                        stat_type: 'career',
-                        data: stats.career
-                    });
-                }
-                
-                if (stats.seasons && stats.seasons.length > 0) {
-                    stats.seasons.forEach((season, seasonIndex) => {
-                        database.statistics.push({
-                            player_id: playerId,
-                            stat_type: 'season',
-                            season_index: seasonIndex,
-                            data: season
-                        });
-                    });
-                }
-                
-                achievements.forEach((achievement, achIndex) => {
-                    database.achievements.push({
-                        player_id: playerId,
-                        achievement_index: achIndex,
-                        achievement: achievement
-                    });
-                });
-            });
-            
-            return JSON.stringify(database, null, 2);
-        }
-
-        function createPlayerObject(result) {
-            const player = result.sportsData?.player || {};
-            const stats = result.sportsData?.statistics || {};
-            const achievements = result.sportsData?.achievements || [];
-            
-            return {
-                id: `player_${result.index}`,
-                url: result.url,
-                extractionInfo: {
-                    success: result.success,
-                    error: result.error || null,
-                    method: result.extractionDebug?.selectedMethod,
-                    contentLength: result.text?.length || 0,
-                    sportsValidationScore: result.sportsValidation?.score || 0,
-                    extractedAt: new Date().toISOString()
-                },
-                profile: {
-                    name: player.name || null,
-                    position: player.position || null,
-                    jerseyNumber: player.jerseyNumber || null,
-                    physicalStats: {
-                        height: player.height || null,
-                        weight: player.weight || null
-                    },
-                    personal: {
-                        birthDate: player.birthDate || null,
-                        birthPlace: player.birthPlace || null,
-                        college: player.college || null
-                    },
-                    draft: player.draft || null
-                },
-                statistics: {
-                    career: stats.career || {},
-                    seasons: stats.seasons || [],
-                    playoffs: stats.playoffs || {}
-                },
-                achievements: achievements,
-                metadata: result.metadata || {},
-                rawText: result.text || ''
-            };
-        }
-
-        function assessStructuredDataQuality(structuredData) {
-            if (!structuredData) return 0;
-            
-            let score = 0;
-            const player = structuredData.player || {};
-            const stats = structuredData.statistics || {};
-            const achievements = structuredData.achievements || [];
-            
-            if (player.name) score += 20;
-            if (player.position) score += 15;
-            if (player.height && player.weight) score += 10;
-            if (player.birthDate) score += 10;
-            if (player.college) score += 10;
-            if (player.draft) score += 15;
-            
-            if (stats.career && Object.keys(stats.career).length > 0) score += 10;
-            if (stats.seasons && stats.seasons.length > 0) score += 10;
-            if (stats.playoffs && Object.keys(stats.playoffs).length > 0) score += 5;
-            
-            if (achievements.length > 0) score += 5;
-            
-            return Math.min(score, 100);
-        }
-
-        function arrayToCSV(data) {
-            const escapeCSV = (value) => {
-                const str = (value || '').toString();
-                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-                    return `"${str.replace(/"/g, '""')}"`;
-                }
-                return str;
-            };
-            
-            return data.map(row => 
-                row.map(cell => escapeCSV(cell)).join(',')
-            ).join('\n');
-        }
-        
-        function downloadFile(filename, text) {
-            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            // Create and download file
+            const blob = new Blob([content], { type: mimeType });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; a.download = filename;
-            document.body.appendChild(a); a.click();
-            document.body.removeChild(a); URL.revokeObjectURL(url);
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
-        dom.downloadTxtBtn.addEventListener('click', () => {
-            const textContent = state.scrapeResults.filter(Boolean).sort((a,b)=> a.index - b.index).map(r => `--- Content from ${r.url} ---\n\n${r.error ? `ERROR: ${r.error}` : r.text}`).join('\n\n');
-            downloadFile('scrape_results.txt', textContent);
-        });
-
-        dom.downloadJsonlBtn.addEventListener('click', () => {
-            const jsonlContent = state.scrapeResults.filter(Boolean).sort((a,b)=> a.index - b.index).map(r => JSON.stringify(r)).join('\n');
-            downloadFile('scrape_results.jsonl', jsonlContent);
-        });
-        
-        dom.downloadCsvBtn.addEventListener('click', () => {
-            const header = ['url', 'title', 'author', 'published_at', 'description', 'text', 'success', 'error', 'html'];
-            const esc = s => `"${(s || '').toString().replace(/"/g, '""')}"`;
-            const rows = state.scrapeResults.filter(Boolean).sort((a,b)=> a.index - b.index).map(r => {
-                const { url, metadata, text, success, error, html } = r;
-                return [url, metadata.title, metadata.author, metadata.published_at, metadata.description, text, success, error, dom.includeHtmlToggle.checked ? html : ''].map(esc).join(',');
-            });
-            downloadFile('scrape_results.csv', [header.join(','), ...rows].join('\n'));
-        });
-
-        // Enhanced sports export handlers
-        dom.downloadEnhancedCsvBtn.addEventListener('click', () => {
-            const enhancedData = exportEnhancedCSV(state.scrapeResults);
-            downloadFile('sports_enhanced_results.csv', enhancedData);
-        });
-
-        dom.downloadStructuredJsonBtn.addEventListener('click', () => {
-            const structuredData = exportStructuredJSON(state.scrapeResults);
-            downloadFile('sports_structured_data.json', structuredData);
-        });
-
-        dom.downloadPlayerDbBtn.addEventListener('click', () => {
-            const playerDbData = exportPlayerDatabase(state.scrapeResults);
-            downloadFile('sports_player_database.json', playerDbData);
-        });
-
-        dom.copyBtn.addEventListener('click', async () => {
-            try {
-                await navigator.clipboard.writeText(dom.resultsCode.textContent);
-                dom.copyBtn.textContent = 'Copied!';
-                setTimeout(() => { dom.copyBtn.textContent = 'Copy'; }, 2000);
-            } catch (err) { showError('Failed to copy text.'); }
-        });
-        
-        // Enhanced URL File Processing Engine
-        class URLFileProcessor {
-            constructor() {
-                this.maxUrls = 1500;
-                this.maxFileSize = 5 * 1024 * 1024; // 5MB
-                this.supportedTypes = ['text/plain', 'application/json', '.txt', '.json'];
-                this.enhancedValidator = new EnhancedURLValidator();
-            }
+        // Start scraping
+        async function startScraping() {
+            // Parse and validate URLs
+            state.urls = parseUrls();
             
-            async processFile(file) {
-                try {
-                    // Validate file
-                    const validation = this.validateFile(file);
-                    if (!validation.isValid) {
-                        throw new Error(validation.error);
-                    }
-                    
-                    // Read file content
-                    const content = await this.readFileContent(file);
-                    
-                    // Parse based on file type
-                    const parseResult = this.parseFileContent(content, file.name);
-                    
-                    // Validate URLs with enhanced validation (connectivity check disabled by default)
-                    const validationResult = await this.validateUrls(parseResult.urls, false, (progress, current, total) => {
-                        // Update progress if callback is provided
-                        if (window.updateValidationProgress) {
-                            window.updateValidationProgress(progress, current, total);
-                        }
-                    });
-                    
-                    return {
-                        success: true,
-                        fileName: file.name,
-                        fileSize: file.size,
-                        totalLines: parseResult.totalLines,
-                        urls: validationResult.validUrls,
-                        invalidUrls: validationResult.invalidUrls,
-                        duplicates: validationResult.duplicates,
-                        comments: parseResult.comments,
-                        warnings: parseResult.warnings,
-                        errors: validationResult.errors
-                    };
-                } catch (error) {
-                    return {
-                        success: false,
-                        error: error.message,
-                        fileName: file.name,
-                        fileSize: file.size
-                    };
-                }
-            }
-            
-            validateFile(file) {
-                if (!file) {
-                    return { isValid: false, error: 'No file selected' };
-                }
-                
-                if (file.size > this.maxFileSize) {
-                    return { 
-                        isValid: false, 
-                        error: `File too large. Maximum size is ${this.maxFileSize / (1024 * 1024)}MB` 
-                    };
-                }
-                
-                if (file.size === 0) {
-                    return { isValid: false, error: 'File is empty' };
-                }
-                
-                const extension = file.name.toLowerCase().split('.').pop();
-                const isValidType = this.supportedTypes.includes(file.type) || 
-                                  this.supportedTypes.includes('.' + extension);
-                
-                if (!isValidType) {
-                    return { 
-                        isValid: false, 
-                        error: 'Unsupported file type. Please use .txt or .json files' 
-                    };
-                }
-                
-                return { isValid: true };
-            }
-            
-            readFileContent(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target.result);
-                    reader.onerror = () => reject(new Error('Failed to read file'));
-                    reader.readAsText(file);
-                });
-            }
-            
-            parseFileContent(content, fileName) {
-                const extension = fileName.toLowerCase().split('.').pop();
-                
-                if (extension === 'json') {
-                    return this.parseJsonContent(content);
-                } else {
-                    return this.parseTxtContent(content);
-                }
-            }
-            
-            parseTxtContent(content) {
-                const lines = content.split(/\r?\n/);
-                const urls = [];
-                const comments = [];
-                const warnings = [];
-                let totalLines = lines.length;
-                
-                lines.forEach((line, index) => {
-                    const trimmedLine = line.trim();
-                    
-                    // Skip empty lines
-                    if (!trimmedLine) return;
-                    
-                    // Handle comments (lines starting with #)
-                    if (trimmedLine.startsWith('#')) {
-                        comments.push(trimmedLine.substring(1).trim());
-                        return;
-                    }
-                    
-                    // Check if line looks like a URL
-                    if (this.looksLikeUrl(trimmedLine)) {
-                        urls.push(trimmedLine);
-                    } else {
-                        warnings.push(`Line ${index + 1}: "${trimmedLine}" doesn't appear to be a valid URL`);
-                    }
-                });
-                
-                return { urls, comments, warnings, totalLines };
-            }
-            
-            parseJsonContent(content) {
-                try {
-                    const data = JSON.parse(content);
-                    const urls = [];
-                    const warnings = [];
-                    
-                    if (Array.isArray(data)) {
-                        // Simple array format: ["url1", "url2", ...]
-                        data.forEach((item, index) => {
-                            if (typeof item === 'string' && this.looksLikeUrl(item)) {
-                                urls.push(item);
-                            } else {
-                                warnings.push(`Array item ${index + 1}: "${item}" is not a valid URL`);
-                            }
-                        });
-                    } else if (data && typeof data === 'object') {
-                        // Object format: {"urls": [...]} or similar
-                        const possibleKeys = ['urls', 'url', 'links', 'list', 'data'];
-                        let foundUrls = false;
-                        
-                        for (const key of possibleKeys) {
-                            if (data[key] && Array.isArray(data[key])) {
-                                data[key].forEach((item, index) => {
-                                    if (typeof item === 'string' && this.looksLikeUrl(item)) {
-                                        urls.push(item);
-                                    } else {
-                                        warnings.push(`${key}[${index}]: "${item}" is not a valid URL`);
-                                    }
-                                });
-                                foundUrls = true;
-                                break;
-                            }
-                        }
-                        
-                        if (!foundUrls) {
-                            throw new Error('No URL array found. Expected format: {"urls": [...]} or simple array');
-                        }
-                    } else {
-                        throw new Error('Invalid JSON format. Expected array of URLs or object with URLs array');
-                    }
-                    
-                    return { urls, comments: [], warnings, totalLines: urls.length };
-                } catch (error) {
-                    if (error instanceof SyntaxError) {
-                        throw new Error('Invalid JSON format: ' + error.message);
-                    }
-                    throw error;
-                }
-            }
-            
-            looksLikeUrl(str) {
-                if (typeof str !== 'string' || str.length < 10) return false;
-                
-                // Basic URL pattern check
-                const urlPattern = /^https?:\/\/[^\s]+\.[^\s]+/i;
-                return urlPattern.test(str.trim());
-            }
-            
-            async validateUrls(urls, checkConnectivity = false, progressCallback = null) {
-                if (urls.length > this.maxUrls) {
-                    throw new Error(`Too many URLs: ${urls.length}. Maximum allowed: ${this.maxUrls}`);
-                }
-
-                // Use enhanced validator for comprehensive validation
-                const validationResult = await this.enhancedValidator.validateBatch(
-                    urls, 
-                    checkConnectivity, 
-                    progressCallback
-                );
-
-                // Convert to legacy format for compatibility
-                const validUrls = validationResult.valid.map(item => item.formatted || item.url);
-                const invalidUrls = [];
-                const duplicates = validationResult.duplicates.map(dup => ({
-                    url: dup.url,
-                    line: dup.index + 1
-                }));
-
-                // Flatten invalid URLs by category
-                Object.values(validationResult.invalid).forEach(categoryUrls => {
-                    categoryUrls.forEach(item => {
-                        invalidUrls.push({
-                            url: item.url,
-                            line: item.index + 1,
-                            error: item.error,
-                            category: item.category
-                        });
-                    });
-                });
-
-                // Apply URL sequencing for optimal scraping performance
-                const sequencedUrls = this.sequenceUrlsForScraping(validUrls);
-                
-                // Debug: Verify no URLs were lost during sequencing
-                if (validUrls.length !== sequencedUrls.length) {
-                    console.warn(`URL sequencing issue: Input ${validUrls.length} URLs, output ${sequencedUrls.length} URLs`);
-                    console.log('Original URLs:', validUrls);
-                    console.log('Sequenced URLs:', sequencedUrls);
-                }
-
-                return {
-                    validUrls: sequencedUrls,
-                    invalidUrls,
-                    duplicates,
-                    errors: validationResult.summary.invalidCount > 0 ? [`${validationResult.summary.invalidCount} invalid URLs found`] : [],
-                    validationResult, // Include full validation result for enhanced reporting
-                    warnings: validationResult.warnings || []
-                };
-            }
-
-            /**
-             * Sequence URLs for optimal scraping performance
-             * @param {string[]} urls - Array of valid URLs
-             * @returns {string[]} Sequenced URLs
-             */
-            sequenceUrlsForScraping(urls) {
-                if (!urls || urls.length === 0) return urls;
-
-                console.log('Sequencing URLs:', { inputCount: urls.length, urls: urls });
-
-                // Group URLs by domain to implement rate limiting
-                const domainGroups = new Map();
-                const otherUrls = [];
-
-                urls.forEach(url => {
-                    try {
-                        const urlObj = new URL(url);
-                        const domain = urlObj.hostname.toLowerCase().replace('www.', '');
-                        
-                        if (!domainGroups.has(domain)) {
-                            domainGroups.set(domain, []);
-                        }
-                        domainGroups.get(domain).push(url);
-                    } catch (error) {
-                        // If URL parsing fails, add to other URLs
-                        otherUrls.push(url);
-                    }
-                });
-
-                console.log('Domain groups:', Object.fromEntries(domainGroups));
-
-                // Interleave URLs from different domains to avoid overwhelming any single domain
-                const sequencedUrls = [];
-                const domainArray = Array.from(domainGroups.entries());
-                
-                // Find the maximum number of URLs in any single domain
-                const maxUrlsInAnyDomain = Math.max(...domainArray.map(([_, urls]) => urls.length));
-                
-                console.log('Max URLs in any domain:', maxUrlsInAnyDomain);
-                
-                // Create interleaved sequence - process all URLs from all domains
-                for (let i = 0; i < maxUrlsInAnyDomain; i++) {
-                    domainArray.forEach(([domain, domainUrls]) => {
-                        if (i < domainUrls.length) {
-                            sequencedUrls.push(domainUrls[i]);
-                        }
-                    });
-                }
-
-                // Add other URLs at the end
-                sequencedUrls.push(...otherUrls);
-
-                console.log('Sequenced URLs:', { outputCount: sequencedUrls.length, urls: sequencedUrls });
-
-                return sequencedUrls;
-            }
-            
-            generatePreviewText(result) {
-                if (!result.success) {
-                    return `Error: ${result.error}`;
-                }
-                
-                let preview = `File: ${result.fileName} (${(result.fileSize / 1024).toFixed(1)} KB)\n`;
-                preview += `Total lines: ${result.totalLines}\n`;
-                preview += `Valid URLs: ${result.urls.length}\n`;
-                
-                if (result.invalidUrls.length > 0) {
-                    preview += `Invalid URLs: ${result.invalidUrls.length}\n`;
-                }
-                
-                if (result.duplicates.length > 0) {
-                    preview += `Duplicates found: ${result.duplicates.length}\n`;
-                }
-                
-                if (result.comments.length > 0) {
-                    preview += `Comments: ${result.comments.length}\n`;
-                }
-                
-                if (result.warnings.length > 0) {
-                    preview += `Warnings: ${result.warnings.length}\n`;
-                }
-                
-                if (result.errors.length > 0) {
-                    preview += `Errors: ${result.errors.length}\n`;
-                }
-                
-                // Show first few URLs as preview
-                if (result.urls.length > 0) {
-                    preview += `\nFirst URLs:\n`;
-                    result.urls.slice(0, 5).forEach((url, index) => {
-                        preview += `${index + 1}. ${url}\n`;
-                    });
-                    
-                    if (result.urls.length > 5) {
-                        preview += `... and ${result.urls.length - 5} more\n`;
-                    }
-                }
-                
-                return preview;
-            }
-        }
-        
-        // Initialize file processor
-        const fileProcessor = new URLFileProcessor();
-        let currentFileResult = null;
-        
-        // File Upload Event Handlers
-        function setupFileUploadHandlers() {
-            // Drag and drop handlers
-            dom.uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dom.uploadArea.classList.add('dragover');
-            });
-            
-            dom.uploadArea.addEventListener('dragleave', (e) => {
-                e.preventDefault();
-                if (!dom.uploadArea.contains(e.relatedTarget)) {
-                    dom.uploadArea.classList.remove('dragover');
-                }
-            });
-            
-            dom.uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dom.uploadArea.classList.remove('dragover');
-                
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    handleFileSelect(files[0]);
-                }
-            });
-            
-            // Browse button handler
-            dom.browseBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                dom.fileInput.click();
-            });
-            
-            // File input handler
-            dom.fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    handleFileSelect(e.target.files[0]);
-                }
-            });
-            
-            // Process file button
-            dom.processFileBtn.addEventListener('click', () => {
-                if (currentFileResult && currentFileResult.success) {
-                    processFileUrls(currentFileResult);
-                }
-            });
-            
-            // Clear file button
-            dom.clearFileBtn.addEventListener('click', () => {
-                clearFileUpload();
-            });
-        }
-        
-        async function handleFileSelect(file) {
-            try {
-                // Show processing state
-                showFileProcessing('Reading and parsing file...');
-                
-                // Show progress indicator
-                dom.validationProgress.classList.remove('hidden');
-                dom.validationProgressBar.style.width = '0%';
-                dom.validationStatus.textContent = 'Reading file...';
-                
-                // Get validation options
-                const checkConnectivity = dom.checkConnectivity ? dom.checkConnectivity.checked : false;
-                const enableSequencing = dom.enableSequencing ? dom.enableSequencing.checked : true;
-                
-                // Update progress
-                dom.validationStatus.textContent = 'Parsing file...';
-                dom.validationProgressBar.style.width = '25%';
-                
-                // Process the file
-                const result = await fileProcessor.processFile(file);
-                currentFileResult = result;
-                
-                if (result.success) {
-                    // Update progress
-                    dom.validationStatus.textContent = 'Validating URLs...';
-                    dom.validationProgressBar.style.width = '50%';
-                    
-                    // Show enhanced file preview
-                    showEnhancedFilePreview(result);
-                    
-                    // Hide progress indicator
-                    dom.validationProgress.classList.add('hidden');
-                    dom.validationProgressBar.style.width = '100%';
-                    dom.validationStatus.textContent = 'Validation complete!';
-                } else {
-                    showFileError(result.error);
-                    dom.validationProgress.classList.add('hidden');
-                }
-            } catch (error) {
-                console.error('File processing error:', error);
-                showFileError('Failed to process file: ' + error.message);
-                dom.validationProgress.classList.add('hidden');
-            }
-        }
-        
-        function showFileProcessing(message) {
-            dom.uploadPrompt.classList.add('hidden');
-            dom.filePreview.classList.remove('hidden');
-            dom.fileDetails.innerHTML = `<div class="file-processing">${message}</div>`;
-        }
-        
-        function showFilePreview(result) {
-            dom.uploadPrompt.classList.add('hidden');
-            dom.filePreview.classList.remove('hidden');
-            
-            const previewText = fileProcessor.generatePreviewText(result);
-            dom.fileDetails.innerHTML = `<div class="file-success"><pre>${previewText}</pre></div>`;
-            
-            // Show warnings or errors if any
-            if (result.warnings.length > 0 || result.invalidUrls.length > 0 || result.duplicates.length > 0) {
-                let warningText = '';
-                
-                if (result.invalidUrls.length > 0) {
-                    warningText += `\n<strong>Invalid URLs:</strong>\n`;
-                    result.invalidUrls.slice(0, 5).forEach(item => {
-                        warningText += `Line ${item.line}: ${item.url} (${item.error})\n`;
-                    });
-                    if (result.invalidUrls.length > 5) {
-                        warningText += `... and ${result.invalidUrls.length - 5} more\n`;
-                    }
-                }
-                
-                if (result.duplicates.length > 0) {
-                    warningText += `\n<strong>Duplicate URLs:</strong>\n`;
-                    result.duplicates.slice(0, 5).forEach(item => {
-                        warningText += `Line ${item.line}: ${item.url}\n`;
-                    });
-                    if (result.duplicates.length > 5) {
-                        warningText += `... and ${result.duplicates.length - 5} more\n`;
-                    }
-                }
-                
-                if (result.warnings.length > 0) {
-                    warningText += `\n<strong>Warnings:</strong>\n`;
-                    result.warnings.slice(0, 5).forEach(warning => {
-                        warningText += `${warning}\n`;
-                    });
-                    if (result.warnings.length > 5) {
-                        warningText += `... and ${result.warnings.length - 5} more\n`;
-                    }
-                }
-                
-                dom.fileDetails.innerHTML += `<div class="file-error"><pre>${warningText}</pre></div>`;
-            }
-        }
-        
-        function showEnhancedFilePreview(result) {
-            dom.uploadPrompt.classList.add('hidden');
-            dom.filePreview.classList.remove('hidden');
-            
-            // Generate enhanced preview with validation details
-            let previewText = fileProcessor.generatePreviewText(result);
-            
-            // Add enhanced validation info
-            if (result.validationResult) {
-                previewText += `\n\n=== Enhanced Validation Results ===`;
-                previewText += `\nValid URLs: ${result.validationResult.summary.validCount}`;
-                previewText += `\nInvalid URLs: ${result.validationResult.summary.invalidCount}`;
-                previewText += `\nDuplicate URLs: ${result.validationResult.summary.duplicateCount}`;
-                previewText += `\nUnreachable URLs: ${result.validationResult.summary.unreachableCount}`;
-                previewText += `\nScraping Blocked URLs: ${result.validationResult.summary.scrapingBlockedCount}`;
-                previewText += `\nProcessing Time: ${(result.validationResult.processingTime / 1000).toFixed(2)}s`;
-                
-                if (result.warnings && result.warnings.length > 0) {
-                    previewText += `\n\nWarnings:`;
-                    const uniqueWarnings = [...new Set(result.warnings)];
-                    uniqueWarnings.forEach(warning => {
-                        previewText += `\n- ${warning}`;
-                    });
-                }
-            }
-            
-            // Add filtering notice if URLs were removed
-            const totalFiltered = (result.invalidUrls?.length || 0) + (result.duplicates?.length || 0);
-            if (totalFiltered > 0) {
-                previewText += `\n\n⚠️  Note: ${totalFiltered} URLs were filtered out during validation. Only valid, unique URLs are loaded into the textarea below.`;
-            }
-            
-            dom.fileDetails.innerHTML = `<div class="file-success"><pre>${previewText}</pre></div>`;
-        }
-        
-        function showFileError(error) {
-            dom.uploadPrompt.classList.add('hidden');
-            dom.filePreview.classList.remove('hidden');
-            dom.fileDetails.innerHTML = `<div class="file-error"><strong>Error:</strong> ${error}</div>`;
-        }
-        
-        function processFileUrls(result) {
-            if (!result.success || result.urls.length === 0) {
-                showError('No valid URLs to process');
+            if (state.urls.length === 0) {
+                alert('Please enter at least one valid URL');
                 return;
             }
             
-            console.log('Processing file URLs:', {
-                totalUrls: result.urls.length,
-                fileName: result.fileName,
-                urls: result.urls
-            });
-            
-            // Populate the URL list textarea
-            dom.urlList.value = result.urls.join('\n');
-            
-            // Verify URLs were set correctly
-            const setUrls = dom.urlList.value.split('\n').filter(Boolean);
-            if (setUrls.length !== result.urls.length) {
-                console.error('URL count mismatch after setting textarea:', {
-                    expected: result.urls.length,
-                    actual: setUrls.length,
-                    originalUrls: result.urls,
-                    setUrls: setUrls
-                });
+            if (state.urls.length > 1500) {
+                alert('Maximum 1,500 URLs allowed');
+                return;
             }
             
-            // Keep preview visible so user can see what was filtered
-            // clearFileUpload(); // <-- removed to preserve validation info
+            // Reset UI
+            state.isProcessing = true;
+            state.startTime = Date.now();
+            elements.startButton.disabled = true;
+            elements.progress.classList.add('active');
+            elements.spinner.classList.add('active');
+            elements.results.classList.remove('active');
+            elements.resultsBody.innerHTML = '';
+            elements.resultsOutput.textContent = '';
             
-            // Show success message with filtering details
-            let message = `Successfully loaded ${result.urls.length} valid URLs from ${result.fileName}`;
-            if (result.invalidUrls && result.invalidUrls.length > 0) {
-                message += ` (${result.invalidUrls.length} invalid URLs filtered out)`;
-            }
-            if (result.duplicates && result.duplicates.length > 0) {
-                message += ` (${result.duplicates.length} duplicate URLs removed)`;
-            }
-            dom.urlList.style.backgroundColor = '#f0f8ff';
-            dom.urlList.style.border = '2px solid #b0d4f1';
+            // Start progress updates
+            updateProgress();
             
-            // Reset styling after a few seconds
-            setTimeout(() => {
-                dom.urlList.style.backgroundColor = '';
-                dom.urlList.style.border = '';
-            }, 3000);
+            // Process URLs
+            await processUrls();
             
-            // Trigger validation if we have sports URLs
-            const hasSportsUrls = result.urls.some(url => isSportsURL(url));
-            if (hasSportsUrls) {
-                // Don't dispatch input event as it would hide the validation reports
-                // The validation will be triggered when the user manually edits the textarea
-                console.log('Sports URLs detected - validation will be triggered on manual edit');
-            }
+            // Complete
+            state.isProcessing = false;
+            elements.startButton.disabled = false;
+            elements.progress.classList.remove('active');
+            elements.spinner.classList.remove('active');
+            elements.results.classList.add('active');
             
-            // Scroll to the URL list
-            dom.urlList.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
-            console.log('File processing complete:', {
-                fileName: result.fileName,
-                totalUrls: result.urls.length,
-                invalidUrls: result.invalidUrls.length,
-                duplicates: result.duplicates.length,
-                hasSportsUrls
-            });
-        }
-        
-        function clearFileUpload() {
-            dom.fileInput.value = '';
-            dom.uploadPrompt.classList.remove('hidden');
-            dom.filePreview.classList.add('hidden');
-            dom.fileDetails.innerHTML = '';
-            currentFileResult = null;
-        }
-        
-        // Initialize file upload handlers
-        setupFileUploadHandlers();
-        
-        // Progress tracking enhancements
-        function updateProgressBar(percentage) {
-            // Create progress bar if it doesn't exist
-            let progressBar = document.getElementById('progressBar');
-            if (!progressBar) {
-                progressBar = document.createElement('div');
-                progressBar.id = 'progressBar';
-                progressBar.style.cssText = `
-                    width: 100%;
-                    height: 8px;
-                    background-color: #f0f0f0;
-                    border: 1px solid #ccc;
-                    margin: 0.5em 0;
-                    position: relative;
-                    overflow: hidden;
-                `;
-                
-                const progressFill = document.createElement('div');
-                progressFill.id = 'progressFill';
-                progressFill.style.cssText = `
-                    height: 100%;
-                    background-color: #4CAF50;
-                    width: 0%;
-                    transition: width 0.3s ease;
-                `;
-                
-                progressBar.appendChild(progressFill);
-                
-                // Insert after status text
-                dom.statusText.parentNode.insertBefore(progressBar, dom.statusText.nextSibling);
-            }
-            
-            // Update progress fill
-            const progressFill = document.getElementById('progressFill');
-            if (progressFill) {
-                progressFill.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
+            // Show raw output in results area
+            const successResults = state.results.filter(r => r.status === 'success');
+            if (successResults.length > 0) {
+                elements.resultsOutput.textContent = successResults
+                    .map(r => JSON.stringify(r.data, null, 2))
+                    .join('\n\n');
             }
         }
-        
-        function hideProgressBar() {
-            const progressBar = document.getElementById('progressBar');
-            if (progressBar) {
-                progressBar.remove();
-            }
-        }
-        
-        // Enhanced error handling for large batches
-        function handleLargeBatchError(error, context) {
-            console.error(`Large batch error in ${context}:`, error);
-            
-            // Specific error messages for common large batch issues
-            let userMessage = error.message;
-            
-            if (error.message.includes('memory')) {
-                userMessage = 'Memory limit reached. Try reducing the number of URLs or processing in smaller batches.';
-            } else if (error.message.includes('timeout')) {
-                userMessage = 'Processing timeout. The batch is too large or network is slow. Try reducing batch size.';
-            } else if (error.message.includes('exceeds maximum')) {
-                userMessage = 'Too many URLs. Maximum allowed is 1500 URLs per batch.';
-            } else if (error.message.includes('No valid URLs')) {
-                userMessage = 'No valid URLs found after validation. Check your file format and URL validity.';
-            }
-            
-            showError(userMessage);
-            
-            // Log detailed error for debugging
-            console.error('Detailed error info:', {
-                message: error.message,
-                stack: error.stack,
-                context: context,
-                timestamp: new Date().toISOString()
-            });
-        }
-        
-        // Resume capability for interrupted processing
-        let processingState = {
-            isProcessing: false,
-            currentBatch: null,
-            processedCount: 0,
-            startTime: null
-        };
-        
-        function saveProcessingState(batch, count) {
-            processingState = {
-                isProcessing: true,
-                currentBatch: batch,
-                processedCount: count,
-                startTime: processingState.startTime || new Date()
-            };
-            
-            // Save to localStorage for persistence across page reloads
-            try {
-                localStorage.setItem('edgeScraper_processingState', JSON.stringify({
-                    timestamp: new Date().toISOString(),
-                    processedCount: count,
-                    totalUrls: batch.length
-                }));
-            } catch (e) {
-                console.warn('Could not save processing state to localStorage:', e);
-            }
-        }
-        
-        function clearProcessingState() {
-            processingState = {
-                isProcessing: false,
-                currentBatch: null,
-                processedCount: 0,
-                startTime: null
-            };
-            
-            try {
-                localStorage.removeItem('edgeScraper_processingState');
-            } catch (e) {
-                console.warn('Could not clear processing state from localStorage:', e);
-            }
-        }
-        
-        function checkForInterruptedSession() {
-            try {
-                const savedState = localStorage.getItem('edgeScraper_processingState');
-                if (savedState) {
-                    const state = JSON.parse(savedState);
-                    const timeDiff = new Date() - new Date(state.timestamp);
-                    
-                    // If less than 1 hour ago, show resume option
-                    if (timeDiff < 60 * 60 * 1000) {
-                        const message = `Found interrupted session from ${new Date(state.timestamp).toLocaleTimeString()}. ` +
-                                      `Processed ${state.processedCount}/${state.totalUrls} URLs. ` +
-                                      `Would you like to resume processing?`;
-                        
-                        if (confirm(message)) {
-                            // User can manually re-upload file to resume
-                            showError('Please re-upload your URL file to resume processing.');
-                        }
-                    }
-                    
-                    // Clear old state
-                    localStorage.removeItem('edgeScraper_processingState');
-                }
-            } catch (e) {
-                console.warn('Could not check for interrupted session:', e);
-            }
-        }
-        
-        // Check for interrupted session on page load
-        setTimeout(checkForInterruptedSession, 1000);
-        
-        // File format validation enhancements
-        function validateFileContent(file, content) {
-            const validation = {
-                isValid: true,
-                warnings: [],
-                errors: [],
-                suggestions: []
-            };
-            
-            const extension = file.name.toLowerCase().split('.').pop();
-            
-            if (extension === 'txt') {
-                // TXT file validation
-                const lines = content.split(/\r?\n/);
-                let urlCount = 0;
-                let commentCount = 0;
-                let emptyLines = 0;
-                
-                lines.forEach((line, index) => {
-                    const trimmed = line.trim();
-                    if (!trimmed) {
-                        emptyLines++;
-                    } else if (trimmed.startsWith('#')) {
-                        commentCount++;
-                    } else if (trimmed.startsWith('http')) {
-                        urlCount++;
-                    } else {
-                        validation.warnings.push(`Line ${index + 1}: "${trimmed}" doesn't appear to be a URL or comment`);
-                    }
-                });
-                
-                if (urlCount === 0) {
-                    validation.errors.push('No URLs found in TXT file');
-                    validation.isValid = false;
-                }
-                
-                if (urlCount > 1500) {
-                    validation.errors.push(`Too many URLs: ${urlCount}. Maximum allowed is 1500`);
-                    validation.isValid = false;
-                }
-                
-                validation.suggestions.push(`Found ${urlCount} URLs, ${commentCount} comments, ${emptyLines} empty lines`);
-                
-            } else if (extension === 'json') {
-                // JSON file validation
-                try {
-                    const data = JSON.parse(content);
-                    let urlCount = 0;
-                    
-                    if (Array.isArray(data)) {
-                        urlCount = data.filter(item => typeof item === 'string' && item.startsWith('http')).length;
-                    } else if (data && typeof data === 'object') {
-                        const possibleKeys = ['urls', 'url', 'links', 'list', 'data'];
-                        for (const key of possibleKeys) {
-                            if (data[key] && Array.isArray(data[key])) {
-                                urlCount = data[key].filter(item => typeof item === 'string' && item.startsWith('http')).length;
-                                break;
-                            }
-                        }
-                        
-                        if (urlCount === 0) {
-                            validation.suggestions.push('Expected JSON format: ["url1", "url2"] or {"urls": ["url1", "url2"]}');
-                        }
-                    }
-                    
-                    if (urlCount === 0) {
-                        validation.errors.push('No valid URLs found in JSON file');
-                        validation.isValid = false;
-                    }
-                    
-                    if (urlCount > 1500) {
-                        validation.errors.push(`Too many URLs: ${urlCount}. Maximum allowed is 1500`);
-                        validation.isValid = false;
-                    }
-                    
-                    validation.suggestions.push(`Found ${urlCount} URLs in JSON format`);
-                    
-                } catch (error) {
-                    validation.errors.push(`Invalid JSON format: ${error.message}`);
-                    validation.isValid = false;
-                }
-            }
-            
-            return validation;
-        }
-        
-        // Clear validation report when URL list changes (only on user edits)
-        dom.urlList.addEventListener('input', (e) => {
-            if (!e.isTrusted) return; // only clear on user edits, not programmatic updates
-            dom.validationReport.classList.add('hidden');
-            dom.errorReport.classList.add('hidden');
-            pfrValidator.clearCache();
-        });
-        
-        // Export error report function
-        window.exportErrorReport = () => {
-            if (!state.errorReportData) return;
-            
-            const exportData = state.errorReportData.exportData;
-            const filename = `error_report_${new Date().toISOString().split('T')[0]}.json`;
-            downloadFile(filename, JSON.stringify(exportData, null, 2));
-        };
+
+        // Event listeners
+        elements.startButton.addEventListener('click', startScraping);
+        elements.exportButton.addEventListener('click', exportResults);
+
+        // Make startScraping available globally for compatibility
+        window.startScraping = startScraping;
+    })();
     </script>
 </body>
 </html>
