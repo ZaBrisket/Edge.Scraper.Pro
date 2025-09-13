@@ -33,10 +33,13 @@ test('health check endpoint returns 200', async ({ request }) => {
   
   expect(response.status()).toBe(200);
   
-  const data = await response.json();
-  expect(data.status).toBe('healthy');
-  expect(data.correlationId).toBeTruthy();
-  expect(data.timestamp).toBeTruthy();
+  const body = await response.json();
+  expect(body.ok).toBe(true);
+  expect(body.data).toBeTruthy();
+  expect(body.data.status).toBe('healthy');
+  expect(body.data.correlationId).toBeTruthy();
+  expect(body.data.timestamp).toBeTruthy();
+  expect(body.data.environment).toBeTruthy();
 });
 
 test('OPTIONS preflight returns 204', async ({ request }) => {
