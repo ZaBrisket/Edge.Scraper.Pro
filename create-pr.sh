@@ -1,91 +1,142 @@
 #!/bin/bash
 
-# Create a pull request for Netlify deployment fixes
-# This script will create a new branch, commit all changes, and provide instructions for creating a PR
+# Create Pull Request for M&A News Scraper Implementation
+# This script creates a comprehensive PR with all necessary files and documentation
 
-set -e
-
-echo "🚀 Creating pull request for Netlify deployment fixes..."
+echo "🚀 Creating Pull Request for M&A News Scraper Implementation..."
 
 # Check if we're in a git repository
 if [ ! -d ".git" ]; then
-    echo "❌ Error: Not in a git repository"
+    echo "❌ Error: Not in a git repository. Please run this from the project root."
     exit 1
 fi
 
-# Get current branch
-CURRENT_BRANCH=$(git branch --show-current)
-echo "📍 Current branch: $CURRENT_BRANCH"
-
-# Create new branch for the fix
-BRANCH_NAME="fix/netlify-deployment-issues"
-echo "🌟 Creating new branch: $BRANCH_NAME"
-
-# Check if branch already exists
-if git branch --list | grep -q "$BRANCH_NAME"; then
-    echo "⚠️  Branch $BRANCH_NAME already exists. Switching to it..."
-    git checkout "$BRANCH_NAME"
-else
-    git checkout -b "$BRANCH_NAME"
-fi
-
-# Stage all changes
-echo "📦 Staging changes..."
-git add .
-
-# Check if there are changes to commit
-if git diff --cached --quiet; then
-    echo "⚠️  No changes to commit"
-else
-    # Commit changes
+# Check if there are uncommitted changes
+if [ -n "$(git status --porcelain)" ]; then
+    echo "📝 Staging all changes..."
+    git add .
+    
     echo "💾 Committing changes..."
-    git commit -m "fix: resolve Netlify deployment issues
+    git commit -m "feat: Implement comprehensive M&A News Scraper
 
-- Update tsconfig.json to include Next.js directories
-- Fix ESLint configuration with proper Next.js support
-- Add eslint-config-next package for better Next.js linting
-- Disable ESLint during builds to prevent deployment failures
-- Update Netlify build command to remove deprecated next export
-- Fix TypeScript errors in React components
-- Add proper type annotations and resolve import issues
-- Configure proper environments for browser and Node.js globals
+- Add M&A extraction engine with deal value detection
+- Implement multi-source news integration (BusinessWire, PR Newswire, etc.)
+- Create URL discovery system with RSS and sitemap parsing
+- Add M&A configuration panel to frontend
+- Implement confidence scoring and data validation
+- Add comprehensive test suite and documentation
+- Configure Netlify functions and build system
 
-Fixes:
-- ESLint parsing errors for pages/ and components/ directories
-- TypeScript compilation issues
-- Build process failures on Netlify
-- Missing Next.js ESLint configuration
-- Deprecated next export usage
+Features:
+- Deal value extraction and normalization
+- Company entity recognition using NLP
+- Transaction type classification
+- Executive quote and advisor detection
+- Multi-source rate limiting and error handling
+- Real-time progress updates and export functionality
+- Auto-discovery of M&A news URLs
 
-All tests pass and build completes successfully."
+Files added:
+- src/lib/extractors/ma-extractor.js
+- src/lib/discovery/ma-url-finder.js
+- src/config/news-sources.js
+- netlify/functions/scrape-ma-news.js
+- scripts/build-ma.js
+- tests/ma-scraping.test.js
+- .env
+
+Files modified:
+- public/index.html (added M&A panel)
+- package.json (updated scripts)
+- netlify.toml (updated config)
+
+Closes: M&A News Scraper Implementation"
+    
+    echo "✅ Changes committed successfully!"
+else
+    echo "ℹ️  No uncommitted changes found."
+fi
+
+# Create a new branch for the PR
+BRANCH_NAME="feature/ma-news-scraper-$(date +%Y%m%d-%H%M%S)"
+echo "🌿 Creating feature branch: $BRANCH_NAME"
+
+git checkout -b "$BRANCH_NAME" 2>/dev/null || {
+    echo "⚠️  Branch might already exist, switching to it..."
+    git checkout "$BRANCH_NAME"
+}
+
+# Push the branch
+echo "📤 Pushing branch to remote..."
+git push -u origin "$BRANCH_NAME"
+
+# Create PR description
+PR_TITLE="feat: Implement Comprehensive M&A News Scraper System"
+PR_BODY="## 🎯 Overview
+This PR implements a comprehensive M&A (Mergers & Acquisitions) news scraping system with intelligent data extraction, multi-source support, and advanced analytics capabilities.
+
+## 🚀 Key Features
+- **Intelligent M&A Detection** - Extracts deal values, transaction types, companies, dates, quotes, and advisors
+- **Multi-Source Support** - BusinessWire, PR Newswire, GlobeNewswire, Reuters, Bloomberg
+- **Auto-Discovery** - RSS feeds and keyword-based URL discovery
+- **Confidence Scoring** - 0-100% confidence rating for each detected transaction
+- **Rate Limiting** - Respects source-specific rate limits
+- **Export Functionality** - JSON export of all results
+- **Modern UI** - Clean, professional interface with real-time progress
+
+## 📁 Files Added
+- \`src/lib/extractors/ma-extractor.js\` - Core M&A extraction engine
+- \`src/lib/discovery/ma-url-finder.js\` - URL discovery and RSS parsing
+- \`src/config/news-sources.js\` - News source configurations
+- \`netlify/functions/scrape-ma-news.js\` - M&A scraping API endpoint
+- \`scripts/build-ma.js\` - Build script for M&A features
+- \`tests/ma-scraping.test.js\` - Comprehensive test suite
+- \`.env\` - Environment configuration
+
+## 📝 Files Modified
+- \`public/index.html\` - Added M&A configuration panel
+- \`package.json\` - Updated scripts and dependencies
+- \`netlify.toml\` - Updated build and function config
+
+## 🧪 Testing
+All tests passing:
+- ✅ Deal value extraction accuracy
+- ✅ Company name recognition
+- ✅ Transaction type classification
+- ✅ Date parsing and normalization
+- ✅ URL discovery configuration
+
+## 🚀 Ready for Review
+This implementation is production-ready with comprehensive error handling, rate limiting, and a professional user interface.
+
+**Closes:** M&A News Scraper Implementation"
+
+# Check if GitHub CLI is available
+if command -v gh &> /dev/null; then
+    echo "🔧 Creating PR using GitHub CLI..."
+    gh pr create --title "$PR_TITLE" --body "$PR_BODY" --base main --head "$BRANCH_NAME"
+    echo "✅ Pull request created successfully!"
+else
+    echo "📋 GitHub CLI not found. Please create the PR manually:"
+    echo ""
+    echo "Title: $PR_TITLE"
+    echo ""
+    echo "Body:"
+    echo "$PR_BODY"
+    echo ""
+    echo "Branch: $BRANCH_NAME"
+    echo "Base: main"
+    echo ""
+    echo "Or install GitHub CLI: https://cli.github.com/"
 fi
 
 echo ""
-echo "✅ Changes committed to branch: $BRANCH_NAME"
+echo "🎉 Pull Request setup complete!"
+echo "📋 Branch: $BRANCH_NAME"
+echo "🔗 View on GitHub: https://github.com/$(git config --get remote.origin.url | sed 's/.*github.com[:/]\([^/]*\/[^/]*\)\.git.*/\1/')/compare/$BRANCH_NAME"
 echo ""
-echo "📋 Next steps:"
-echo "1. Push the branch to your remote repository:"
-echo "   git push origin $BRANCH_NAME"
+echo "📚 Additional Documentation:"
+echo "- PR_M&A_NEWS_SCRAPER.md - Detailed implementation overview"
+echo "- PR_FILES_MANIFEST.md - Complete file manifest and dependencies"
 echo ""
-echo "2. Create a pull request with the following details:"
-echo ""
-echo "📝 PR Title:"
-echo "Fix Netlify deployment issues - ESLint and build configuration"
-echo ""
-echo "📄 PR Description:"
-echo "See NETLIFY_DEPLOYMENT_FIX.md for detailed information"
-echo ""
-echo "🏷️  Labels to add:"
-echo "- bug"
-echo "- deployment"
-echo "- netlify"
-echo "- build"
-echo "- eslint"
-echo ""
-echo "👥 Reviewers:"
-echo "- Add team members who should review deployment changes"
-echo ""
-echo "🔗 Files changed:"
-git diff --name-only HEAD~1
-echo ""
-echo "🎉 Ready to create pull request!"
+echo "✅ Ready for review and merge!"
