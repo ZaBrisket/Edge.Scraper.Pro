@@ -390,7 +390,7 @@
             <div class="dropzone-subtext">
                 TXT (one URL per line) or JSON • Maximum 1,500 URLs
             </div>
-            <button onclick="document.getElementById('fileInput').click()">
+            <button id="selectFilesBtn" type="button">
                 Select Files
             </button>
             <input type="file" id="fileInput" accept=".txt,.json" multiple>
@@ -614,17 +614,39 @@
             handleFiles(e.target.files);
         });
 
+        // Add click handler for select files button
+        const selectFilesBtn = document.getElementById('selectFilesBtn');
+        if (selectFilesBtn) {
+            selectFilesBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                elements.fileInput.click();
+            });
+        }
+
+        // Make entire dropzone clickable (except when clicking on button)
+        elements.dropzone.addEventListener('click', function(e) {
+            if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                elements.fileInput.click();
+            }
+        });
+
         function handleFiles(files) {
+            console.log('handleFiles called with', files.length, 'files');
             [...files].forEach(file => {
+                console.log('Processing file:', file.name, 'Type:', file.type);
                 if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
                     readTextFile(file);
                 } else if (file.type === 'application/json' || file.name.endsWith('.json')) {
                     readJsonFile(file);
+                } else {
+                    console.warn('Unsupported file type:', file.type, 'for file:', file.name);
                 }
             });
         }
 
         function readTextFile(file) {
+            console.log('Reading text file:', file.name);
             const reader = new FileReader();
             reader.onload = function(e) {
                 const urls = e.target.result
@@ -632,21 +654,32 @@
                     .filter(line => line.trim() && !line.startsWith('#'))
                     .join('\n');
                 elements.urlInput.value = urls;
+                console.log('Text file loaded, URLs found:', urls.split('\n').filter(u => u).length);
+            };
+            reader.onerror = function(e) {
+                console.error('Error reading file:', e);
+                alert('Error reading file: ' + file.name);
             };
             reader.readAsText(file);
         }
 
         function readJsonFile(file) {
+            console.log('Reading JSON file:', file.name);
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
                     const urls = Array.isArray(data) ? data : (data.urls || []);
                     elements.urlInput.value = urls.join('\n');
+                    console.log('JSON file loaded, URLs found:', urls.length);
                 } catch (err) {
-                    console.error('Invalid JSON file');
-                    alert('Invalid JSON file format');
+                    console.error('Invalid JSON file:', err);
+                    alert('Invalid JSON file format: ' + err.message);
                 }
+            };
+            reader.onerror = function(e) {
+                console.error('Error reading JSON file:', e);
+                alert('Error reading file: ' + file.name);
             };
             reader.readAsText(file);
         }

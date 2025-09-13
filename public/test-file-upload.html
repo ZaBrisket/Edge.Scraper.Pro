@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload Test</title>
+    <style>
+        body {
+            font-family: Georgia, serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #000;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .dropzone {
+            border: 2px dashed #000;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+        .dropzone.dragover {
+            background: #f0f0f0;
+            border-style: solid;
+        }
+        button {
+            padding: 10px 20px;
+            border: 1px solid #000;
+            background: #fff;
+            cursor: pointer;
+            font-family: Georgia, serif;
+        }
+        button:hover {
+            background: #000;
+            color: #fff;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            border: 1px solid #000;
+            padding: 10px;
+            font-family: monospace;
+            margin-top: 10px;
+        }
+        .debug {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>File Upload Debug Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Direct File Input</h2>
+        <input type="file" id="directFileInput" accept=".txt,.json" multiple>
+        <button onclick="document.getElementById('directFileInput').click()">
+            Choose Files (Direct)
+        </button>
+        <div id="directResult" class="debug"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Dropzone with Button</h2>
+        <div class="dropzone" id="dropzone">
+            <p>Drop files here</p>
+            <p>TXT or JSON • Max 1,500 URLs</p>
+            <button id="selectButton" onclick="event.stopPropagation(); document.getElementById('hiddenFileInput').click()">
+                Select Files
+            </button>
+        </div>
+        <input type="file" id="hiddenFileInput" accept=".txt,.json" multiple>
+        <div id="dropResult" class="debug"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Output</h2>
+        <textarea id="output" placeholder="Processed URLs will appear here"></textarea>
+    </div>
+
+    <script>
+        // Debug logging
+        function log(message, targetId = 'directResult') {
+            const target = document.getElementById(targetId);
+            target.textContent += new Date().toISOString().substr(11, 8) + ' - ' + message + '\n';
+        }
+
+        // Test 1: Direct file input
+        document.getElementById('directFileInput').addEventListener('change', function(e) {
+            log('Direct file input changed');
+            log('Files: ' + e.target.files.length);
+            if (e.target.files.length > 0) {
+                processFiles(e.target.files);
+            }
+        });
+
+        // Test 2: Dropzone
+        const dropzone = document.getElementById('dropzone');
+        const hiddenInput = document.getElementById('hiddenFileInput');
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // Highlight drop area
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropzone.classList.add('dragover');
+            log('Drag over', 'dropResult');
+        }
+
+        function unhighlight(e) {
+            dropzone.classList.remove('dragover');
+        }
+
+        // Handle dropped files
+        dropzone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            log('Files dropped: ' + e.dataTransfer.files.length, 'dropResult');
+            processFiles(e.dataTransfer.files);
+        }
+
+        // Handle file selection
+        hiddenInput.addEventListener('change', function(e) {
+            log('Hidden input changed', 'dropResult');
+            log('Files selected: ' + e.target.files.length, 'dropResult');
+            processFiles(e.target.files);
+        });
+
+        // Make entire dropzone clickable (except button)
+        dropzone.addEventListener('click', function(e) {
+            if (e.target.id !== 'selectButton' && e.target.tagName !== 'BUTTON') {
+                log('Dropzone clicked', 'dropResult');
+                hiddenInput.click();
+            }
+        });
+
+        // Process files
+        function processFiles(files) {
+            const output = document.getElementById('output');
+            output.value = ''; // Clear previous content
+            
+            [...files].forEach(file => {
+                log('Processing: ' + file.name + ' (' + file.type + ')', 'dropResult');
+                
+                if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const urls = e.target.result
+                            .split('\n')
+                            .filter(line => line.trim() && !line.startsWith('#'))
+                            .join('\n');
+                        output.value += urls + '\n';
+                        log('Text file loaded: ' + urls.split('\n').length + ' URLs', 'dropResult');
+                    };
+                    reader.onerror = function(e) {
+                        log('Error reading file: ' + e, 'dropResult');
+                    };
+                    reader.readAsText(file);
+                } else if (file.type === 'application/json' || file.name.endsWith('.json')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            const urls = Array.isArray(data) ? data : (data.urls || []);
+                            output.value += urls.join('\n') + '\n';
+                            log('JSON file loaded: ' + urls.length + ' URLs', 'dropResult');
+                        } catch (err) {
+                            log('Invalid JSON: ' + err.message, 'dropResult');
+                        }
+                    };
+                    reader.readAsText(file);
+                } else {
+                    log('Unsupported file type: ' + file.type, 'dropResult');
+                }
+            });
+        }
+
+        // Debug: Check if elements exist
+        window.addEventListener('load', function() {
+            log('Page loaded');
+            log('Direct input exists: ' + !!document.getElementById('directFileInput'));
+            log('Hidden input exists: ' + !!document.getElementById('hiddenFileInput'));
+            log('Dropzone exists: ' + !!document.getElementById('dropzone'));
+            
+            // Test programmatic click
+            setTimeout(() => {
+                log('\nTesting programmatic click...');
+                try {
+                    document.getElementById('directFileInput').click();
+                    log('Programmatic click successful');
+                } catch (e) {
+                    log('Programmatic click failed: ' + e.message);
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
