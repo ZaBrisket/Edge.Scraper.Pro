@@ -20,13 +20,35 @@ dirs.forEach(dir => {
   }
 });
 
-// Copy index.html to dist
-const indexPath = path.join(process.cwd(), 'public', 'index.html');
-const distIndexPath = path.join(process.cwd(), 'dist', 'index.html');
+// Copy all public assets to dist
+function copyDir(src, dest) {
+  if (!fs.existsSync(dest)) {
+    fs.mkdirSync(dest, { recursive: true });
+  }
+  
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    
+    if (entry.isDirectory()) {
+      copyDir(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
 
-if (fs.existsSync(indexPath)) {
-  fs.copyFileSync(indexPath, distIndexPath);
-  console.log('Copied index.html to dist/');
+// Copy entire public directory to dist
+const publicDir = path.join(process.cwd(), 'public');
+const distDir = path.join(process.cwd(), 'dist');
+
+if (fs.existsSync(publicDir)) {
+  copyDir(publicDir, distDir);
+  console.log('Copied all public assets to dist/');
+} else {
+  console.log('Warning: public directory not found');
 }
 
 console.log('Build complete!');
