@@ -1040,6 +1040,16 @@
             return result;
         }
 
+        // Error monitoring setup
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
+            // Could send to logging service in production
+        });
+
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+        });
+
         // Make startScraping available globally for compatibility
         window.startScraping = startScraping;
     })();
