@@ -2,8 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import brutalist override styles */
+@import './brutalist-override.css';
+
 /* Target List Formatter Global Styles */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* Removed Google Fonts - using system serif fonts */
 
 :root {
   /* UTSS-inspired color palette */
