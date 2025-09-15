@@ -13,9 +13,19 @@ class SessionManager {
     this.checkpointInterval = options.checkpointInterval || 10; // URLs
     this.sessionTTL = options.sessionTTL || 3600000; // 1 hour
     this.maxSessions = options.maxSessions || 100;
-    
+
     this.currentSession = null;
-    this.initDirectory();
+    // Remove async call: this.initDirectory();
+    // Directory will be created via factory method or explicitly
+  }
+
+  /**
+   * Factory method to properly initialize SessionManager with directory creation
+   */
+  static async create(options = {}) {
+    const manager = new SessionManager(options);
+    await manager.initDirectory();
+    return manager;
   }
   
   async initDirectory() {
@@ -303,28 +313,45 @@ class SessionManager {
   
   async getSessionStats(sessionId) {
     const session = await this.loadSession(sessionId);
-    
+
     const elapsed = Date.now() - session.metadata.createdAt;
-    const urlsPerSecond = session.currentIndex / (elapsed / 1000);
-    const estimatedTimeRemaining = (session.totalUrls - session.currentIndex) / urlsPerSecond;
     
+    // Guard against division by zero
+    const urlsPerSecond = session.currentIndex > 0 
+      ? session.currentIndex / (elapsed / 1000) 
+      : 0;
+    
+    const estimatedTimeRemaining = urlsPerSecond > 0
+      ? ((session.totalUrls - session.currentIndex) / urlsPerSecond).toFixed(0)
+      : 'N/A';
+
+    const averageTimePerUrl = session.currentIndex > 0
+      ? (elapsed / session.currentIndex).toFixed(0)
+      : '0';
+
+    const successRate = session.currentIndex > 0
+      ? (session.results.successCount / session.currentIndex * 100).toFixed(1)
+      : '0.0';
+
     return {
       sessionId: session.id,
       status: session.status,
       progress: {
         current: session.currentIndex,
         total: session.totalUrls,
-        percentage: (session.currentIndex / session.totalUrls * 100).toFixed(1)
+        percentage: session.totalUrls > 0 
+          ? (session.currentIndex / session.totalUrls * 100).toFixed(1)
+          : '0.0'
       },
       performance: {
         urlsPerSecond: urlsPerSecond.toFixed(2),
-        averageTimePerUrl: (elapsed / session.currentIndex).toFixed(0),
-        estimatedTimeRemaining: estimatedTimeRemaining.toFixed(0)
+        averageTimePerUrl: averageTimePerUrl,
+        estimatedTimeRemaining: estimatedTimeRemaining
       },
       results: {
         success: session.results.successCount,
         failed: session.results.failureCount,
-        successRate: (session.results.successCount / session.currentIndex * 100).toFixed(1)
+        successRate: successRate
       },
       checkpoints: session.checkpoints.length,
       lastCheckpoint: session.checkpoints[session.checkpoints.length - 1] || null

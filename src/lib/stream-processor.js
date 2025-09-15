@@ -30,12 +30,20 @@ class StreamProcessor {
       peakMemoryMB: 0
     };
     
-    this.initDirectories();
+    // Initialize directories asynchronously without blocking
+    this.initDirectories().catch(err => 
+      console.error('[StreamProcessor] Directory init failed:', err)
+    );
   }
   
   async initDirectories() {
-    await fs.mkdir(this.outputDir, { recursive: true });
-    await fs.mkdir(this.tempDir, { recursive: true });
+    try {
+      await fs.mkdir(this.outputDir, { recursive: true });
+      await fs.mkdir(this.tempDir, { recursive: true });
+    } catch (error) {
+      console.error('[StreamProcessor] Failed to create directories:', error);
+      // Continue anyway - directories might already exist
+    }
   }
   
   generateSessionId() {

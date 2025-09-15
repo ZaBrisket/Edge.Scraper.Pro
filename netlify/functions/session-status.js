@@ -5,7 +5,7 @@
 const SessionManager = require('../../src/lib/session-manager');
 
 exports.handler = async (event, context) => {
-  const sessionManager = new SessionManager();
+  const sessionManager = await SessionManager.create();
   
   // Parse query parameters
   const { sessionId } = event.queryStringParameters || {};

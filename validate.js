@@ -19,6 +19,18 @@ const modules = [
   'RetryManager'
 ];
 
+// Test async initialization
+async function testAsyncInit() {
+  console.log('\nTesting async initialization:');
+  try {
+    const SessionManager = require('./src/lib/session-manager');
+    const manager = await SessionManager.create();
+    console.log('  ✓ SessionManager factory method works');
+  } catch (e) {
+    console.log('  ✗ SessionManager factory failed:', e.message);
+  }
+}
+
 console.log('🔍 Validating EdgeScraper Pro Implementation\n');
 
 // Check files exist
@@ -76,3 +88,8 @@ if (allFilesExist && allModulesLoad) {
 } else {
   console.log('❌ VALIDATION FAILED - Review errors above');
 }
+
+// Run async tests
+testAsyncInit().then(() => {
+  console.log('\nAsync initialization tests complete');
+});

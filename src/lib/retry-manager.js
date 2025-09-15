@@ -164,11 +164,12 @@ class RetryManager {
       } catch (error) {
         lastError = error;
         
-        // Record attempt
+        // Record attempt with URL tracking
         this.retryHistory.get(url).push({
           attempt,
           error: error.code || error.message,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          attemptedUrl: url  // ADD THIS FIELD for URL variant tracking
         });
         
         // Determine retry strategy
@@ -188,24 +189,28 @@ class RetryManager {
         }
         
         // Apply pre-retry modifications if needed
+        let modifiedUrl = url;
         if (strategy.beforeRetry) {
-          url = await this.applyPreRetryStrategy(strategy.beforeRetry, url, error);
+          modifiedUrl = await this.applyPreRetryStrategy(strategy.beforeRetry, url, error);
         }
-        
+
         // Calculate delay
         const delay = this.calculateDelay(strategy, attempt);
         console.log(`[RetryManager] Waiting ${delay}ms before retry`);
-        
+
         // Wait before retry
         await this.sleep(delay);
+
+        // Store the original function before any modifications
+        const originalFn = fn;
         
-        // Update function with new URL if changed
-        if (strategy.beforeRetry) {
-          fn = async (modifiedUrl) => {
-            const originalFn = options.originalFn || fn;
-            return originalFn(modifiedUrl);
-          };
-        }
+        // Update function to use modified URL
+        fn = async (urlToRetry) => {
+          return originalFn(urlToRetry);
+        };
+        
+        // Update URL for next iteration
+        url = modifiedUrl;
       }
     }
     
@@ -317,36 +322,37 @@ class RetryManager {
   canonicalizeUrl(url) {
     const variations = [];
     const parsed = new URL(url);
-    
+
     // Try HTTPS if HTTP
     if (parsed.protocol === 'http:') {
       variations.push(url.replace('http://', 'https://'));
     }
-    
+
     // Try with/without www
     if (parsed.hostname.startsWith('www.')) {
       variations.push(url.replace('://www.', '://'));
     } else {
       variations.push(url.replace('://', '://www.'));
     }
-    
+
     // Try with/without trailing slash
     if (parsed.pathname.endsWith('/')) {
       variations.push(url.slice(0, -1));
     } else if (!parsed.pathname.includes('.')) {
       variations.push(url + '/');
     }
-    
+
     // Return first variation we haven't tried
     for (const variant of variations) {
       const history = this.retryHistory.get(url) || [];
-      const tried = history.some(h => h.url === variant);
+      // Check attemptedUrl field instead of non-existent url field
+      const tried = history.some(h => h.attemptedUrl === variant);
       if (!tried) {
         console.log(`[RetryManager] Trying URL variant: ${variant}`);
         return variant;
       }
     }
-    
+
     return url;
   }
   

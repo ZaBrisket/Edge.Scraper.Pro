@@ -5,6 +5,7 @@
 const StreamProcessor = require('../../src/lib/stream-processor');
 const { fetchWithEnhancedClient } = require('../../src/lib/http/simple-enhanced-client');
 const ContentExtractor = require('../../src/lib/content-extractor'); // Will create in Fix 3
+const SessionManager = require('../../src/lib/session-manager');
 
 exports.handler = async (event, context) => {
   // Only accept POST requests
@@ -24,6 +25,9 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'Invalid URLs array' })
       };
     }
+    
+    // Ensure session directories exist
+    const sessionManager = await SessionManager.create();
     
     // Initialize stream processor
     const processor = new StreamProcessor({
