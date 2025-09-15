@@ -59,3 +59,9 @@
   for = "/*.css"
   [headers.values]
     Cache-Control = "public, max-age=604800"
+
+# M&A Target Lists page redirect
+[[redirects]]
+  from = "/targets"
+  to = "/targets.html"
+  status = 200

@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>M&A Target List Builder - EdgeScraperPro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Upload SourceScrub CSV or XLSX exports to generate curated M&A target lists with filtering, search, and export capabilities." />
+  <link rel="icon" href="/favicon.ico" />
+  
+  <style>
+    /* Design System Variables */
+    :root {
+      --bg-primary: #0f0f13;
+      --bg-secondary: #16161c;
+      --bg-tertiary: #1b1c24;
+      --bg-hover: #13131a;
+      --border-primary: #22232a;
+      --border-secondary: #2b2d36;
+      --text-primary: #e8eaed;
+      --text-secondary: #9aa0a6;
+      --text-muted: #6b7280;
+      --brand-green: #4ade80;
+      --brand-blue: #60a5fa;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --success: #22c55e;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    /* Reset & Base */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    /* Typography */
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 12px 0 8px;
+    }
+    
+    h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin: 8px 0;
+    }
+    
+    a {
+      color: var(--brand-blue);
+      text-decoration: none;
+    }
+    
+    a:hover {
+      text-decoration: underline;
+    }
+    
+    /* Layout */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(12, 12, 16, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border-primary);
+    }
+    
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 14px 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    .nav .brand {
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: 0.3px;
+    }
+    
+    .nav .spacer {
+      flex: 1;
+    }
+    
+    main {
+      max-width: 1400px;
+      margin: 24px auto 48px;
+      padding: 0 20px;
+    }
+    
+    .panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-primary);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    
+    /* Components */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      font-weight: 600;
+      font-size: 13px;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-secondary);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn:hover {
+      background: var(--border-primary);
+    }
+    
+    .btn.primary {
+      background: var(--brand-green);
+      color: #0b1120;
+      border-color: var(--brand-green);
+    }
+    
+    .btn.primary:hover {
+      background: #3bcc70;
+    }
+    
+    .btn.danger {
+      background: transparent;
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+    
+    .btn.danger:hover {
+      background: rgba(239, 68, 68, 0.1);
+    }
+    
+    .btn.ghost {
+      background: transparent;
+      border-color: var(--border-secondary);
+    }
+    
+    .btn.ghost:hover {
+      background: var(--bg-tertiary);
+    }
+    
+    button {
+      font-family: inherit;
+    }
+    
+    /* Upload Zone */
+    .uploader {
+      border: 2px dashed var(--border-secondary);
+      border-radius: 12px;
+      padding: 48px 24px;
+      text-align: center;
+      background: var(--bg-hover);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .uploader:hover {
+      border-color: var(--brand-blue);
+      background: var(--bg-tertiary);
+    }
+    
+    .uploader.drag {
+      border-color: var(--brand-green);
+      background: rgba(74, 222, 128, 0.05);
+    }
+    
+    .upload-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    
+    .upload-text {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .upload-hint {
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+    
+    input[type="file"] {
+      display: none;
+    }
+    
+    /* Controls */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    
+    .controls input[type="text"],
+    .controls select {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-secondary);
+      color: var(--text-primary);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      min-width: 180px;
+    }
+    
+    .controls input[type="text"]:focus,
+    .controls select:focus {
+      outline: none;
+      border-color: var(--brand-blue);
+    }
+    
+    .checkbox-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--border-secondary);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    
+    .checkbox-label:hover {
+      background: var(--bg-tertiary);
+    }
+    
+    /* Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    
+    .stat-card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-secondary);
+      border-radius: 8px;
+      padding: 12px 16px;
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--brand-blue);
+    }
+    
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+    
+    /* Pills */
+    .pill {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-secondary);
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin: 2px;
+    }
+    
+    /* Table */
+    .table-wrapper {
+      overflow-x: auto;
+      margin-top: 20px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    
+    thead th {
+      text-align: left;
+      padding: 10px;
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border-primary);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    
+    thead th:hover {
+      background: var(--border-primary);
+    }
+    
+    thead th.sorted-asc::after {
+      content: ' ↑';
+      color: var(--brand-blue);
+    }
+    
+    thead th.sorted-desc::after {
+      content: ' ↓';
+      color: var(--brand-blue);
+    }
+    
+    tbody td {
+      padding: 10px;
+      border-bottom: 1px solid rgba(34, 35, 42, 0.5);
+      vertical-align: middle;
+    }
+    
+    tbody tr:nth-child(even) {
+      background: var(--bg-hover);
+    }
+    
+    tbody tr:hover {
+      background: var(--bg-tertiary);
+    }
+    
+    .logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: 1px solid var(--border-secondary);
+      background: var(--bg-primary);
+      object-fit: contain;
+    }
+    
+    .logo-placeholder {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: 1px solid var(--border-secondary);
+      background: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    
+    /* Utilities */
+    .mono {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    
+    .muted {
+      color: var(--text-secondary);
+    }
+    
+    .nowrap {
+      white-space: nowrap;
+    }
+    
+    .wrap {
+      white-space: pre-wrap;
+    }
+    
+    .text-right {
+      text-align: right;
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+    
+    .error {
+      color: var(--danger);
+    }
+    
+    .success {
+      color: var(--success);
+    }
+    
+    /* Messages */
+    .message {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+      font-size: 13px;
+    }
+    
+    .message.error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: var(--danger);
+    }
+    
+    .message.success {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: var(--success);
+    }
+    
+    .message.warning {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: var(--warning);
+    }
+    
+    /* Details/Summary */
+    details {
+      margin-top: 16px;
+    }
+    
+    details summary {
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 13px;
+      padding: 8px 0;
+    }
+    
+    details summary:hover {
+      color: var(--text-primary);
+    }
+    
+    details .content {
+      margin-top: 12px;
+      padding: 12px;
+      background: var(--bg-primary);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .nav {
+        flex-wrap: wrap;
+      }
+      
+      .controls {
+        flex-direction: column;
+      }
+      
+      .controls input[type="text"],
+      .controls select {
+        width: 100%;
+      }
+      
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="nav">
+      <div class="brand">EdgeScraperPro</div>
+      <a class="btn ghost" href="/">Scraper</a>
+      <a class="btn ghost" href="/targets">Target Lists</a>
+      <div class="spacer"></div>
+      <a class="btn ghost" href="https://github.com/ZaBrisket/Edge.Scraper.Pro" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Upload Panel -->
+    <div class="panel">
+      <h1>📊 M&A Target List Builder</h1>
+      <p class="muted">Upload a SourceScrub CSV export or v2 XLSX workbook to generate a curated target universe.</p>
+      
+      <div id="uploader" class="uploader" tabindex="0" role="button" aria-label="Upload CSV or XLSX file">
+        <div class="upload-icon">📁</div>
+        <div class="upload-text">Drop your file here</div>
+        <div class="upload-hint">Supports .csv and .xlsx • Handles SourceScrub 2-line header automatically</div>
+        <label class="btn primary" for="fileInput">Browse Files</label>
+        <input id="fileInput" type="file" accept=".csv,.xlsx" />
+      </div>
+      
+      <div id="uploadStatus" class="message hidden"></div>
+      
+      <div class="controls">
+        <input id="searchBox" type="text" placeholder="Search companies, executives, domains..." />
+        <select id="stateFilter">
+          <option value="">All States</option>
+        </select>
+        <select id="industryFilter">
+          <option value="">All Industries</option>
+        </select>
+        <select id="endMarketFilter">
+          <option value="">All End Markets</option>
+        </select>
+        <label class="checkbox-label">
+          <input id="includePII" type="checkbox" />
+          <span>Include emails in exports</span>
+        </label>
+        <button id="clearBtn" class="btn danger">Clear All</button>
+        <button id="exportCsvBtn" class="btn">Export CSV</button>
+        <button id="exportXlsxBtn" class="btn">Export Excel</button>
+      </div>
+    </div>
+
+    <!-- Summary Panel -->
+    <div id="summaryPanel" class="panel hidden">
+      <h2>Summary Statistics</h2>
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+          <div class="stat-value" id="statCompanies">0</div>
+          <div class="stat-label">Companies</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statRevenue">$0</div>
+          <div class="stat-label">Median Revenue</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statEmployees">0</div>
+          <div class="stat-label">Median Employees</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statStates">0</div>
+          <div class="stat-label">States</div>
+        </div>
+      </div>
+      
+      <div id="topStates" class="muted"></div>
+      <div id="topIndustries" class="muted"></div>
+    </div>
+
+    <!-- Data Table Panel -->
+    <div id="tablePanel" class="panel hidden">
+      <h2>Target Universe</h2>
+      <div class="table-wrapper">
+        <table id="targetTable">
+          <thead id="targetThead"></thead>
+          <tbody id="targetTbody"></tbody>
+        </table>
+      </div>
+      
+      <details id="issuesBox" class="hidden">
+        <summary>⚠️ Data Quality Issues</summary>
+        <div class="content" id="issuesContent"></div>
+      </details>
+    </div>
+
+    <!-- Footer -->
+    <div class="panel">
+      <p class="muted" style="font-size: 12px;">
+        Logos provided by Clearbit. All data processing happens locally in your browser.
+        No data is sent to external servers. LocalStorage is used to persist your last session.
+      </p>
+    </div>
+  </main>
+
+  <!-- Vendor Libraries (local) -->
+  <script src="/vendor/papaparse.min.js"></script>
+  <script src="/vendor/xlsx.full.min.js"></script>
+  
+  <!-- Application Logic -->
+  <script src="/targets.js"></script>
+</body>
+</html>
