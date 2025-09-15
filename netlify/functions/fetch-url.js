@@ -1,19 +1,25 @@
 /**
- * Enhanced URL fetching with intelligent retry
+ * Universal fetch function for M&A news scraping
  */
 
-const RetryManager = require('../../src/lib/retry-manager');
-const { fetchWithEnhancedClient } = require('../../src/lib/http/simple-enhanced-client');
-const ContentExtractor = require('../../src/lib/content-extractor');
+const UniversalHttpClient = require('../../src/lib/http/universal-client');
+const newsExtractor = require('../../src/lib/extractors/news-extractor');
+const { getSiteProfile } = require('../../src/lib/http/site-profiles');
 
-// Simplified CORS headers
+const httpClient = new UniversalHttpClient({
+  maxRetries: 5,
+  timeout: 30000,
+  proxyUrl: process.env.PROXY_URL
+});
+
+// CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, X-API-Key'
 };
 
-exports.handler = async (event, context) => {
+exports.handler = async (event) => {
   // Handle OPTIONS request for CORS
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -22,130 +28,100 @@ exports.handler = async (event, context) => {
       body: ''
     };
   }
+
+  const url = event.queryStringParameters?.url;
+  
+  if (!url) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'URL parameter required' })
+    };
+  }
+  
+  const correlationId = event.requestContext?.requestId || generateId();
   
   try {
-    // Simple API key check (optional)
-    const apiKey = event.headers['x-api-key'];
-    const expectedKey = process.env.PUBLIC_API_KEY || 'public-2024';
+    // Get site profile for intelligent handling
+    const siteProfile = getSiteProfile(url);
     
-    if (process.env.BYPASS_AUTH !== 'true' && apiKey !== expectedKey) {
-      return {
-        statusCode: 401,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          ok: false,
-          error: { message: 'Invalid or missing API key' }
-        })
-      };
+    // Add delay for rate-limited sites
+    if (siteProfile.rateLimit.rps < 0.5) {
+      await sleep(1000 + Math.random() * 2000);
     }
     
-    // Get URL parameter
-    const url = event.queryStringParameters?.url;
-    if (!url) {
-      return {
-        statusCode: 400,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          ok: false,
-          error: { message: 'Missing ?url= parameter' }
-        })
-      };
-    }
-    
-    // Validate URL
-    let parsedUrl;
-    try {
-      parsedUrl = new URL(url);
-      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-        throw new Error('Invalid protocol');
+    // Fetch with universal protection
+    const response = await httpClient.fetchWithProtection(url, {
+      headers: {
+        'X-Correlation-Id': correlationId
       }
-    } catch (e) {
-      return {
-        statusCode: 400,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          ok: false,
-          error: { message: 'Invalid URL format' }
-        })
-      };
-    }
-    
-    const retryManager = new RetryManager({
-      maxRetries: 5,
-      baseBackoffMs: 2000,
-      maxBackoffMs: 30000
     });
     
-    try {
-      // Execute fetch with retry logic
-      const result = await retryManager.executeWithRetry(
-        async (urlToFetch) => {
-          const response = await fetchWithEnhancedClient(urlToFetch, {
-            timeout: 30000,
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (compatible; EdgeScraperPro/2.0)'
-            }
-          });
-          
-          if (!response.ok) {
-            const error = new Error(`HTTP ${response.status}`);
-            error.status = response.status;
-            throw error;
-          }
-          
-          const html = await response.text();
-          
-          // Extract content
-          const extractor = new ContentExtractor();
-          const extracted = extractor.extract(urlToFetch, html);
-          
-          return {
-            url: urlToFetch,
-            status: response.status,
-            ...extracted
-          };
-        },
-        url
-      );
-      
-      return {
-        statusCode: 200,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ok: true,
-          data: result,
-          timestamp: new Date().toISOString()
-        })
-      };
-      
-    } catch (error) {
-      console.error('[fetch-url] Error:', error);
-      
-      return {
-        statusCode: error.status || 500,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          ok: false,
-          error: {
-            message: error.message,
-            code: error.code,
-            retryAttempts: error.retryAttempts || 0
-          }
-        })
-      };
+    const html = await response.text();
+    
+    // Extract content using universal extractor
+    const extracted = newsExtractor.extractContent(html, url);
+    
+    // Check for paywall
+    if (extracted.metadata?.hasPaywall) {
+      console.warn(`Paywall detected for ${url}`);
     }
     
-  } catch (error) {
     return {
-      statusCode: 500,
-      headers: corsHeaders,
+      statusCode: 200,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'X-Correlation-Id': correlationId,
+        'X-Site-Category': siteProfile.category,
+        'Cache-Control': 'private, max-age=3600'
+      },
       body: JSON.stringify({
-        ok: false,
-        error: { message: error.message }
+        success: true,
+        url,
+        ...extracted,
+        httpMetrics: httpClient.getMetrics()
+      })
+    };
+    
+  } catch (error) {
+    console.error(`Fetch error for ${url}:`, error);
+    
+    return {
+      statusCode: error.status || 500,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'X-Correlation-Id': correlationId
+      },
+      body: JSON.stringify({
+        success: false,
+        error: error.message,
+        errorClass: classifyError(error),
+        url,
+        httpMetrics: httpClient.getMetrics()
       })
     };
   }
 };
+
+function classifyError(error) {
+  const message = error.message.toLowerCase();
+  if (message.includes('429') || message.includes('rate')) return 'rate_limited';
+  if (message.includes('403')) return 'forbidden';
+  if (message.includes('401')) return 'unauthorized';
+  if (message.includes('404')) return 'not_found';
+  if (message.includes('timeout')) return 'timeout';
+  if (message.includes('paywall')) return 'paywall';
+  if (message.includes('cloudflare')) return 'anti_bot_challenge';
+  if (message.includes('ECONNREFUSED')) return 'connection_refused';
+  return 'unknown';
+}
+
+function generateId() {
+  return Math.random().toString(36).substring(2, 15);
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
