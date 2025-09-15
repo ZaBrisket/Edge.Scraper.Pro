@@ -743,19 +743,19 @@
         <div class="grid">
             <div class="field">
                 <label for="concurrency">Concurrent Requests</label>
-                <input type="number" id="concurrency" value="5" min="1" max="20">
+                <input type="number" id="concurrency" value="2" min="1" max="20">
                 <div class="help">Higher values increase speed but may trigger rate limits</div>
             </div>
 
             <div class="field">
                 <label for="timeout">Timeout (seconds)</label>
-                <input type="number" id="timeout" value="15" min="5" max="60">
+                <input type="number" id="timeout" value="20" min="5" max="60">
                 <div class="help">Maximum time to wait for each URL</div>
             </div>
 
             <div class="field">
                 <label for="retries">Max Retries</label>
-                <input type="number" id="retries" value="3" min="0" max="10">
+                <input type="number" id="retries" value="2" min="0" max="10">
                 <div class="help">Number of retry attempts for failed requests</div>
             </div>
 

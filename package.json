@@ -27,7 +27,13 @@
     "p-queue": "^8.1.1",
     "pino": "^8.15.0",
     "xml2js": "^0.6.2",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "got-scraping": "^4.0.6",
+    "@mozilla/readability": "^0.5.0",
+    "sanitize-html": "^2.13.0",
+    "p-retry": "^6.2.0",
+    "tough-cookie": "^4.1.4",
+    "robots-parser": "^3.0.1"
   },
   "devDependencies": {
     "eslint": "^9.35.0",
