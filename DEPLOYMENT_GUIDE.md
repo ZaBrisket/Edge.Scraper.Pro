@@ -43,6 +43,10 @@ netlify env:set HTTP_BASE_BACKOFF_MS 3000
 netlify env:set HTTP_MAX_BACKOFF_MS 60000
 netlify env:set HTTP_DEADLINE_MS 30000
 
+# Set security variables
+netlify env:set PUBLIC_API_KEY "your-secure-api-key-here"
+netlify env:set BYPASS_AUTH "false"
+
 # Monitor deployment
 netlify watch
 ```
@@ -54,6 +58,9 @@ netlify watch
 - ✅ HTTP client initialized
 - ✅ News extractor working
 - ✅ Netlify function responding
+- ✅ Timeout functionality working (AbortController)
+- ✅ API key validation working
+- ✅ BYPASS_AUTH functionality working
 
 ### Supported Sites
 - **PR Wire Services**: PR Newswire, Business Wire, Globe Newswire
@@ -90,6 +97,23 @@ HOST_LIMIT__www_businesswire_com__BURST=1
 - **Financial News**: 0.25-0.5 RPS
 - **Tech News**: 0.4 RPS
 - **Trade Publications**: 0.2 RPS
+
+## 🔒 Security Features
+
+### API Key Authentication
+- **Required**: All requests must include `X-API-Key` header
+- **Default Key**: `public-2024` (change in production)
+- **Bypass Option**: Set `BYPASS_AUTH=true` to disable (not recommended for production)
+
+### Request Timeout
+- **Default Timeout**: 30 seconds
+- **Implementation**: AbortController for proper timeout handling
+- **Retry Logic**: Exponential backoff with jitter
+
+### Rate Limiting
+- **Per-site limits**: Token bucket algorithm
+- **Configurable**: Via environment variables
+- **Protection**: Prevents abuse and server overload
 
 ## 🧪 Testing
 

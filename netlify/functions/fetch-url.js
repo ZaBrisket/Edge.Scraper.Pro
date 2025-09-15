@@ -29,22 +29,64 @@ exports.handler = async (event, context) => {
     };
   }
   
-  const url = event.queryStringParameters?.url;
-  
-  if (!url) {
-    return {
-      statusCode: 400,
-      headers: corsHeaders,
-      body: JSON.stringify({ 
-        ok: false,
-        error: { message: 'URL parameter required' } 
-      })
-    };
-  }
-  
-  const correlationId = event.requestContext?.requestId || generateId();
-  
   try {
+    // API key validation (optional but recommended)
+    const apiKey = event.headers['x-api-key'];
+    const expectedKey = process.env.PUBLIC_API_KEY || 'public-2024';
+    
+    if (process.env.BYPASS_AUTH !== 'true' && apiKey !== expectedKey) {
+      return {
+        statusCode: 401,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          ok: false,
+          error: { 
+            message: 'Invalid or missing API key',
+            code: 'UNAUTHORIZED'
+          }
+        })
+      };
+    }
+    
+    // Get URL parameter
+    const url = event.queryStringParameters?.url;
+    if (!url) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ 
+          ok: false,
+          error: { 
+            message: 'URL parameter required',
+            code: 'MISSING_URL'
+          } 
+        })
+      };
+    }
+    
+    // Validate URL format
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(url);
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        throw new Error('Invalid protocol');
+      }
+    } catch (e) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          ok: false,
+          error: { 
+            message: 'Invalid URL format',
+            code: 'INVALID_URL'
+          }
+        })
+      };
+    }
+    
+    const correlationId = event.requestContext?.requestId || generateId();
+    
     // Get site profile for intelligent handling
     const siteProfile = getSiteProfile(url);
     
