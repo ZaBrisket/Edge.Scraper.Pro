@@ -1,0 +1,24 @@
+{
+  "id": "session_1757956211458_be0c6ec2dd3d21a1",
+  "status": "active",
+  "urls": [
+    "url1",
+    "url2"
+  ],
+  "totalUrls": 2,
+  "processedUrls": [],
+  "failedUrls": [],
+  "currentIndex": 0,
+  "checkpoints": [],
+  "metadata": {
+    "createdAt": 1757956211459,
+    "updatedAt": 1757956211459,
+    "expiresAt": 1757959811459
+  },
+  "results": {
+    "outputFile": null,
+    "successCount": 0,
+    "failureCount": 0,
+    "totalTime": 0
+  }
+}

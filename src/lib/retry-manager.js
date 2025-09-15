@@ -135,6 +135,7 @@ class RetryManager {
     const maxAttempts = options.maxRetries || this.maxRetries;
     let lastError = null;
     let attempt = 0;
+    const originalFn = fn; // Store original function before any modifications
     
     // Initialize retry history for this URL
     if (!this.retryHistory.has(url)) {
@@ -169,7 +170,7 @@ class RetryManager {
           attempt,
           error: error.code || error.message,
           timestamp: Date.now(),
-          attemptedUrl: url
+          url: url
         });
         
         // Determine retry strategy
@@ -209,7 +210,6 @@ class RetryManager {
         
         // Update function with new URL if changed
         if (strategy.beforeRetry) {
-          const originalFn = fn; // Store original before reassignment
           fn = async (modifiedUrl) => {
             return originalFn(modifiedUrl);
           };
@@ -348,7 +348,7 @@ class RetryManager {
     // Return first variation we haven't tried
     for (const variant of variations) {
       const history = this.retryHistory.get(url) || [];
-      const tried = history.some(h => h.attemptedUrl === variant);
+      const tried = history.some(h => h.url === variant);
       if (!tried) {
         console.log(`[RetryManager] Trying URL variant: ${variant}`);
         return variant;

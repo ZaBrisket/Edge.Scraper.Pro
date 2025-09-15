@@ -15,29 +15,17 @@ class SessionManager {
     this.maxSessions = options.maxSessions || 100;
     
     this.currentSession = null;
-    this.initDirectorySync();
-  }
-  
-  initDirectorySync() {
-    try {
-      require('fs').mkdirSync(this.sessionsDir, { recursive: true });
-    } catch (error) {
-      console.warn(`[SessionManager] Could not create sessions directory: ${error.message}`);
-    }
-  }
-  
-  static async create(options = {}) {
-    const manager = new SessionManager(options);
-    // Ensure directory exists asynchronously
-    await manager.ensureDirectory();
-    return manager;
+    this.dirCreated = false;
   }
   
   async ensureDirectory() {
-    try {
-      await fs.mkdir(this.sessionsDir, { recursive: true });
-    } catch (error) {
-      console.warn(`[SessionManager] Could not ensure sessions directory: ${error.message}`);
+    if (!this.dirCreated) {
+      try {
+        await fs.mkdir(this.sessionsDir, { recursive: true });
+        this.dirCreated = true;
+      } catch (error) {
+        console.warn(`[SessionManager] Could not create sessions directory: ${error.message}`);
+      }
     }
   }
   
@@ -46,6 +34,8 @@ class SessionManager {
   }
   
   async createSession(urls, metadata = {}) {
+    await this.ensureDirectory();
+    
     const sessionId = this.generateSessionId();
     const sessionFile = path.join(this.sessionsDir, `${sessionId}.json`);
     
@@ -84,6 +74,8 @@ class SessionManager {
   }
   
   async loadSession(sessionId) {
+    await this.ensureDirectory();
+    
     const sessionFile = path.join(this.sessionsDir, `${sessionId}.json`);
     
     try {
