@@ -1,6 +1,6 @@
 const fetch = global.fetch;
 
-const BASE = process.env.SCRAPER_BASE || '';
+const BASE = process.env.SCRAPER_BASE || 'http://localhost:8888';
 const urls = [
   "https://www.insurancejournal.com/news/national/2025/01/27/809603.htm",
   "https://www.insurancejournal.com/magazines/mag-features/2025/01/27/809390.htm",
