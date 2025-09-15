@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Excel Export Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Excel Export Test</h1>
+    <button id="testBtn">Test Excel Export</button>
+    <div id="status"></div>
+
+    <script>
+    // Test data matching the structure
+    const testData = [
+      {
+        companyName: "Beekley Corporation",
+        informalName: "Beekley",
+        city: "Bristol",
+        state: "CT",
+        cityState: "Bristol, CT",
+        website: "https://beekley.com",
+        domain: "beekley.com",
+        description: "Medical device company specializing in imaging markers and surgical products",
+        rawDescription: "Beekley Corporation develops and manufactures medical products that help improve patient care...",
+        employeeCount: 150,
+        employeeRange: "100-250",
+        revenueMM: 45.5,
+        revenue: 45500000,
+        execTitle: "CEO",
+        execName: "John Smith",
+        execBlock: "CEO - John Smith",
+        execEmail: "jsmith@beekley.com"
+      },
+      {
+        companyName: "Summit Industries LLC",
+        informalName: "Summit Industries",
+        city: "Niles",
+        state: "IL",
+        cityState: "Niles, IL",
+        website: "https://summitindustries.net",
+        domain: "summitindustries.net",
+        description: "Industrial equipment manufacturer and distributor",
+        rawDescription: "Summit Industries is a leading provider of industrial equipment...",
+        employeeCount: 75,
+        revenueMM: 22.3,
+        revenue: 22300000,
+        execTitle: "President",
+        execName: "Jane Doe",
+        execBlock: "President - Jane Doe"
+      }
+    ];
+
+    document.getElementById('testBtn').addEventListener('click', async () => {
+      const status = document.getElementById('status');
+      status.textContent = 'Generating Excel...';
+
+      try {
+        // Test ExcelJS is loaded
+        if (typeof ExcelJS === 'undefined') {
+          throw new Error('ExcelJS not loaded');
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('Test');
+        
+        // Add test data
+        sheet.columns = [
+          { key: 'company', header: 'Company', width: 30 },
+          { key: 'location', header: 'Location', width: 20 },
+          { key: 'revenue', header: 'Revenue ($MM)', width: 15 }
+        ];
+
+        testData.forEach(company => {
+          sheet.addRow({
+            company: company.informalName,
+            location: company.cityState,
+            revenue: company.revenueMM
+          });
+        });
+
+        // Style headers
+        sheet.getRow(1).font = { bold: true };
+        sheet.getRow(1).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFD9D9D9' }
+        };
+
+        // Generate file
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+
+        // Download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'test-excel-export.xlsx';
+        a.click();
+        URL.revokeObjectURL(url);
+
+        status.textContent = '✅ Excel generated successfully!';
+        status.style.color = 'green';
+
+      } catch (error) {
+        status.textContent = `❌ Error: ${error.message}`;
+        status.style.color = 'red';
+        console.error(error);
+      }
+    });
+    </script>
+</body>
+</html>
