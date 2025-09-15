@@ -1,5 +1,6 @@
+// netlify/functions/fetch-url.js
 // CommonJS for Netlify Functions
-const { setGlobalDispatcher, ProxyAgent, request } = require('undici');
+const { request } = require('undici');
 const setCookie = require('set-cookie-parser');
 const { extractArticle } = require('../../src/article-extractor');
 
@@ -7,8 +8,7 @@ const MAX_TOTAL_MS = Math.min(
   parseInt(process.env.HTTP_DEADLINE_MS || '28000', 10),
   29000
 );
-
-const DEFAULT_TIMEOUT_MS = Math.min(12000, MAX_TOTAL_MS - 4000); // leave headroom for retries
+const DEFAULT_TIMEOUT_MS = Math.min(12000, MAX_TOTAL_MS - 4000);
 const REFERER = process.env.REQUEST_REFERER || 'https://news.google.com/';
 
 const BROWSER_UAS = [
@@ -86,11 +86,14 @@ async function fetchHttp(url, cookieJar = {}) {
   const buf = await body.arrayBuffer();
   const text = Buffer.from(buf).toString('utf8');
 
+  // Capture cookies correctly (map mode requires using keys as names)
   const sc = respHeaders['set-cookie'];
   if (sc) {
     const parsed = setCookie.parse(sc, { map: true });
-    const cookie = Object.values(parsed).map(c => `${c.name}=${c.value}`).join('; ');
-    cookieJar.cookie = cookie;
+    const cookie = Object.entries(parsed)
+      .map(([name, c]) => `${name}=${c.value}`)
+      .join('; ');
+    if (cookie) cookieJar.cookie = cookie;
   }
 
   return { statusCode, headers: respHeaders, text, cookieJar };
@@ -110,28 +113,15 @@ function guessAmpUrls(url) {
   return [...candidates];
 }
 
-function extractAmpHref(html, baseUrl) {
-  try {
-    const m = html.match(/<link[^>]+rel=["']amphtml["'][^>]*>/i);
-    if (!m) return null;
-    const tag = m[0];
-    const hrefMatch = tag.match(/href=["']([^"']+)["']/i);
-    if (!hrefMatch) return null;
-    return new URL(hrefMatch[1], baseUrl).toString();
-  } catch {
-    return null;
-  }
-}
-
 async function tryAmp(url, cookieJar) {
-  const heuristics = guessAmpUrls(url);
-  for (const candidate of heuristics) {
+  for (const candidate of guessAmpUrls(url)) {
     try {
       const r = await fetchHttp(candidate, cookieJar);
-      if (r.statusCode >= 200 && r.statusCode < 300 && /text\/html/i.test(r.headers['content-type'] || '')) {
+      const ct = r.headers['content-type'] || '';
+      if (r.statusCode >= 200 && r.statusCode < 300 && /text\/html/i.test(ct)) {
         return { ...r, used: candidate };
       }
-    } catch { /* ignore */ }
+    } catch {/* ignore */}
   }
   return null;
 }
@@ -149,7 +139,7 @@ async function tryVendor(url) {
     const r = await withTimeout(fetchHttp(sbUrl), DEFAULT_TIMEOUT_MS, 'scrapingbee');
     if (r.statusCode >= 200 && r.statusCode < 300) return { ...r, used: 'scrapingbee' };
   }
-  const bl = process.env.BROWSERLESS_URL;
+  const bl = process.env.BROWSERLESS_URL; // e.g. https://chrome.browserless.io/content?token=...
   if (bl) {
     const blUrl = `${bl}${bl.includes('?') ? '&' : '?'}url=${encodeURIComponent(url)}`;
     const r = await withTimeout(fetchHttp(blUrl), DEFAULT_TIMEOUT_MS, 'browserless');
@@ -162,24 +152,29 @@ async function getPageWithStrategies(url) {
   const start = Date.now();
   const cookieJar = {};
 
+  // 1) Direct fetch
   try {
     const r = await withTimeout(fetchHttp(url, cookieJar), DEFAULT_TIMEOUT_MS, 'direct');
-    if (r.statusCode >= 200 && r.statusCode < 300 && /text\/html/i.test(r.headers['content-type'] || '')) {
+    const ct = r.headers['content-type'] || '';
+    if (r.statusCode >= 200 && r.statusCode < 300 && /text\/html/i.test(ct)) {
       return { strategy: 'direct', ...r, ms: Date.now() - start };
     }
-    if ([403, 406, 429, 503].includes(r.statusCode)) throw Object.assign(new Error('blocked'), { blockStatus: r.statusCode });
-  } catch (e) {
-  }
+    if ([403, 406, 429, 503].includes(r.statusCode)) {
+      throw Object.assign(new Error('blocked'), { blockStatus: r.statusCode });
+    }
+  } catch {/* fall through */}
 
+  // 2) AMP heuristic fallback
   try {
     const amp = await withTimeout(tryAmp(url, cookieJar), Math.min(8000, MAX_TOTAL_MS - (Date.now() - start)), 'amp');
     if (amp) return { strategy: `amp(${amp.used})`, ...amp, ms: Date.now() - start };
-  } catch { }
+  } catch {/* ignore */}
 
+  // 3) Vendor fallback (optional)
   try {
     const vend = await withTimeout(tryVendor(url), Math.min(10000, MAX_TOTAL_MS - (Date.now() - start)), 'vendor');
     if (vend) return { strategy: `vendor(${vend.used})`, ...vend, ms: Date.now() - start };
-  } catch { }
+  } catch {/* ignore */}
 
   throw new Error('All strategies failed');
 }
@@ -193,6 +188,7 @@ function getOrigin(event) {
 }
 
 exports.handler = async (event) => {
+  // CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: corsHeaders(getOrigin(event)) };
   }
@@ -200,6 +196,7 @@ exports.handler = async (event) => {
   const origin = getOrigin(event);
 
   try {
+    // Optional API key gate
     const apiKey = event.headers['x-api-key'] || event.headers['X-API-Key'];
     if (process.env.BYPASS_AUTH !== 'true') {
       if (!apiKey || apiKey !== process.env.PUBLIC_API_KEY) {
@@ -208,9 +205,16 @@ exports.handler = async (event) => {
     }
 
     const qs = new URLSearchParams(event.queryStringParameters || {});
-    if (!qs.get('url')) return err(400, 'Missing url parameter', origin);
+    const rawUrl = qs.get('url');
+    if (!rawUrl) return err(400, 'Missing url parameter', origin);
 
-    const url = normalizeUrl(qs.get('url'));
+    let url;
+    try {
+      url = normalizeUrl(rawUrl);
+    } catch {
+      return err(400, 'Invalid URL format', origin);
+    }
+
     const t0 = Date.now();
     let attempt = 0;
     let lastError = null;
@@ -219,7 +223,7 @@ exports.handler = async (event) => {
       attempt++;
       try {
         const res = await getPageWithStrategies(url);
-        const finalUrl = res.headers['x-final-url'] || url;
+        const finalUrl = url; // undici follows redirects; final URL not exposed
         const contentType = res.headers['content-type'] || 'text/html';
 
         let article = null;

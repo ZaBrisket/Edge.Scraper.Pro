@@ -1150,26 +1150,55 @@
         
         // Scrape single URL
         async function scrapeUrl(url) {
+            const extractImages = document.getElementById('extractImages').checked;
+            const extractMeta   = document.getElementById('extractMeta').checked;
+            const sportsMode    = document.getElementById('sportsMode').checked;
             const startTime = Date.now();
             
             try {
+                const needRaw = (extractImages || extractMeta || sportsMode) ? 1 : 0;
                 const parseMode = 'article';
-                const result = await window.EdgeScraper.scrapeOne(url, { raw: 0, parse: parseMode });
+                const result = await window.EdgeScraper.scrapeOne(url, { raw: needRaw, parse: parseMode });
                 
                 const endTime = Date.now();
                 const duration = Math.floor((endTime - startTime) / 1000);
                 
-                // Process the response
                 let processedData = null;
                 let error = null;
                 
                 if (result.ok) {
                     const article = result.article || {};
-                    const title = article.title || '';
-                    const content = article.content || '';
-                    const images = [];
-                    const meta = {};
-                    const structuredData = null;
+                    let title   = article.title || '';
+                    let content = article.content || '';
+                    let images = [];
+                    let meta   = {};
+                    let structuredData = null;
+                    
+                    if (needRaw && result.html) {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(result.html, 'text/html');
+                        
+                        if (extractImages) {
+                            images = Array.from(doc.querySelectorAll('img')).map(img => img.src);
+                        }
+                        
+                        if (extractMeta) {
+                            meta = Array.from(doc.querySelectorAll('meta')).reduce((acc, tag) => {
+                                const name = tag.getAttribute('name') || tag.getAttribute('property');
+                                const val  = tag.getAttribute('content');
+                                if (name && val) acc[name] = val;
+                                return acc;
+                            }, {});
+                        }
+                        
+                        if (sportsMode && window.SportsExtractor) {
+                            const sx = new SportsExtractor();
+                            const out = sx.extractContent(result.html, url);
+                            if (out?.content) content = out.content;
+                            structuredData = out?.structuredData || null;
+                        }
+                    }
+                    
                     processedData = {
                         url: result.url || url,
                         title,
@@ -1178,7 +1207,10 @@
                         images,
                         meta,
                         structuredData,
-                        html: null
+                        html: needRaw ? (result.html || null) : null,
+                        strategy: result.strategy || null,
+                        ms: result.ms || (endTime - startTime),
+                        durationSecs: duration
                     };
                 } else {
                     error = result.error || 'Failed to fetch URL';
