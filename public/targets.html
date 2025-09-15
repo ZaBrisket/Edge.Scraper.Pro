@@ -610,6 +610,20 @@
       transition: width 0.3s ease;
     }
     
+    /* Export controls styling */
+    .export-controls h3 {
+      font-size: 1rem;
+      margin-bottom: 0.75rem;
+      color: var(--text-primary);
+    }
+    
+    .export-note {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      line-height: 1.4;
+    }
+    
     /* Utilities */
     .hidden {
       display: none !important;
@@ -720,24 +734,40 @@
             </select>
           </div>
           
+          <!-- Include emails control -->
           <div class="control-group">
-            <div class="checkbox-group">
-              <input type="checkbox" id="includePII" />
-              <label for="includePII">Include emails in export</label>
-            </div>
-            <div class="control-group">
-              <label class="toggle-label">
-                <input type="checkbox" id="toggleStandardization" checked>
-                <span>Standardize Descriptions</span>
-              </label>
-              <span class="help-text">Apply AI-powered description standardization</span>
-            </div>
+            <label>
+              <input type="checkbox" id="includePII" checked>
+              <span>Include emails in export</span>
+            </label>
+          </div>
+
+          <!-- Standardization toggle (separate control group) -->
+          <div class="control-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="toggleStandardization" checked>
+              <span>Standardize Descriptions</span>
+            </label>
+            <span class="help-text">Apply AI-powered description standardization</span>
           </div>
           
-          <div class="btn-group">
-            <button id="clearBtn" class="btn btn-danger">Clear All</button>
-            <button id="exportCsvBtn" class="btn btn-secondary">Export CSV</button>
-            <button id="exportExcelBtn" class="btn btn-secondary">Export Excel</button>
+          <div class="export-controls">
+            <h3>Export Options</h3>
+            
+            <div class="btn-group">
+              <button id="clearBtn" class="btn btn-danger">Clear All</button>
+              <button id="exportCsvBtn" class="btn btn-secondary">Export CSV</button>
+              <button id="exportExcelBtn" class="btn btn-primary">Export Excel (Professional)</button>
+              <button id="exportExcel365Btn" class="btn btn-secondary" 
+                      title="For Excel 365/Office 365 users - includes embedded logo images">
+                Excel 365 + Logos
+              </button>
+            </div>
+            
+            <p class="export-note">
+              Professional Excel export includes formatting, multiple sheets, and summary statistics.<br>
+              Use Excel 365 version if you have Office 365 for automatic logo display.
+            </p>
           </div>
         </div>
       </div>

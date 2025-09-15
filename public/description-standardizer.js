@@ -125,63 +125,64 @@ const DescriptionStandardizer = (function() {
   /**
    * Select appropriate verb based on context (deterministic)
    */
-  function selectVerb(description, specialties, industry) {
+  function selectVerb(description, specialties, industry, companyName) {
     const text = (description + ' ' + specialties).toLowerCase();
+    // Use company name as seed for deterministic selection
+    const seed = companyName || text;
     
     // Check for specific verb indicators
     if (/\b(manufact|produc|fabricat|assembl)\b/i.test(text)) {
-      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.manufacturing, text);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.manufacturing, seed);
     }
     
     if (/\b(distribut|wholesal|retail|sell)\b/i.test(text)) {
-      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.distribution, text);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.distribution, seed);
     }
     
     if (/\b(consult|advis|strateg)\b/i.test(text)) {
-      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.consulting, text);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.consulting, seed);
     }
     
     if (/\b(manag|operat|administr|oversee)\b/i.test(text)) {
-      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.management, text);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.management, seed);
     }
     
     if (/\b(maintain|service|repair|support)\b/i.test(text)) {
-      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.maintenance, text);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.maintenance, seed);
     }
     
     if (/\b(install|implement|deploy|integrat)\b/i.test(text)) {
-      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.installation, text);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.installation, seed);
     }
     
     if (/\b(platform|automat|streamlin|enabl)\b/i.test(text)) {
-      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.platform, text);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.platform, seed);
     }
     
     if (/\b(software|application|app|system|tool)\b/i.test(text)) {
-      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.software, text);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.software, seed);
     }
     
     if (/\b(specializ|focus|expert|dedicat)\b/i.test(text)) {
-      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.specialist, text);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.specialist, seed);
     }
     
     // Default to service verbs
-    return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.service, text);
+    return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.service, seed);
   }
 
   /**
-   * Get deterministic item from array based on input text
-   * Uses simple hash to ensure same input always returns same verb
+   * Get deterministic item from array based on hash
+   * This ensures the same input always produces the same output
    */
-  function getDeterministicFromArray(arr, text) {
+  function getDeterministicFromArray(arr, seed) {
     if (!arr || arr.length === 0) return '';
-    if (arr.length === 1) return arr[0];
     
-    // Create simple hash from text
+    // Create a simple hash from the seed string
     let hash = 0;
-    const str = text || '';
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
+    const seedStr = String(seed || '');
+    for (let i = 0; i < seedStr.length; i++) {
+      const char = seedStr.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
@@ -400,7 +401,7 @@ const DescriptionStandardizer = (function() {
     // Extract components
     const name = extractCompanyName(companyName, informalName, website, cleanDesc);
     const industry = detectIndustry(cleanDesc, cleanSpecialties, industries);
-    const verb = selectVerb(cleanDesc, cleanSpecialties, industry);
+    const verb = selectVerb(cleanDesc, cleanSpecialties, industry, name);
     const offerings = extractKeyOfferings(cleanSpecialties, cleanDesc);
     const markets = extractTargetMarket(cleanDesc, endMarkets);
     

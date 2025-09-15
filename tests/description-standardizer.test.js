@@ -156,4 +156,26 @@ describe('DescriptionStandardizer', () => {
       expect(result2).toBeDefined();
     });
   });
+
+  describe('Deterministic verb selection', () => {
+    it('should always return the same verb for the same input', () => {
+      const input = {
+        companyName: 'Test Corp',
+        description: 'We manufacture products',
+        specialties: 'manufacturing, production'
+      };
+      
+      // Run multiple times
+      const results = [];
+      for (let i = 0; i < 10; i++) {
+        results.push(DescriptionStandardizer.standardize(input));
+      }
+      
+      // All results should be identical
+      const firstResult = results[0];
+      results.forEach(result => {
+        expect(result).toBe(firstResult);
+      });
+    });
+  });
 });
