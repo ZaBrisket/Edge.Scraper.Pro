@@ -75,6 +75,25 @@ NODE_ENV=production
 - **URL Validation**: Built-in validation for common patterns
 - **Rate Limiting**: Respectful scraping with configurable limits
 
+### M&A Target List Builder
+
+Transform SourceScrub CSV exports into curated acquisition target lists:
+
+1. Navigate to `/targets` or click "Target Lists" in the navigation
+2. Upload a SourceScrub CSV export (handles 2-line header automatically) or v2 XLSX workbook
+3. View curated "Target Universe" with:
+   - Company logos from Clearbit
+   - Derived fields (domain, revenue in $MM, executive block)
+   - Interactive filters (State, Industry, End Market)
+   - Column sorting and search
+4. Export to CSV or Excel (includes IMAGE() formula for logos)
+
+Features:
+- **Privacy-first**: All processing happens client-side, emails excluded from exports by default
+- **Data persistence**: Last session saved to localStorage
+- **Smart parsing**: Handles SourceScrub format quirks (tab characters, 2-line header)
+- **Excel compatibility**: Exports include Excel 365 IMAGE() formulas for logos
+
 ## 🛠️ API Endpoints
 
 ### Fetch URL
