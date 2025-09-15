@@ -60,7 +60,7 @@
   [headers.values]
     Cache-Control = "public, max-age=604800"
 
-# Target Lists redirects
+# Target Lists redirects - only redirect if file doesn't exist
 [[redirects]]
   from = "/targets"
   to = "/targets/index.html"
@@ -70,3 +70,4 @@
   from = "/targets/*"
   to = "/targets/index.html"
   status = 200
+  force = false
