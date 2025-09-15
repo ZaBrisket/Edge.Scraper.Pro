@@ -67,8 +67,7 @@ class UniversalHttpClient {
       agent,
       compress: true,
       redirect: 'follow',
-      follow: 10,
-      timeout: this.config.timeout
+      follow: 10
     };
 
     let lastError;
@@ -77,8 +76,20 @@ class UniversalHttpClient {
     while (attempt < this.config.maxRetries) {
       attempt++;
       
+      // Create AbortController for timeout
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => {
+        abortController.abort();
+      }, this.config.timeout);
+      
       try {
-        const response = await fetch(url, fetchOptions);
+        const response = await fetch(url, {
+          ...fetchOptions,
+          signal: abortController.signal
+        });
+        
+        // Clear timeout on success
+        clearTimeout(timeoutId);
         
         // Handle Cloudflare challenge
         if (response.status === 503 || response.status === 403) {
@@ -111,7 +122,18 @@ class UniversalHttpClient {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         
       } catch (error) {
-        lastError = error;
+        // Clear timeout on error
+        clearTimeout(timeoutId);
+        
+        // Handle timeout specifically
+        if (error.name === 'AbortError') {
+          lastError = new Error(`Request timeout after ${this.config.timeout}ms`);
+          lastError.name = 'TimeoutError';
+          lastError.code = 'TIMEOUT';
+        } else {
+          lastError = error;
+        }
+        
         this.updateMetrics(siteProfile, false);
         
         if (attempt < this.config.maxRetries) {

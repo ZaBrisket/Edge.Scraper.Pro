@@ -112,14 +112,24 @@ exports.handler = async (event, context) => {
 
 function classifyError(error) {
   const message = error.message.toLowerCase();
+  const errorName = error.name?.toLowerCase();
+  
+  // Check error name first for more accurate classification
+  if (errorName === 'timeouterror' || errorName === 'aborterror') return 'timeout';
+  if (errorName === 'typeerror' && message.includes('fetch')) return 'network_error';
+  
+  // Check message content
   if (message.includes('429') || message.includes('rate')) return 'rate_limited';
   if (message.includes('403')) return 'forbidden';
   if (message.includes('401')) return 'unauthorized';
   if (message.includes('404')) return 'not_found';
-  if (message.includes('timeout')) return 'timeout';
+  if (message.includes('timeout') || message.includes('timed out')) return 'timeout';
   if (message.includes('paywall')) return 'paywall';
   if (message.includes('cloudflare')) return 'anti_bot_challenge';
-  if (message.includes('ECONNREFUSED')) return 'connection_refused';
+  if (message.includes('econnrefused') || message.includes('connection refused')) return 'connection_refused';
+  if (message.includes('enotfound') || message.includes('dns')) return 'dns_error';
+  if (message.includes('econnreset') || message.includes('connection reset')) return 'connection_reset';
+  
   return 'unknown';
 }
 
