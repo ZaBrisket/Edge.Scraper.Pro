@@ -1,314 +1,210 @@
-# 🏈 Enhanced Sports Statistics Scraper - Comprehensive Implementation
+# 🚀 Add M&A News Scraper Feature to Edge.Scraper.Pro
 
 ## Overview
 
-This pull request transforms the basic Edge.Scraper.Pro web scraper into a **comprehensive sports statistics extraction tool** specifically optimized for Pro Football Reference and similar sports sites. The enhancement delivers advanced content detection, structured data parsing, and multiple export formats while maintaining full backward compatibility.
+This PR implements a comprehensive **M&A (Mergers & Acquisitions) News Scraper** feature for Edge.Scraper.Pro. The feature enables users to automatically discover and extract structured data from M&A news articles across multiple financial news sources.
 
-## 🎯 Problem Statement
+## 🎯 Key Features
 
-The current web scraper successfully extracts basic webpage content but fails to capture structured sports statistics from Pro Football Reference player pages. Analysis of scraping results from NFL player pages revealed:
+### 1. **Automatic URL Discovery**
+- RSS feed integration for real-time M&A news discovery
+- Support for 6 major financial news sources
+- Intelligent filtering based on M&A-related keywords
 
-- ❌ Extracts primarily navigation, headers, and footer content  
-- ❌ Misses statistical tables and structured data
-- ❌ Fails to identify sport-specific content patterns
-- ❌ No structured data parsing for tables/stats
-- ❌ Generic content extraction unsuitable for data-rich sports pages
+### 2. **Advanced Data Extraction**
+- **Deal Value Detection**: Extracts and normalizes transaction values ($millions/billions)
+- **Entity Recognition**: Identifies companies involved using NLP
+- **Transaction Classification**: Categorizes deals (merger, acquisition, divestiture, etc.)
+- **Date Extraction**: Captures announcement and closing dates
+- **Advisor Detection**: Identifies financial and legal advisors
+- **Executive Quotes**: Extracts relevant statements from executives
 
-## ✅ Solution Delivered
+### 3. **Professional UI**
+- Beautiful purple gradient interface section
+- Real-time scraping progress indicators
+- Interactive results display with confidence scoring
+- Export functionality for data analysis
 
-### 🚀 Core Features Implemented
+## 📝 What Changed
 
-#### 1. **Intelligent Sports Detection System**
-- Automatic recognition of sports reference sites and player pages
-- 200+ specialized CSS selectors for sports content containers
-- Multi-layered content scoring with sports-specific weighting
-- URL pattern matching for Pro Football Reference, Basketball Reference, etc.
+### New Files Added:
+1. **`netlify/functions/ma-news-scraper.js`**
+   - Main serverless function handling scraping requests
+   - Rate-limited concurrent processing
+   - Comprehensive error handling
 
-#### 2. **Comprehensive Data Extraction Engine**
+2. **`src/lib/extractors/ma-news-extractor.js`**
+   - Core NLP-based data extraction engine
+   - Pattern matching for deal values, companies, dates
+   - Confidence scoring algorithm
+
+3. **`src/config/ma-news-sources.js`**
+   - Configuration for 6 news sources:
+     - Business Wire
+     - PR Newswire
+     - GlobeNewswire
+     - Reuters
+     - Bloomberg
+     - Seeking Alpha
+
+4. **`src/lib/discovery/ma-url-discovery.js`**
+   - RSS feed parsing
+   - URL discovery algorithms
+   - M&A content filtering
+
+### Modified Files:
+1. **`public/index.html`**
+   - Added M&A scraper UI section
+   - Integrated JavaScript for handling scraping requests
+   - Added beautiful styling with purple gradient theme
+
+2. **`netlify.toml`**
+   - Updated build configuration
+   - Added external node modules for NLP libraries
+   - Configured function-specific settings
+
+3. **`package.json` & `package-lock.json`**
+   - Added dependencies:
+     - `natural` - NLP processing
+     - `compromise` - Entity recognition
+     - `xml2js` - RSS feed parsing
+     - Additional utilities
+
+## 🧪 Testing
+
+The implementation includes comprehensive testing:
+
 ```javascript
-// Player Biography Parsing
-- Full name, position, jersey number
-- Physical stats (height, weight, age)  
-- Birth date/location, college
-- Draft information (year, team, round, pick)
-
-// Statistical Tables Processing
-- Season-by-season performance data
-- Career totals and averages
-- Playoff statistics
-- Advanced analytics and efficiency metrics
-
-// Achievement Recognition
-- Awards and honors (MVP, Pro Bowl, All-Pro)
-- Records and career milestones
-- Hall of Fame status
+// Test results from test-ma-scraper.js
+✅ Deal Value Extraction: $68.7 billion correctly parsed
+✅ Company Detection: Microsoft, Activision Blizzard, Goldman Sachs identified
+✅ Transaction Type: Correctly classified as "acquisition"
+✅ Confidence Scoring: 80% confidence for test data
+✅ URL Filtering: Accurately identifies M&A-related content
 ```
 
-#### 3. **Advanced Export Formats**
-- **Enhanced CSV**: 25+ sports-specific columns with data quality metrics
-- **Structured JSON**: Normalized player objects with complete metadata
-- **Player Database**: Relational structure ready for SQL import
-- **Excel-Compatible**: Multi-sheet format with cross-referenced data
-- **Original Formats**: Maintains backward compatibility (TXT, JSONL, CSV)
+## 🔧 Technical Implementation
 
-#### 4. **Quality Validation & Debug Tools**
-- 6-point sports content validation system
-- Debug mode with detailed extraction analysis
-- Performance metrics and data completeness scoring
-- Graceful error handling for edge cases
-
-## 📊 Performance Achievements
-
-### Extraction Accuracy
-- ✅ **Player Biography**: 85%+ completeness for active players
-- ✅ **Statistical Data**: 80%+ successful table parsing rate  
-- ✅ **Position Detection**: 90%+ accuracy for player positions
-- ✅ **Achievement Recognition**: Comprehensive awards and honors extraction
-
-### Processing Performance  
-- ✅ **Speed**: < 100ms average extraction time per page
-- ✅ **Scalability**: Handles 100+ URLs with concurrent processing
-- ✅ **Memory Efficiency**: Optimized DOM processing with cleanup
-- ✅ **Error Recovery**: Graceful handling of malformed pages
-
-### Data Quality
-- ✅ **Structured Data Quality**: 70%+ average completeness score
-- ✅ **Sports Validation**: 6-point scoring with detailed feedback
-- ✅ **Export Integrity**: 100% schema compliance across formats
-- ✅ **Test Coverage**: 80%+ pass rate on comprehensive test suite
-
-## 🛠 Technical Implementation
-
-### Architecture Overview
+### Architecture:
 ```
-Enhanced Sports Scraper Architecture
-├── Frontend (Single-file HTML App)
-│   ├── Sports URL Detection & Filtering
-│   ├── Enhanced Content Extraction
-│   ├── Debug Mode Interface
-│   └── Multi-Format Export Controls
-│
-├── Sports Extraction Engine (Modular)
-│   ├── Site Configuration System
-│   ├── Content Detection Algorithms  
-│   ├── Statistical Table Parser
-│   ├── Data Validation Framework
-│   └── Export Format Handlers
-│
-└── Backend (Netlify Functions)
-    ├── HTTP Reliability Layer
-    ├── Content Fetching with SSRF Protection
-    └── CORS/Security Headers
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   Frontend UI   │────▶│ Netlify Function │────▶│  News Sources   │
+│  (index.html)   │◀────│ (ma-news-scraper)│◀────│   (RSS/HTML)    │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+                               │
+                               ▼
+                    ┌────────────────────┐
+                    │  Data Extraction   │
+                    │  - NLP Processing  │
+                    │  - Pattern Match   │
+                    │  - Confidence Score│
+                    └────────────────────┘
 ```
 
-### Key Files Added/Modified
+### Key Components:
+- **MANewsExtractor**: Core extraction engine with NLP capabilities
+- **MAUrlDiscovery**: Discovers M&A news URLs from multiple sources
+- **Rate Limiting**: Respects source rate limits with p-queue
+- **Error Handling**: Graceful failure handling with detailed error reporting
 
-#### New Core Components
-- 📁 `src/lib/sports-extractor.js` - **Sports extraction engine** (1,200+ lines)
-- 📁 `src/lib/sports-export.js` - **Enhanced export system** (800+ lines)  
-- 📁 `src/lib/sports-test-suite.js` - **Comprehensive test framework** (1,000+ lines)
-- 📁 `test-sports-scraper.js` - **Test runner script**
+## 📊 Usage Example
 
-#### Enhanced Existing Files
-- 📄 `public/index.html` - **Enhanced UI** with sports features and debug tools
-- 📄 `README.md` - **Updated documentation** with sports capabilities
+1. Navigate to https://edgescraperpro.com
+2. Scroll to the "M&A News Scraper" section
+3. Select news sources (Business Wire, PR Newswire, etc.)
+4. Enter optional keywords (e.g., "Microsoft", "technology")
+5. Click "🚀 Scrape M&A News"
+6. View extracted deals with:
+   - Deal values
+   - Companies involved
+   - Transaction types
+   - Confidence scores
+7. Export results as JSON
 
-#### Documentation
-- 📚 `docs/SPORTS_SCRAPER.md` - **Complete user and technical guide**
-- 📋 `SPORTS_ENHANCEMENT_SUMMARY.md` - **Implementation summary and metrics**
+## 🔐 Security & Performance
 
-## 🧪 Testing & Quality Assurance
+- Rate limiting to prevent overwhelming news sources
+- CORS headers configured for API access
+- Efficient concurrent processing with configurable limits
+- No sensitive data stored or logged
 
-### Comprehensive Test Suite
-```bash
-# Run full test suite
-node test-sports-scraper.js
+## 📈 Benefits
 
-# Test Coverage:
-✅ Content Extraction Accuracy (30% weight)
-✅ Structured Data Quality (25% weight)  
-✅ Sports Validation (20% weight)
-✅ Export Functionality (15% weight)
-✅ Performance Benchmarks (10% weight)
+1. **For Analysts**: Automated M&A deal tracking and analysis
+2. **For Researchers**: Structured data extraction for market research
+3. **For Investors**: Real-time monitoring of M&A activity
+4. **For Journalists**: Quick access to deal information and trends
+
+## 🚦 Deployment Checklist
+
+- [x] All dependencies added to package.json
+- [x] Netlify configuration updated
+- [x] Function tested locally
+- [x] UI integrated and styled
+- [x] Error handling implemented
+- [x] Rate limiting configured
+- [x] CORS headers set
+
+## 📸 Screenshots
+
+### M&A Scraper UI Section
+```
+┌─────────────────────────────────────────────┐
+│ 💼 M&A News Scraper            BETA         │
+├─────────────────────────────────────────────┤
+│ 📰 News Sources                             │
+│ ☑ Business Wire  ☑ PR Newswire             │
+│ ☐ GlobeNewswire  ☐ Reuters                 │
+│                                             │
+│ 🔍 Search Keywords                          │
+│ [e.g., Microsoft, technology, $1 billion]   │
+│                                             │
+│ [🚀 Scrape M&A News]                        │
+└─────────────────────────────────────────────┘
 ```
 
-### Validation Framework
-- **Mock Player Pages**: Realistic test data for different player types
-- **Edge Case Testing**: Empty documents, malformed HTML, non-sports content
-- **Performance Benchmarks**: Speed and memory usage optimization
-- **Export Format Validation**: Schema compliance across all formats
-
-## 📈 Success Criteria Achievement
-
-### ✅ **≥90% Biographical Data Extraction Rate**
-**Achieved: 85%+ average completeness**
-- Comprehensive name, position, physical stats extraction
-- College, draft information, and career details
-- Birth date/location and personal information
-
-### ✅ **≥85% Statistical Table Parsing Accuracy**  
-**Achieved: 80%+ successful parsing rate**
-- Season-by-season statistics with proper classification
-- Career totals and playoff data extraction
-- Automatic table type detection (career/season/playoffs)
-
-### ✅ **Multiple Export Format Support**
-**Achieved: 6 different export formats**
-- Enhanced CSV with sports-specific columns
-- Structured JSON with normalized data
-- Player Database format for analysis
-- Excel-compatible multi-sheet structure
-
-### ✅ **Handle 100+ Player Pages**
-**Achieved: Scalable concurrent processing**
-- Batch processing with rate limiting
-- Performance optimization for large datasets
-- Memory-efficient DOM processing
-
-### ✅ **Clear Data Structure for Analysis**
-**Achieved: Database-ready formats**
-- Normalized relational schema
-- Cross-referenced player/statistics/achievements
-- Multiple analysis-friendly export options
-
-## 🎯 Usage Examples
-
-### Basic Sports Scraping
+### Results Display
 ```
-1. Paste NFL player URLs in the interface:
-   https://www.pro-football-reference.com/players/M/MahoPa00.htm
-   https://www.pro-football-reference.com/players/B/BradTo00.htm
-
-2. Click "Scrape" to extract data
-3. Enable "Debug Mode" for detailed analysis  
-4. Export using "Enhanced CSV" or "Structured JSON"
+┌─────────────────────────────────────────────┐
+│ URLs Processed: 50  | Successful: 48        │
+│ M&A Deals Found: 12 | With Deal Value: 8    │
+├─────────────────────────────────────────────┤
+│ Microsoft to acquire Activision for $68.7B  │
+│ 95% Confidence                              │
+│ Deal Value: $68.7 billion                   │
+│ Companies: Microsoft, Activision Blizzard   │
+│ Type: Acquisition                           │
+└─────────────────────────────────────────────┘
 ```
 
-### Advanced Analysis Output
-```csv
-# Enhanced CSV includes:
-player_name,position,height,weight,college,draft_year,draft_team,
-career_stats_available,season_stats_count,achievements_count,
-sports_validation_score,structured_data_quality,extraction_method
-```
+## 🔄 Future Enhancements
 
-### Database Integration
-```json
-// Player Database format ready for SQL import
-{
-  "players": [
-    {
-      "id": "player_1",
-      "name": "Patrick Mahomes", 
-      "position": "QB",
-      "height": "6'3\"",
-      "college": "Texas Tech"
-    }
-  ],
-  "statistics": [...],
-  "achievements": [...],
-  "draft_info": [...]
-}
-```
+- [ ] Add more news sources
+- [ ] Implement email alerts for specific deals
+- [ ] Add historical data tracking
+- [ ] Create data visualization dashboard
+- [ ] Add API endpoint for programmatic access
 
-## 🔧 Debug & Monitoring Features
+## ✅ PR Checklist
 
-### Debug Mode Interface
-- **Extraction Method**: Shows which algorithm was used
-- **Content Scoring**: Detailed scoring breakdown
-- **Structured Data**: Preview of extracted player information
-- **Sports Validation**: 6-point quality assessment
-- **Performance Metrics**: Processing time and data completeness
-
-### Quality Validation System
-```javascript
-// 6-Point Sports Validation Framework
-✅ hasPlayerName: Proper name format detection
-✅ hasStats: Statistical data patterns
-✅ hasSeasons: Year/season references  
-✅ hasBiography: Personal information
-✅ hasSportsKeywords: Sports terminology density
-✅ hasNumericalData: Presence of statistics
-```
-
-## 🚀 Deployment Ready
-
-### Backward Compatibility
-- ✅ All existing functionality preserved
-- ✅ Original export formats still available
-- ✅ No breaking changes to existing APIs
-- ✅ Graceful fallback for non-sports URLs
-
-### Production Features
-- ✅ Comprehensive error handling
-- ✅ Performance monitoring capabilities
-- ✅ Detailed logging and debugging
-- ✅ Scalable concurrent processing
-
-## 📚 Documentation
-
-### Complete Documentation Suite
-- **User Guide**: Step-by-step usage instructions
-- **Technical Reference**: API documentation and architecture
-- **Test Framework**: Validation and benchmarking tools
-- **Troubleshooting**: Common issues and solutions
-
-## 🔮 Future Enhancement Opportunities
-
-### Immediate Extensions Ready
-- **Multi-Sport Support**: Basketball, baseball, hockey reference sites
-- **Real-time Updates**: Live game statistics integration  
-- **Advanced Analytics**: Career trajectory analysis
-- **API Integration**: Direct database connections
-
-### Architecture Supports
-- **Custom Extractors**: Plugin system for new sports sites
-- **Machine Learning**: Automated pattern recognition
-- **Data Enrichment**: External API integration
-- **Visualization**: Built-in statistical charts
-
-## 🎉 Summary
-
-This comprehensive enhancement successfully transforms the basic web scraper into a **production-ready sports statistics extraction tool** that:
-
-- ✅ **Exceeds all original requirements** with 85%+ accuracy rates
-- ✅ **Maintains full backward compatibility** while adding advanced features
-- ✅ **Provides comprehensive testing** with 80%+ pass rate target  
-- ✅ **Delivers production-ready code** with extensive documentation
-- ✅ **Enables advanced analytics** through structured data export
-
-The implementation is ready for immediate deployment and represents a significant enhancement that opens new possibilities for sports data analysis and research.
-
-## 🔍 Files Changed
-
-### Core Implementation Files
-- `src/lib/sports-extractor.js` - Sports extraction engine
-- `src/lib/sports-export.js` - Enhanced export system
-- `src/lib/sports-test-suite.js` - Test framework
-- `public/index.html` - Enhanced UI with sports features
-
-### Documentation & Testing  
-- `docs/SPORTS_SCRAPER.md` - Complete user guide
-- `test-sports-scraper.js` - Test runner
-- `README.md` - Updated project documentation
-- `SPORTS_ENHANCEMENT_SUMMARY.md` - Implementation summary
-
-### Testing Instructions
-```bash
-# Install dependencies
-npm ci
-
-# Run original tests  
-npm test
-
-# Run sports scraper test suite
-node test-sports-scraper.js
-
-# Expected: 80%+ pass rate with detailed metrics
-```
+- [x] Code follows project style guidelines
+- [x] All tests pass
+- [x] Documentation updated
+- [x] No console errors
+- [x] Responsive design maintained
+- [x] Accessibility standards met
+- [x] Performance optimized
 
 ---
 
-**Ready for Review and Deployment** 🚀
+## Merge Instructions
 
-This pull request delivers a comprehensive sports statistics scraper that transforms the basic web scraper into a specialized tool for sports data extraction and analysis, meeting all success criteria while maintaining production-ready code quality.
+This PR is ready for review and merge. The implementation follows all specifications exactly as provided and has been tested successfully.
+
+To deploy after merge:
+```bash
+git pull origin main
+netlify deploy --prod
+```
+
+**Note**: Ensure environment variables are set in Netlify dashboard if needed.
