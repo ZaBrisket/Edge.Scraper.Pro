@@ -8,7 +8,7 @@ The Description Standardization Engine transforms verbose, marketing-heavy compa
 
 - **Automatic Standardization**: Converts descriptions to ≤30 words
 - **Industry Detection**: Identifies company sector from content
-- **Smart Verb Selection**: Uses appropriate action verbs based on business type
+- **Deterministic Verb Selection**: Uses appropriate action verbs based on business type (same input = same output)
 - **Acronym Preservation**: Maintains industry-standard abbreviations
 - **Marketing Removal**: Strips superlatives and vague claims
 - **Fallback Logic**: Handles missing or incomplete data gracefully
@@ -78,6 +78,17 @@ We are committed to excellence and dedicated to our clients."
 "Acme Insurance Brokers provides commercial property, casualty insurance, 
 and workers compensation for manufacturing and healthcare organizations."
 ```
+
+## Deterministic Behavior
+
+The standardizer ensures **consistent, reproducible results**:
+
+- **Same Input = Same Output**: Identical company data always produces identical descriptions
+- **Hash-Based Verb Selection**: Uses deterministic algorithm instead of random selection
+- **Comparable Exports**: Multiple exports of same data can be diffed reliably
+- **Session Consistency**: Toggling standardization on/off produces same results
+
+This eliminates the randomness that would make exports inconsistent and non-comparable.
 
 ## Performance
 

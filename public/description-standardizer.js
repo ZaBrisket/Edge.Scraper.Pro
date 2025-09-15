@@ -123,57 +123,72 @@ const DescriptionStandardizer = (function() {
   }
 
   /**
-   * Select appropriate verb based on context
+   * Select appropriate verb based on context (deterministic)
    */
   function selectVerb(description, specialties, industry) {
     const text = (description + ' ' + specialties).toLowerCase();
     
     // Check for specific verb indicators
     if (/\b(manufact|produc|fabricat|assembl)\b/i.test(text)) {
-      return getRandomFromArray(CONFIG.VERB_TAXONOMY.manufacturing);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.manufacturing, text);
     }
     
     if (/\b(distribut|wholesal|retail|sell)\b/i.test(text)) {
-      return getRandomFromArray(CONFIG.VERB_TAXONOMY.distribution);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.distribution, text);
     }
     
     if (/\b(consult|advis|strateg)\b/i.test(text)) {
-      return getRandomFromArray(CONFIG.VERB_TAXONOMY.consulting);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.consulting, text);
     }
     
     if (/\b(manag|operat|administr|oversee)\b/i.test(text)) {
-      return getRandomFromArray(CONFIG.VERB_TAXONOMY.management);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.management, text);
     }
     
     if (/\b(maintain|service|repair|support)\b/i.test(text)) {
-      return getRandomFromArray(CONFIG.VERB_TAXONOMY.maintenance);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.maintenance, text);
     }
     
     if (/\b(install|implement|deploy|integrat)\b/i.test(text)) {
-      return getRandomFromArray(CONFIG.VERB_TAXONOMY.installation);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.installation, text);
     }
     
     if (/\b(platform|automat|streamlin|enabl)\b/i.test(text)) {
-      return getRandomFromArray(CONFIG.VERB_TAXONOMY.platform);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.platform, text);
     }
     
     if (/\b(software|application|app|system|tool)\b/i.test(text)) {
-      return getRandomFromArray(CONFIG.VERB_TAXONOMY.software);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.software, text);
     }
     
     if (/\b(specializ|focus|expert|dedicat)\b/i.test(text)) {
-      return getRandomFromArray(CONFIG.VERB_TAXONOMY.specialist);
+      return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.specialist, text);
     }
     
     // Default to service verbs
-    return getRandomFromArray(CONFIG.VERB_TAXONOMY.service);
+    return getDeterministicFromArray(CONFIG.VERB_TAXONOMY.service, text);
   }
 
   /**
-   * Get random item from array (for variety)
+   * Get deterministic item from array based on input text
+   * Uses simple hash to ensure same input always returns same verb
    */
-  function getRandomFromArray(arr) {
-    return arr[Math.floor(Math.random() * arr.length)];
+  function getDeterministicFromArray(arr, text) {
+    if (!arr || arr.length === 0) return '';
+    if (arr.length === 1) return arr[0];
+    
+    // Create simple hash from text
+    let hash = 0;
+    const str = text || '';
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    // Use absolute value to ensure positive index
+    const index = Math.abs(hash) % arr.length;
+    return arr[index];
   }
 
   /**

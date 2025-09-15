@@ -112,4 +112,48 @@ describe('DescriptionStandardizer', () => {
       expect(result).toBe('Acme Solutions');
     });
   });
+
+  describe('deterministic behavior', () => {
+    it('should produce identical results for same input', () => {
+      const input = {
+        companyName: 'Test Corp',
+        description: 'A test company that provides software solutions',
+        specialties: 'web development, mobile apps',
+        industries: 'Technology'
+      };
+      
+      // Run standardization multiple times
+      const results = [];
+      for (let i = 0; i < 5; i++) {
+        results.push(DescriptionStandardizer.standardize(input));
+      }
+      
+      // All results should be identical
+      const allIdentical = results.every(result => result === results[0]);
+      expect(allIdentical).toBe(true);
+      expect(results[0]).toBeDefined();
+      expect(results[0].length).toBeGreaterThan(0);
+    });
+    
+    it('should produce different results for different inputs', () => {
+      const input1 = {
+        companyName: 'Tech Corp',
+        description: 'Software development',
+        specialties: 'web apps'
+      };
+      
+      const input2 = {
+        companyName: 'Build Corp',
+        description: 'Construction services',
+        specialties: 'general contracting'
+      };
+      
+      const result1 = DescriptionStandardizer.standardize(input1);
+      const result2 = DescriptionStandardizer.standardize(input2);
+      
+      expect(result1).not.toBe(result2);
+      expect(result1).toBeDefined();
+      expect(result2).toBeDefined();
+    });
+  });
 });
