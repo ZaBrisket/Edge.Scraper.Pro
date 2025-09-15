@@ -1,23 +1,23 @@
 [build]
-  # Serve the public directory directly
   publish = "public"
-  # Serverless functions location
-  functions = "netlify/functions"
-  # No build needed for static HTML
-  command = "echo 'Deploying standalone HTML app'"
+  command = "npm ci"
 
 [build.environment]
   NODE_VERSION = "18"
   # Critical environment variables
   BYPASS_AUTH = "true"
-  HTTP_DEADLINE_MS = "15000"
+  HTTP_DEADLINE_MS = "28000"
   PUBLIC_API_KEY = "public-2024"
+  REQUEST_REFERER = "https://news.google.com/"
 
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
   included_files = ["src/**"]
-  external_node_modules = ["natural", "compromise", "jsdom", "cheerio", "axios", "xml2js"]
+  external_node_modules = [
+    "natural", "compromise", "jsdom", "cheerio", "axios", "xml2js",
+    "undici", "set-cookie-parser", "@mozilla/readability"
+  ]
 
 [functions."ma-news-scraper"]
   external_node_modules = ["natural", "compromise", "jsdom", "cheerio", "axios", "xml2js"]
