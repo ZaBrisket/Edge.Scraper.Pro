@@ -1,11 +1,20 @@
-const Bottleneck = require('bottleneck');
+const AdaptiveRateLimiter = require('./adaptive-rate-limiter');
 const { randomUUID } = require('crypto');
 const { NetworkError, RateLimitError, TimeoutError, CircuitOpenError } = require('./errors');
 const config = require('../config');
 const createLogger = require('./logging');
 
+// Initialize global adaptive rate limiter
+const adaptiveRateLimiter = new AdaptiveRateLimiter();
+
+// Listen to metrics for logging (optional)
+adaptiveRateLimiter.on('metrics', (metrics) => {
+  if (process.env.DEBUG_RATE_LIMITER === 'true') {
+    console.log('[RateLimiter Metrics]', JSON.stringify(metrics, null, 2));
+  }
+});
+
 // Simplified enhanced client for testing
-const limiters = new Map();
 const circuits = new Map();
 const metrics = {
   requests: { total: 0, byHost: {}, byStatus: {} },
@@ -15,23 +24,7 @@ const metrics = {
   deferrals: { count: 0, byHost: {} },
 };
 
-function getHostLimits(host) {
-  return config.HOST_LIMITS[host] || config.HOST_LIMITS.default;
-}
-
-function getLimiter(host) {
-  if (!limiters.has(host)) {
-    const limits = getHostLimits(host);
-    const limiter = new Bottleneck({
-      maxConcurrent: 1,
-      reservoir: limits.burst,
-      reservoirRefreshAmount: limits.burst,
-      reservoirRefreshInterval: 1000 / limits.rps,
-    });
-    limiters.set(host, limiter);
-  }
-  return limiters.get(host);
-}
+// Removed getHostLimits and getLimiter - now handled by AdaptiveRateLimiter
 
 function getCircuit(host) {
   if (!circuits.has(host)) {
@@ -92,7 +85,6 @@ function calculateBackoff(attempt, retryAfter = null) {
 async function fetchWithPolicy(input, opts = {}) {
   const url = typeof input === 'string' ? new URL(input) : new URL(input.url || input.href);
   const host = url.host;
-  const limiter = getLimiter(host);
   const circuit = getCircuit(host);
   const correlationId = opts.correlationId || randomUUID();
   const logger = createLogger(correlationId).child({ host, url: url.toString() });
@@ -231,11 +223,25 @@ async function fetchWithPolicy(input, opts = {}) {
     }
   };
 
+  // Acquire token from adaptive rate limiter before making request
+  const tokenInfo = await adaptiveRateLimiter.acquireToken(host);
+  logger.info({ tokenInfo }, 'Acquired rate limit token');
+  
   let attempt = 0;
   while (true) {
     try {
-      return await limiter.schedule(() => attemptFetch(attempt + 1));
+      const result = await attemptFetch(attempt + 1);
+      
+      // Feed response back to rate limiter for learning
+      adaptiveRateLimiter.handleResponse(host, result);
+      
+      return result;
     } catch (err) {
+      // Report errors to rate limiter
+      if (err.status) {
+        adaptiveRateLimiter.handleResponse(host, { status: err.status });
+      }
+      
       if (
         err instanceof CircuitOpenError ||
         err instanceof TimeoutError ||
@@ -256,7 +262,7 @@ async function fetchWithPolicy(input, opts = {}) {
 function getMetrics() {
   return {
     ...metrics,
-    limiters: Array.from(limiters.keys()),
+    rateLimiter: adaptiveRateLimiter.getMetrics(),
     circuits: Array.from(circuits.entries()).map(([host, circuit]) => ({
       host,
       state: circuit.state,
@@ -285,8 +291,62 @@ function resetMetrics() {
   });
 }
 
+// Simple wrapper for compatibility
+async function fetchWithEnhancedClient(url, options = {}) {
+  const parsed = new URL(url);
+  const hostname = parsed.hostname;
+  
+  // Acquire token from adaptive rate limiter
+  const tokenInfo = await adaptiveRateLimiter.acquireToken(hostname);
+  
+  try {
+    // Set timeout
+    const timeout = options.timeout || parseInt(process.env.HTTP_DEADLINE_MS) || 30000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    
+    const fetchOptions = {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        ...options.headers,
+        'User-Agent': options.headers?.['User-Agent'] || 
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    };
+    
+    const response = await fetch(url, fetchOptions);
+    clearTimeout(timeoutId);
+    
+    // Feed response back to rate limiter for learning
+    adaptiveRateLimiter.handleResponse(hostname, response);
+    
+    // Handle 429 specifically
+    if (response.status === 429) {
+      const retryAfter = response.headers.get('retry-after');
+      const error = new Error(`Rate limited: ${response.status} ${response.statusText}`);
+      error.code = 'RATE_LIMITED';
+      error.status = 429;
+      error.retryAfter = retryAfter;
+      throw error;
+    }
+    
+    return response;
+    
+  } catch (error) {
+    // Report errors to rate limiter
+    if (error.code !== 'RATE_LIMITED') {
+      adaptiveRateLimiter.handleResponse(hostname, {
+        status: error.code === 'ECONNREFUSED' ? 503 : 500
+      });
+    }
+    throw error;
+  }
+}
+
 module.exports = {
   fetchWithPolicy,
+  fetchWithEnhancedClient,
   getMetrics,
   resetMetrics,
 };
