@@ -1272,6 +1272,423 @@ function exportExcel365() {
   downloadFile(blob, `Target_Universe_Excel365_${timestamp}.xlsx`);
 }
 
+/**
+ * Professional Excel export with full formatting matching M&A standards
+ * Replaces broken SheetJS implementation with ExcelJS for style support
+ */
+async function exportExcelProfessional() {
+  const includePII = $('includePII').checked;
+  const targetData = AppState.filtered;
+  
+  if (targetData.length === 0) {
+    showMessage('No data to export', 'warning');
+    return;
+  }
+
+  // Show loading message
+  showMessage('Generating professional Excel report...', 'info');
+
+  try {
+    // Create workbook with metadata
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'EdgeScraperPro';
+    workbook.lastModifiedBy = 'EdgeScraperPro';
+    workbook.created = new Date();
+    workbook.modified = new Date();
+
+    // Sort data by revenue (highest first) - CRITICAL for M&A reports
+    const sortedData = [...targetData].sort((a, b) => {
+      const aRev = parseFloat(a.revenue) || parseFloat(a.revenueMM) || 0;
+      const bRev = parseFloat(b.revenue) || parseFloat(b.revenueMM) || 0;
+      return bRev - aRev;
+    });
+
+    // ============ SHEET 1: TARGET UNIVERSE (Main Report) ============
+    const sheet1 = workbook.addWorksheet('Target Universe', {
+      properties: { 
+        tabColor: { argb: 'FF366092' },
+        defaultRowHeight: 15
+      },
+      pageSetup: { 
+        paperSize: 9, 
+        orientation: 'landscape',
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0
+      }
+    });
+
+    // Professional column structure matching M&A standard
+    const columns = [
+      { key: 'colA', width: 4.63 },   // A - Spacing
+      { key: 'colB', width: 13.00 },  // B - Spacing  
+      { key: 'colC', width: 0.82 },   // C - Spacing
+      { key: 'index', width: 2.82 },  // D - #
+      { key: 'company', width: 7.63 }, // E - Company (will be wider)
+      { key: 'logo', width: 20.63 },  // F - Logo/Image
+      { key: 'city', width: 18.18 },  // G - City
+      { key: 'state', width: 7.27 },  // H - State
+      { key: 'location', width: 15.63 }, // I - City, State
+      { key: 'website', width: 33.82 }, // J - Website
+      { key: 'domain', width: 25.00 }, // K - Domain
+      { key: 'description', width: 50.63 }, // L - Description
+      { key: 'employees', width: 12.63 }, // M - Employees/Count
+      { key: 'revenue', width: 11.91 }, // N - Est. Rev
+      { key: 'execTitle', width: 18.73 }, // O - Executive Title
+      { key: 'execName', width: 16.82 }, // P - Executive Name
+      { key: 'execBlock', width: 21.00 }, // Q - Executive Block
+      { key: 'latestRevenue', width: 17.82 }, // R - Latest Revenue ($)
+      { key: 'annotation', width: 13.00 } // S - ($ in millions)
+    ];
+
+    if (includePII) {
+      columns.push({ key: 'execEmail', width: 30.00 }); // T - Executive Email
+    }
+
+    // Set columns with keys only (we'll add data manually for complex layout)
+    sheet1.columns = columns.map(col => ({ key: col.key, width: col.width }));
+
+    // Row 1: Empty
+    sheet1.addRow([]);
+
+    // Row 2: Main Title
+    const titleRow = sheet1.getRow(2);
+    const sourceFile = AppState.fileInfo?.name || 'M&A Target Universe';
+    const companyName = sourceFile.replace(/\.[^/.]+$/, '').replace(/_/g, ' ').replace(/-/g, ' ');
+    
+    // Add title in column C
+    titleRow.getCell(3).value = companyName;
+    sheet1.mergeCells('C2:P2');
+    titleRow.getCell(3).font = { 
+      name: 'Calibri', 
+      size: 14, 
+      bold: true,
+      color: { argb: 'FF000000' }
+    };
+    titleRow.getCell(3).alignment = { 
+      vertical: 'middle', 
+      horizontal: 'center' 
+    };
+
+    // Row 3: Subtitle
+    const subtitleRow = sheet1.getRow(3);
+    subtitleRow.getCell(3).value = 'Acquisition Target Universe (Sorted by Est. Revenue)';
+    sheet1.mergeCells('C3:P3');
+    subtitleRow.getCell(3).font = { 
+      name: 'Calibri', 
+      size: 11, 
+      bold: false,
+      italic: true 
+    };
+    subtitleRow.getCell(3).alignment = { 
+      vertical: 'middle', 
+      horizontal: 'center' 
+    };
+
+    // Rows 4-5: Empty spacing
+    sheet1.addRow([]);
+    sheet1.addRow([]);
+
+    // Row 6: Headers
+    const headerData = [
+      null, null, null, // A, B, C - spacing columns
+      '#', // D
+      'Company', // E
+      null, // F - Logo column (IMAGE formula for Excel 365)
+      'City', // G
+      'State', // H
+      'City, State', // I
+      'Website', // J
+      'Domain', // K
+      'Description', // L
+      'Count', // M
+      'Est. Rev', // N
+      'Executive Title', // O
+      'Executive Name', // P
+      'Executive', // Q
+      'Latest Revenue ($)', // R
+      '($ in millions)' // S - annotation
+    ];
+
+    if (includePII) {
+      headerData.push('Executive Email'); // T
+    }
+
+    const headerRow = sheet1.getRow(6);
+    headerRow.values = headerData;
+    headerRow.height = 20;
+
+    // Format header cells
+    for (let col = 1; col <= headerData.length; col++) {
+      const cell = headerRow.getCell(col);
+      if (headerData[col - 1]) { // Only format non-null cells
+        cell.font = { 
+          name: 'Calibri', 
+          size: 10, 
+          bold: true,
+          color: { argb: 'FF000000' }
+        };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFD9D9D9' } // Light gray
+        };
+        cell.alignment = { 
+          vertical: 'top', 
+          horizontal: col <= 6 ? 'center' : 'left',
+          wrapText: true
+        };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FF000000' } },
+          left: { style: 'thin', color: { argb: 'FF000000' } },
+          bottom: { style: 'medium', color: { argb: 'FF000000' } },
+          right: { style: 'thin', color: { argb: 'FF000000' } }
+        };
+      }
+    }
+
+    // Special formatting for specific header cells
+    headerRow.getCell(5).alignment = { vertical: 'top', horizontal: 'centerContinuous' }; // Company
+
+    // Add data rows starting from row 7
+    let currentRow = 7;
+    sortedData.forEach((company, index) => {
+      const rowData = [
+        null, null, null, // A, B, C - spacing
+        index + 1, // D - Index number
+        company.informalName || company.companyName || '', // E - Company name
+        null, // F - Logo placeholder (will add IMAGE formula below)
+        company.city || '', // G - City
+        company.state || '', // H - State
+        company.cityState || `${company.city || ''}, ${company.state || ''}`.trim(), // I - Location
+        company.website || '', // J - Website
+        company.domain || '', // K - Domain
+        company.description || (company.rawDescription ? company.rawDescription.substring(0, 200) + '...' : ''), // L - Description
+        company.employeeCount || company.employeeRange || '', // M - Employee count
+        company.revenueMM ? parseFloat(company.revenueMM) : null, // N - Revenue in millions
+        company.execTitle || '', // O - Executive title
+        company.execName || '', // P - Executive name
+        company.execBlock || `${company.execTitle || ''} ${company.execName || ''}`.trim(), // Q - Combined
+        company.revenue ? parseFloat(company.revenue) : null, // R - Latest revenue
+        null // S - Annotation column
+      ];
+
+      if (includePII) {
+        rowData.push(company.execEmail || ''); // T - Email
+      }
+
+      const row = sheet1.getRow(currentRow);
+      row.values = rowData;
+      row.height = 15;
+
+      // Format data cells
+      for (let col = 1; col <= rowData.length; col++) {
+        const cell = row.getCell(col);
+        
+        // Base font for all data cells
+        cell.font = { name: 'Calibri', size: 10 };
+        
+        // Alignment based on column
+        if (col === 4) { // Index column
+          cell.alignment = { horizontal: 'center', vertical: 'top' };
+        } else if (col === 13 || col === 14 || col === 18) { // Number columns
+          cell.alignment = { horizontal: 'right', vertical: 'top' };
+        } else {
+          cell.alignment = { horizontal: 'left', vertical: 'top' };
+        }
+
+        // Number formatting
+        if (col === 14 && rowData[col - 1]) { // Est. Rev column
+          cell.numFmt = '#,##0.00';
+        } else if (col === 18 && rowData[col - 1]) { // Latest Revenue column
+          cell.numFmt = '#,##0';
+        } else if (col === 13 && typeof rowData[col - 1] === 'number') { // Employee count
+          cell.numFmt = '#,##0';
+        }
+
+        // Website as hyperlink
+        if (col === 10 && company.website) { // Website column
+          cell.value = {
+            text: company.website,
+            hyperlink: company.website,
+            tooltip: 'Click to visit website'
+          };
+          cell.font = { 
+            name: 'Calibri', 
+            size: 10, 
+            color: { argb: 'FF0066CC' }, 
+            underline: true 
+          };
+        }
+
+        // Alternating row colors for better readability
+        if (index % 2 === 0) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF7F7F7' }
+          };
+        }
+
+        // Light borders for data cells
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+          left: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+          right: { style: 'thin', color: { argb: 'FFE0E0E0' } }
+        };
+      }
+
+      // Add IMAGE formula for Excel 365 (Column F)
+      if (company.domain) {
+        const imageFormula = `=IMAGE("https://logo.clearbit.com/${company.domain}?size=64", 4, 64, 64)`;
+        row.getCell(6).value = { formula: imageFormula };
+      }
+
+      currentRow++;
+    });
+
+    // Add summary row
+    const summaryRow = sheet1.getRow(currentRow + 1);
+    const totalCompanies = sortedData.length;
+    const companiesWithRevenue = sortedData.filter(c => c.revenue || c.revenueMM).length;
+    const totalRevenue = sortedData.reduce((sum, c) => sum + (parseFloat(c.revenueMM) || 0), 0);
+    const avgRevenue = companiesWithRevenue > 0 ? totalRevenue / companiesWithRevenue : 0;
+
+    summaryRow.values = [
+      null, null, null,
+      'Total:',
+      `${totalCompanies} Companies`,
+      null, null, null, null, null, null, null,
+      null,
+      totalRevenue, // Total revenue in column N
+      null, null, null, null,
+      `Avg: $${avgRevenue.toFixed(2)}M`
+    ];
+
+    // Format summary row
+    summaryRow.font = { name: 'Calibri', size: 10, bold: true };
+    summaryRow.getCell(14).numFmt = '#,##0.00';
+
+    // Freeze panes at row 6 (headers)
+    sheet1.views = [{
+      state: 'frozen',
+      xSplit: 0,
+      ySplit: 6,
+      topLeftCell: 'A7',
+      activeCell: 'D7'
+    }];
+
+    // Add autofilter to headers
+    sheet1.autoFilter = {
+      from: { row: 6, column: 4 },
+      to: { row: currentRow - 1, column: includePII ? 20 : 19 }
+    };
+
+    // ============ SHEET 2: DESCRIPTIONS ============
+    const sheet2 = workbook.addWorksheet('Descriptions', {
+      properties: { tabColor: { argb: 'FF70AD47' } }
+    });
+
+    sheet2.columns = [
+      { key: 'company', header: 'Company', width: 30 },
+      { key: 'summary', header: 'Summary', width: 60 },
+      { key: 'full', header: 'Full Description', width: 80 }
+    ];
+
+    // Add header row
+    const descHeaderRow = sheet2.getRow(1);
+    descHeaderRow.values = ['Company', 'Summary', 'Full Description'];
+    descHeaderRow.font = { name: 'Calibri', size: 11, bold: true };
+    descHeaderRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE2EFDA' }
+    };
+
+    // Add description data
+    sortedData.forEach((company, index) => {
+      const row = sheet2.addRow({
+        company: company.informalName || company.companyName || '',
+        summary: company.description || '',
+        full: company.rawDescription || ''
+      });
+
+      // Alternating colors
+      if (index % 2 === 0) {
+        row.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF7F7F7' }
+        };
+      }
+    });
+
+    // ============ SHEET 3: SOURCE DATA ============
+    const sheet3 = workbook.addWorksheet('Source Data', {
+      properties: { tabColor: { argb: 'FFFF6600' } }
+    });
+
+    // Add raw data if available
+    if (AppState.raw && AppState.raw.length > 0) {
+      const rawHeaders = Object.keys(AppState.raw[0]);
+      
+      sheet3.columns = rawHeaders.map(header => ({
+        key: header,
+        header: header,
+        width: 15
+      }));
+
+      // Add header row
+      const sourceHeaderRow = sheet3.getRow(1);
+      sourceHeaderRow.values = rawHeaders;
+      sourceHeaderRow.font = { name: 'Calibri', size: 10, bold: true };
+      sourceHeaderRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFFE6E6' }
+      };
+
+      // Add data
+      AppState.raw.forEach(row => {
+        sheet3.addRow(row);
+      });
+    }
+
+    // Generate Excel file
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+
+    // Create filename with timestamp
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const cleanName = (AppState.fileInfo?.name || 'target-universe')
+      .replace(/\.[^/.]+$/, '')
+      .replace(/[^a-zA-Z0-9]/g, '-');
+    const filename = `${cleanName}-${timestamp}.xlsx`;
+
+    // Download file
+    downloadFile(blob, filename);
+
+    showMessage(`✅ Professional Excel exported: ${sortedData.length} companies`, 'success');
+
+  } catch (error) {
+    console.error('Excel export error:', error);
+    showMessage('Error generating Excel. Please try again.', 'error');
+  }
+}
+
+/**
+ * Export with Excel 365 IMAGE formulas for automatic logo display
+ * This is a variant that uses IMAGE() formulas which work in Excel 365/Online
+ */
+async function exportExcel365Professional() {
+  // Call the main professional export with a flag
+  // The IMAGE formulas are already included in exportExcelProfessional
+  await exportExcelProfessional();
+}
+
 function downloadFile(content, filename, mimeType) {
   const blob = content instanceof Blob ? content : 
     new Blob([content], { type: mimeType });
@@ -1533,8 +1950,18 @@ function initializeApp() {
   
   // Export buttons
   $('exportCsvBtn').addEventListener('click', exportCSV);
-  $('exportExcelBtn').addEventListener('click', exportExcel);
-  $('exportExcel365Btn').addEventListener('click', exportExcel365);
+  
+  // Check if ExcelJS is loaded, fallback to old method if not
+  if (typeof ExcelJS === 'undefined') {
+    console.warn('ExcelJS not loaded. Excel export will lack formatting.');
+    // Keep original handlers as fallback
+    $('exportExcelBtn').addEventListener('click', exportExcel);
+    $('exportExcel365Btn').addEventListener('click', exportExcel365);
+  } else {
+    // Use new professional export with full formatting
+    $('exportExcelBtn').addEventListener('click', exportExcelProfessional);
+    $('exportExcel365Btn').addEventListener('click', exportExcel365Professional);
+  }
   
   // Clear button
   $('clearBtn').addEventListener('click', () => {
