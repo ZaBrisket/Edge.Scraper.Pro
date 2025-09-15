@@ -11,7 +11,13 @@ const CONFIG = {
   STORAGE_MAX_SIZE: 5 * 1024 * 1024, // 5MB
   CLEARBIT_API: 'https://logo.clearbit.com',
   DEFAULT_LOGO_SIZE: 64,
-  SESSION_EXPIRY_HOURS: 24
+  SESSION_EXPIRY_HOURS: 24,
+  ENABLE_DESCRIPTION_STANDARDIZATION: true,
+  REQUIRED_COLUMNS: [
+    'Company Name',
+    'Website',
+    'Latest Estimated Revenue ($)'
+  ]
 };
 
 // ============= Template-Based Summarization Configuration =============
@@ -483,44 +489,84 @@ async function parseCSV(file) {
 
 // ============= Data Processing =============
 function processRow(row) {
-  // Basic fields
+  // Core fields
   const website = row.website || '';
   const domain = extractDomain(website);
   
-  // Clean employee range (remove tabs)
+  // Company info
+  const companyName = row.companyName || '';
+  const informalName = row.informalName || companyName;
+  
+  // Location
+  const city = row.city || '';
+  const state = row.state || '';
+  const cityState = [city, state].filter(Boolean).join(', ');
+  
+  // Raw description data
+  const rawDescription = row.description || '';
+  const mzSummary = row.mzSummary || row['mz summary description'];
+  const specialties = row.specialties || '';
+  const industries = row.industries || '';
+  const endMarkets = row.endMarkets || '';
+  
+  // Generate standardized description if enabled
+  let description;
+  if (CONFIG.ENABLE_DESCRIPTION_STANDARDIZATION && typeof DescriptionStandardizer !== 'undefined') {
+    try {
+      description = DescriptionStandardizer.standardize({
+        companyName,
+        informalName,
+        website,
+        description: mzSummary || rawDescription,
+        specialties,
+        industries,
+        endMarkets
+      });
+    } catch (error) {
+      console.error('Error standardizing description:', error);
+      // Fallback to original logic
+      description = (mzSummary && mzSummary.trim()) ? mzSummary : rawDescription;
+    }
+  } else {
+    // Original logic
+    description = (mzSummary && mzSummary.trim()) ? mzSummary : rawDescription;
+  }
+  
+  // Employee data
+  const employeeCount = parseNumber(row.employeeCount);
   const employeeRange = cleanEmployeeRange(row.employeeRange);
   
-  // Parse numeric fields
-  const employeeCount = parseNumber(row.employeeCount);
+  // Revenue data
   const revenue = parseMoney(row.estRevenue);
   const revenueMin = parseMoney(row.estRevenueMin);
   const revenueMax = parseMoney(row.estRevenueMax);
   const revenueMM = revenue ? revenue / 1000000 : null;
   
-  // Executive info
-  const execFirstName = row.execFirstName || '';
-  const execLastName = row.execLastName || '';
-  const execName = [execFirstName, execLastName].filter(Boolean).join(' ');
+  // Executive data
+  const execFirst = row.execFirstName || '';
+  const execLast = row.execLastName || '';
   const execTitle = row.execTitle || '';
+  const execName = [execFirst, execLast].filter(Boolean).join(' ');
   const execBlock = [execName, execTitle].filter(Boolean).join('\n');
+  const execEmail = row.execEmail || '';
   
-  // Parse list fields
-  const industries = parseList(row.industries);
-  const endMarkets = parseList(row.endMarkets);
+  // Categories
+  const industriesList = parseList(industries);
+  const endMarketsList = parseList(endMarkets);
   
-  // Generate accurate summary (CRITICAL NEW FEATURE)
-  const summary = generateAccurateSummary(row);
-  const structuredSummary = generateStructuredSummary(row);
+  // Additional metadata
+  const foundingYear = parseNumber(row.foundingYear);
+  const sourcesCount = parseNumber(row.sourcesCount);
   
   return {
-    // Core identifiers
-    companyName: row.companyName || '',
-    informalName: row.informalName || row.companyName || '',
+    // Identifiers
+    companyName,
+    informalName,
     
     // Location
-    city: row.city || '',
-    state: row.state || '',
-    cityState: [row.city, row.state].filter(Boolean).join(', '),
+    city,
+    state,
+    cityState,
     country: row.country || '',
     
     // Web presence
@@ -528,10 +574,9 @@ function processRow(row) {
     domain,
     logoUrl: domain ? `${CONFIG.CLEARBIT_API}/${domain}?size=${CONFIG.DEFAULT_LOGO_SIZE}` : '',
     
-    // Descriptions - BOTH concise and full
-    description: summary,  // Concise summary for display
-    descriptionFull: row.description || '',  // Original verbose text
-    descriptionStructured: structuredSummary,  // Structured format
+    // Description (now standardized)
+    description,
+    rawDescription, // Keep original for reference
     
     // Size metrics
     employeeCount,
@@ -544,31 +589,26 @@ function processRow(row) {
     revenueMM,
     
     // Executive info
-    execFirstName,
-    execLastName,
-    execName,
+    execFirst,
+    execLast,
     execTitle,
+    execName,
     execBlock,
-    execEmail: row.execEmail || '',
+    execEmail,
     execLinkedIn: row.execLinkedIn || '',
     
     // Categories
-    industries,
-    endMarkets,
-    businessType: classifyBusinessType(row),
-    primaryService: extractPrimaryService(row),
+    industries: industriesList,
+    endMarkets: endMarketsList,
     
     // Additional data
-    foundingYear: parseNumber(row.foundingYear),
+    foundingYear,
     ownership: row.ownership || '',
     totalRaised: parseMoney(row.totalRaised),
     profileUrl: row.profileUrl || '',
     linkedinCompany: row.linkedinCompany || '',
-    sourcesCount: parseNumber(row.sourcesCount),
-    specialties: row.specialties || '',
-    
-    // Raw row for export
-    _raw: row
+    sourcesCount,
+    specialties
   };
 }
 
@@ -601,7 +641,7 @@ function validateData(processed) {
   }
   
   // Check summary generation
-  const missingSummary = processed.filter(r => !r.description || r.description === 'private company').length;
+  const missingSummary = processed.filter(r => !r.description || r.description.length < 10).length;
   if (missingSummary > 0) {
     warnings.push(`${missingSummary} companies with limited summary information`);
   }
@@ -800,7 +840,7 @@ function renderTable() {
     
     // Use concise description, with title attribute showing full text
     const descriptionCell = row.description ? 
-      `<span title="${escapeHtml(row.descriptionFull.substring(0, 500))}">${escapeHtml(row.description)}</span>` : '';
+      `<span title="${escapeHtml((row.rawDescription || '').substring(0, 500))}">${escapeHtml(row.description)}</span>` : '';
     
     return `<tr>
       <td>${index + 1}</td>
@@ -877,22 +917,18 @@ function exportCSV() {
   
   const includePII = $('includePII').checked;
   
-  // Headers - includes both summary and structured description
+  // Headers
   const headers = [
     '#',
     'Company',
-    'City',
+    'City', 
     'State',
     'City, State',
     'Website',
     'Domain',
-    'Summary',  // Concise summary
-    'Business Type',
-    'Primary Service',
-    'Specialties',
-    'End Markets',
-    'Employee Count',
-    'Employee Range',
+    'Standardized Description', // Changed from 'Description'
+    'Original Description', // Add this
+    'Count',
     'Est. Rev ($MM)',
     'Executive Title',
     'Executive Name',
@@ -903,27 +939,20 @@ function exportCSV() {
     headers.push('Executive Email');
   }
   
-  // Always include full description at the end
-  headers.push('Full Description');
-  
   // Data rows
   const rows = [headers];
-  data.forEach((row, i) => {
+  data.forEach((row, index) => {
     const csvRow = [
-      i + 1,
+      index + 1,
       row.informalName,
       row.city,
       row.state,
       row.cityState,
       row.website,
       row.domain,
-      row.description,  // Concise summary
-      row.businessType,
-      row.primaryService || '',
-      row.specialties,
-      row.endMarkets.join(', '),
-      row.employeeCount || '',
-      row.employeeRange,
+      row.description, // Standardized
+      row.rawDescription || '', // Original
+      row.employeeCount != null ? row.employeeCount : row.employeeRange,
       row.revenueMM ? row.revenueMM.toFixed(2) : '',
       row.execTitle,
       row.execName,
@@ -933,9 +962,6 @@ function exportCSV() {
     if (includePII) {
       csvRow.push(row.execEmail);
     }
-    
-    // Add full description at end
-    csvRow.push(row.descriptionFull);
     
     rows.push(csvRow);
   });
@@ -947,123 +973,303 @@ function exportCSV() {
 }
 
 function exportExcel() {
-  const data = AppState.filtered;
-  if (!data.length) {
+  const includePII = $('includePII').checked;
+  const targetData = AppState.filtered;
+  
+  if (targetData.length === 0) {
     showMessage('No data to export', 'warning');
     return;
   }
   
-  const includePII = $('includePII').checked;
-  
-  // Create workbook
+  // Create workbook with properties
   const wb = XLSX.utils.book_new();
+  wb.Props = {
+    Title: "M&A Target Universe",
+    Author: "EdgeScraperPro",
+    CreatedDate: new Date()
+  };
   
-  // Sheet 1: Target Universe (curated view with summaries)
-  const targetHeaders = [
+  // Sort data by revenue (descending)
+  const sortedData = [...targetData].sort((a, b) => {
+    const aRev = a.revenue || 0;
+    const bRev = b.revenue || 0;
+    return bRev - aRev;
+  });
+  
+  // ========== Sheet 1: Target Universe (Professional Format) ==========
+  
+  const targetRows = [];
+  
+  // Add title section
+  targetRows.push([]); // Empty row
+  
+  // Company/File title
+  const sourceFile = AppState.fileInfo?.name || 'M&A Targets';
+  const cleanTitle = sourceFile.replace(/\.[^/.]+$/, "").replace(/_/g, ' ');
+  targetRows.push([null, null, cleanTitle]);
+  
+  // Subtitle
+  targetRows.push([null, null, 'Acquisition Target Universe (Sorted by Est. Revenue)']);
+  
+  // Empty rows for spacing
+  targetRows.push([]);
+  targetRows.push([]);
+  
+  // Professional headers (row 6)
+  const headers = [
+    null, null, null, // Empty columns A-C
     '#',
     'Company',
+    'Logo', // Will contain URL or IMAGE formula
     'City',
-    'State',
+    'State', 
     'City, State',
     'Website',
     'Domain',
-    'Summary',  // Concise version
-    'Business Type',
-    'Specialties',
-    'End Markets',
-    'Employees',
-    'Est. Rev ($MM)',
+    'Description',
+    'Count',
+    'Est. Rev',
     'Executive Title',
     'Executive Name',
-    'Latest Revenue ($)'
+    'Executive First Name',
+    'Executive Last Name',
+    'Executive',
+    'Latest Revenue ($)',
+    '($ in millions)' // Annotation column
   ];
   
   if (includePII) {
-    targetHeaders.push('Executive Email');
+    headers.push('Executive Email');
   }
   
-  const targetData = [targetHeaders];
-  data.forEach((row, i) => {
-    const excelRow = [
-      i + 1,
-      row.informalName,
-      row.city,
-      row.state,
-      row.cityState,
-      row.website,
-      row.domain,
-      row.description,  // Concise summary
-      row.businessType,
-      row.specialties,
-      row.endMarkets.join(', '),
-      row.employeeCount || row.employeeRange,
-      row.revenueMM ? Number(row.revenueMM.toFixed(2)) : '',
-      row.execTitle,
-      row.execName,
-      row.revenue || ''
+  targetRows.push(headers);
+  
+  // Add data rows
+  sortedData.forEach((row, index) => {
+    const dataRow = [
+      null, null, null, // Empty columns A-C
+      index + 1, // #
+      row.informalName || row.companyName, // Company
+      // Logo - URL for compatibility, can be IMAGE formula for Excel 365
+      row.domain ? `https://logo.clearbit.com/${row.domain}?size=64` : '',
+      row.city || '',
+      row.state || '',
+      row.cityState || '',
+      row.website || '',
+      row.domain || '',
+      row.description || row.rawDescription || '', // Use standardized or fallback to raw
+      row.employeeCount || row.employeeRange || '',
+      row.revenueMM ? Number(row.revenueMM.toFixed(2)) : null,
+      row.execTitle || '',
+      row.execName || '',
+      row.execFirst || '',
+      row.execLast || '',
+      row.execBlock || '',
+      row.revenue || null,
+      null // Annotation column
     ];
     
     if (includePII) {
-      excelRow.push(row.execEmail);
+      dataRow.push(row.execEmail || '');
     }
     
-    targetData.push(excelRow);
+    targetRows.push(dataRow);
   });
   
-  const ws1 = XLSX.utils.aoa_to_sheet(targetData);
+  // Add summary row
+  const avgEmployees = sortedData.filter(r => r.employeeCount).length > 0 ?
+    Math.round(sortedData.reduce((sum, r) => sum + (r.employeeCount || 0), 0) / 
+    sortedData.filter(r => r.employeeCount).length) : 0;
   
-  // Set column widths for better readability
+  const totalRevenue = sortedData.reduce((sum, r) => sum + (r.revenueMM || 0), 0);
+  
+  targetRows.push([]); // Empty row before summary
+  targetRows.push([
+    null, null, null,
+    'Total:',
+    `${sortedData.length} Companies`,
+    null, null, null, null, null, null, null,
+    `Avg: ${avgEmployees}`,
+    `Total: $${totalRevenue.toFixed(2)}M`
+  ]);
+  
+  // Create worksheet
+  const ws1 = XLSX.utils.aoa_to_sheet(targetRows);
+  
+  // Set column widths (professional spacing)
   ws1['!cols'] = [
-    { wch: 5 },   // #
-    { wch: 25 },  // Company
-    { wch: 15 },  // City
-    { wch: 8 },   // State
-    { wch: 20 },  // City, State
-    { wch: 25 },  // Website
-    { wch: 20 },  // Domain
-    { wch: 50 },  // Summary
-    { wch: 25 },  // Business Type
-    { wch: 30 },  // Specialties
-    { wch: 25 },  // End Markets
-    { wch: 12 },  // Employees
-    { wch: 12 },  // Revenue
-    { wch: 20 },  // Exec Title
-    { wch: 20 },  // Exec Name
-    { wch: 15 }   // Revenue $
+    { wch: 4.63 },  // A
+    { wch: 0.82 },  // B  
+    { wch: 0.82 },  // C
+    { wch: 5 },     // D - #
+    { wch: 25 },    // E - Company
+    { wch: 10 },    // F - Logo
+    { wch: 15 },    // G - City
+    { wch: 8 },     // H - State
+    { wch: 20 },    // I - City, State
+    { wch: 35 },    // J - Website
+    { wch: 25 },    // K - Domain
+    { wch: 60 },    // L - Description
+    { wch: 10 },    // M - Count
+    { wch: 12 },    // N - Est. Rev
+    { wch: 20 },    // O - Executive Title
+    { wch: 20 },    // P - Executive Name
+    { wch: 15 },    // Q - First Name
+    { wch: 15 },    // R - Last Name
+    { wch: 25 },    // S - Executive Combined
+    { wch: 20 },    // T - Latest Revenue
+    { wch: 12 }     // U - Annotation
   ];
+  
+  if (includePII) {
+    ws1['!cols'].push({ wch: 30 }); // Email column
+  }
+  
+  // Apply number formatting
+  const range = XLSX.utils.decode_range(ws1['!ref']);
+  for (let row = 6; row <= range.e.r; row++) {
+    // Format Est. Rev column (N)
+    const revCell = XLSX.utils.encode_cell({ r: row, c: 13 });
+    if (ws1[revCell] && ws1[revCell].v) {
+      ws1[revCell].z = '#,##0.00';
+    }
+    // Format Latest Revenue column (T)
+    const latestRevCell = XLSX.utils.encode_cell({ r: row, c: 19 });
+    if (ws1[latestRevCell] && ws1[latestRevCell].v) {
+      ws1[latestRevCell].z = '#,##0';
+    }
+  }
   
   XLSX.utils.book_append_sheet(wb, ws1, 'Target Universe');
   
-  // Sheet 2: Full Descriptions
-  const descHeaders = ['Company', 'Summary', 'Full Description'];
-  const descData = [descHeaders];
-  data.forEach(row => {
-    descData.push([
-      row.informalName,
-      row.description,
-      row.descriptionFull
-    ]);
-  });
+  // ========== Sheet 2: Company Descriptions ==========
   
-  const ws2 = XLSX.utils.aoa_to_sheet(descData);
-  ws2['!cols'] = [
-    { wch: 25 },  // Company
-    { wch: 50 },  // Summary
-    { wch: 100 }  // Full Description
-  ];
-  XLSX.utils.book_append_sheet(wb, ws2, 'Descriptions');
+  if (CONFIG.ENABLE_DESCRIPTION_STANDARDIZATION) {
+    const descData = sortedData.map((row, idx) => ({
+      '#': idx + 1,
+      'Company': row.informalName || row.companyName,
+      'Standardized': row.description || '',
+      'Original': row.rawDescription || '',
+      'Industries': (row.industries || []).join(', '),
+      'End Markets': (row.endMarkets || []).join(', ')
+    }));
+    
+    const ws2 = XLSX.utils.json_to_sheet(descData);
+    ws2['!cols'] = [
+      { wch: 5 },
+      { wch: 30 },
+      { wch: 60 },
+      { wch: 60 },
+      { wch: 30 },
+      { wch: 30 }
+    ];
+    
+    XLSX.utils.book_append_sheet(wb, ws2, 'Company Descriptions');
+  }
   
-  // Sheet 3: Raw Source Data
+  // ========== Sheet 3: Source Data ==========
+  
   const ws3 = XLSX.utils.json_to_sheet(AppState.raw);
   XLSX.utils.book_append_sheet(wb, ws3, 'Source Data');
   
-  // Export
-  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  const blob = new Blob([wbout], { 
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+  // Write and download
+  const wbout = XLSX.write(wb, {
+    bookType: 'xlsx',
+    type: 'array',
+    bookSST: true,
+    compression: true
   });
-  const timestamp = new Date().toISOString().split('T')[0];
-  downloadFile(blob, `target-universe-${timestamp}.xlsx`);
+  
+  const blob = new Blob([wbout], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  });
+  
+  const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const filename = `Target_Universe_${timestamp}.xlsx`;
+  
+  downloadFile(blob, filename);
+  
+  showMessage(`Excel exported: ${sortedData.length} companies`, 'success');
+}
+
+/**
+ * Export with Excel 365 IMAGE formulas for automatic logo display
+ */
+function exportExcel365() {
+  const includePII = $('includePII').checked;
+  const targetData = AppState.filtered;
+  
+  if (targetData.length === 0) {
+    showMessage('No data to export', 'warning');
+    return;
+  }
+  
+  // Sort by revenue
+  const sortedData = [...targetData].sort((a, b) => (b.revenue || 0) - (a.revenue || 0));
+  
+  // Build rows with IMAGE formulas
+  const rows = [];
+  
+  // Title section
+  rows.push([]);
+  rows.push([null, null, 'M&A Target Universe']);
+  rows.push([null, null, 'Acquisition Targets (Excel 365 Edition)']);
+  rows.push([]);
+  rows.push([]);
+  
+  // Headers
+  const headers = [
+    null, null, null,
+    '#', 'Company', 'Logo', 'City', 'State', 'Website',
+    'Description', 'Employees', 'Est. Rev ($MM)', 'Executive'
+  ];
+  if (includePII) headers.push('Email');
+  rows.push(headers);
+  
+  // Data with IMAGE formulas
+  sortedData.forEach((row, idx) => {
+    const dataRow = [
+      null, null, null,
+      idx + 1,
+      row.informalName || row.companyName,
+      // Excel 365 IMAGE formula
+      row.domain ? {
+        f: `IFERROR(IMAGE("https://logo.clearbit.com/${row.domain}?size=64"),"")`,
+        v: null
+      } : '',
+      row.city,
+      row.state,
+      row.website,
+      row.description,
+      row.employeeCount || row.employeeRange,
+      row.revenueMM ? { v: row.revenueMM, z: '#,##0.00' } : '',
+      row.execBlock
+    ];
+    if (includePII) dataRow.push(row.execEmail);
+    rows.push(dataRow);
+  });
+  
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  
+  // Column widths
+  ws['!cols'] = [
+    { wch: 3 }, { wch: 3 }, { wch: 3 },
+    { wch: 5 }, { wch: 25 }, { wch: 10 },
+    { wch: 15 }, { wch: 8 }, { wch: 35 },
+    { wch: 60 }, { wch: 12 }, { wch: 12 },
+    { wch: 25 }
+  ];
+  
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Target Universe');
+  
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([wbout], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  });
+  
+  const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  downloadFile(blob, `Target_Universe_Excel365_${timestamp}.xlsx`);
 }
 
 function downloadFile(content, filename, mimeType) {
@@ -1137,6 +1343,90 @@ function clearSession() {
   localStorage.removeItem(CONFIG.STORAGE_KEY);
 }
 
+/**
+ * Batch process descriptions with progress indicator
+ */
+async function batchStandardizeDescriptions(rows, onProgress) {
+  const BATCH_SIZE = 50;
+  const results = [];
+  
+  // Helper function to safely process a row
+  function safeProcessRow(row) {
+    try {
+      return processRow(row);
+    } catch (error) {
+      console.error('Error processing row:', error, row);
+      
+      // Return a valid processed row structure without standardization
+      // Just map the raw fields to expected structure
+      return {
+        companyName: row['company name'] || '',
+        informalName: row['informal name'] || row['company name'] || '',
+        website: row['website'] || '',
+        domain: extractDomain(row['website'] || ''),
+        description: row['description'] || row['mz summary description'] || '',
+        rawDescription: row['description'] || '',
+        city: row['city'] || '',
+        state: row['state'] || '',
+        cityState: [row['city'], row['state']].filter(Boolean).join(', '),
+        country: row['country'] || '',
+        logoUrl: row['website'] ? `${CONFIG.CLEARBIT_API}/${extractDomain(row['website'])}?size=${CONFIG.DEFAULT_LOGO_SIZE}` : '',
+        employeeCount: parseNumber(row['employee count']),
+        employeeRange: cleanEmployeeRange(row['employee range']),
+        revenue: parseMoney(row['latest estimated revenue ($)']),
+        revenueMin: parseMoney(row['latest estimated revenue min ($)']),
+        revenueMax: parseMoney(row['latest estimated revenue max ($)']),
+        revenueMM: parseMoney(row['latest estimated revenue ($)']) ? parseMoney(row['latest estimated revenue ($)']) / 1000000 : null,
+        execFirst: row['executive first name'] || '',
+        execLast: row['executive last name'] || '',
+        execTitle: row['executive title'] || '',
+        execName: [row['executive first name'], row['executive last name']].filter(Boolean).join(' '),
+        execBlock: [[row['executive first name'], row['executive last name']].filter(Boolean).join(' '), row['executive title']].filter(Boolean).join('\n'),
+        execEmail: row['executive email'] || '',
+        execLinkedIn: row['executive linkedin'] || '',
+        industries: parseList(row['industries'] || ''),
+        endMarkets: parseList(row['end markets'] || ''),
+        foundingYear: parseNumber(row['founding year']),
+        ownership: row['ownership'] || '',
+        totalRaised: parseMoney(row['total raised']),
+        profileUrl: row['profileurl'] || '',
+        linkedinCompany: row['linkedin account'] || '',
+        sourcesCount: parseNumber(row['sources count']),
+        specialties: row['specialties'] || '',
+        processingError: true
+      };
+    }
+  }
+  
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE);
+    
+    // Process batch with safe wrapper
+    const batchResults = await Promise.all(
+      batch.map(row => {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(safeProcessRow(row));
+          }, 0);
+        });
+      })
+    );
+    
+    results.push(...batchResults);
+    
+    // Report progress
+    if (onProgress) {
+      const progress = Math.min(100, Math.round((i + BATCH_SIZE) / rows.length * 100));
+      onProgress(progress);
+    }
+    
+    // Allow UI to update
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+  
+  return results;
+}
+
 // ============= File Processing =============
 async function processFile(file) {
   try {
@@ -1153,8 +1443,11 @@ async function processFile(file) {
       lastModified: file.lastModified
     };
     
-    // Process rows with summarization
-    AppState.processed = rows.map(processRow);
+    // Process rows with batch processing
+    showMessage('Processing companies...', 'info');
+    AppState.processed = await batchStandardizeDescriptions(rows, (progress) => {
+      showMessage(`Processing companies: ${progress}%`, 'info');
+    });
     AppState.filtered = AppState.processed;
     
     // Validate
@@ -1171,7 +1464,7 @@ async function processFile(file) {
     renderStats();
     renderTable();
     
-    showMessage(`Successfully loaded ${AppState.processed.length} companies with concise summaries`, 'success');
+    showMessage(`Successfully loaded ${AppState.processed.length} companies with standardized descriptions`, 'success');
     
   } catch (error) {
     console.error('File processing error:', error);
@@ -1241,6 +1534,7 @@ function initializeApp() {
   // Export buttons
   $('exportCsvBtn').addEventListener('click', exportCSV);
   $('exportExcelBtn').addEventListener('click', exportExcel);
+  $('exportExcel365Btn').addEventListener('click', exportExcel365);
   
   // Clear button
   $('clearBtn').addEventListener('click', () => {
@@ -1268,6 +1562,25 @@ function initializeApp() {
       $('endMarketFilter').value = '';
       
       showMessage('All data cleared', 'success');
+    }
+  });
+  
+  // Add event listener for standardization toggle
+  $('toggleStandardization').addEventListener('change', (e) => {
+    CONFIG.ENABLE_DESCRIPTION_STANDARDIZATION = e.target.checked;
+    
+    // Reprocess all rows with new setting
+    if (AppState.raw.length > 0) {
+      AppState.processed = AppState.raw.map(processRow);
+      applyFilters();
+      renderStats();
+      renderTable();
+      showMessage(
+        e.target.checked ? 
+        'Description standardization enabled' : 
+        'Using original descriptions',
+        'success'
+      );
     }
   });
   
