@@ -20,6 +20,13 @@ const CONFIG = {
   ]
 };
 
+// Debug mode for troubleshooting CSV parsing
+const DEBUG_MODE = {
+  CSV_PARSING: true,  // Set to true to see detailed CSV parsing logs
+  SHOW_RAW_HEADERS: true,  // Show raw headers before mapping
+  SHOW_MAPPED_DATA: true   // Show sample of mapped data
+};
+
 // ============= Template-Based Summarization Configuration =============
 const BUSINESS_TEMPLATES = {
   // HVAC and Building Systems
@@ -177,7 +184,41 @@ const HEADER_MAP = {
   'lead investor': 'leadInvestor',
   'notes': 'notes',
   'registration number 1': 'regNumber1',
-  'registry type 1': 'regType1'
+  'registry type 1': 'regType1',
+  // Additional mappings for variations
+  'company': 'companyName',
+  'name': 'companyName',
+  'business name': 'companyName',
+  'organization': 'companyName',
+  'organization name': 'companyName',
+  'email': 'execEmail',
+  'executive': 'execName',
+  'contact': 'execName',
+  'contact name': 'execName',
+  'url': 'website',
+  'web': 'website',
+  'company website': 'website',
+  'revenue': 'estRevenue',
+  'annual revenue': 'estRevenue',
+  'estimated revenue': 'estRevenue',
+  'location': 'city',
+  'address': 'street',
+  'zip': 'postalCode',
+  'zip code': 'postalCode',
+  'postal': 'postalCode',
+  'phone': 'phone',
+  'telephone': 'phone',
+  'contact phone': 'phone',
+  'employees': 'employeeCount',
+  'employee number': 'employeeCount',
+  'staff count': 'employeeCount',
+  'headcount': 'employeeCount',
+  'sector': 'industries',
+  'industry': 'industries',
+  'business type': 'industries',
+  'linkedin': 'linkedinCompany',
+  'linkedin url': 'linkedinCompany',
+  'company linkedin': 'linkedinCompany'
 };
 
 // ============= Utility Functions =============
@@ -186,6 +227,64 @@ function normalizeHeader(header) {
     .replace(/[^a-z0-9\s$%]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/**
+ * Detect CSV format type based on content analysis
+ * @param {string[]} lines - Array of CSV lines
+ * @returns {Object} Format information
+ */
+function detectCSVFormat(lines) {
+  const format = {
+    type: 'unknown',
+    headerRow: -1,
+    hasMetadata: false,
+    isSourceScrub: false,
+    delimiter: ',',
+    encoding: 'UTF-8'
+  };
+  
+  // Check for SourceScrub indicators
+  const firstFewLines = lines.slice(0, 10).join('\n').toLowerCase();
+  if (firstFewLines.includes('sourcescrub') || 
+      firstFewLines.includes('search url') ||
+      firstFewLines.includes('custom_') ||
+      firstFewLines.includes('edgewater')) {
+    format.isSourceScrub = true;
+    format.type = 'sourcescrub';
+    format.hasMetadata = true;
+  }
+  
+  // Check for tab delimiter
+  if (lines[0] && lines[0].includes('\t')) {
+    format.delimiter = '\t';
+  }
+  
+  // Look for header row
+  for (let i = 0; i < Math.min(lines.length, 10); i++) {
+    const line = lines[i];
+    if (!line) continue;
+    
+    // Count potential column headers (title case or specific keywords)
+    const potentialHeaders = line.split(format.delimiter)
+      .map(cell => cell.trim())
+      .filter(cell => {
+        // Check if it looks like a header
+        return cell.length > 0 && (
+          cell.match(/^[A-Z][a-z]/) || // Title case
+          cell.toLowerCase().match(/company|name|website|email|phone|address|city|state/i)
+        );
+      });
+    
+    // If we have multiple potential headers, this is likely our header row
+    if (potentialHeaders.length >= 3) {
+      format.headerRow = i;
+      break;
+    }
+  }
+  
+  console.log('Detected CSV format:', format);
+  return format;
 }
 
 function mapHeaders(headers) {
@@ -444,57 +543,194 @@ function generateStructuredSummary(row) {
 }
 
 // ============= CSV Parsing =============
+/**
+ * Parse CSV file with intelligent header detection
+ * Handles various SourceScrub export formats
+ */
 async function parseCSV(file) {
   const text = await file.text();
   
   // Remove UTF-8 BOM if present
   const cleanText = text.replace(/^\uFEFF/, '');
   
-  // Handle SourceScrub 2-line header format
+  // Split into lines
   const lines = cleanText.split(/\r?\n/);
-  let dataStart = 0;
   
-  // Check if first line contains "Search Url"
-  if (lines[0] && lines[0].toLowerCase().includes('search url')) {
-    // Skip first line (Search Url) and second line (blank)
-    dataStart = 2;
+  // Find the header row by looking for key column names
+  let headerRowIndex = -1;
+  let headerRow = null;
+  
+  // Common header indicators for SourceScrub files
+  const headerIndicators = [
+    'Company Name',
+    'Informal Name',
+    'Website',
+    'City',
+    'State',
+    'Description'
+  ];
+  
+  // Search for header row (typically within first 10 lines)
+  for (let i = 0; i < Math.min(lines.length, 10); i++) {
+    const line = lines[i];
+    if (!line) continue;
+    
+    // Check if this line contains multiple header indicators
+    const matchCount = headerIndicators.filter(indicator => 
+      line.includes(indicator)
+    ).length;
+    
+    // If we find at least 3 indicators, this is likely our header row
+    if (matchCount >= 3) {
+      headerRowIndex = i;
+      headerRow = line;
+      console.log(`Found header row at line ${i + 1}: ${line.substring(0, 100)}...`);
+      break;
+    }
   }
   
-  const csvData = lines.slice(dataStart).join('\n');
+  // Fallback: if no headers found, try old logic
+  if (headerRowIndex === -1) {
+    console.warn('Could not find header row with standard columns. Attempting fallback parsing...');
+    
+    // Check if first line contains "Search Url" (old SourceScrub format)
+    if (lines[0] && lines[0].toLowerCase().includes('search url')) {
+      headerRowIndex = 1; // Headers might be at row 2 (index 1)
+    } else {
+      // Assume first non-empty line is headers
+      for (let i = 0; i < Math.min(lines.length, 5); i++) {
+        if (lines[i] && lines[i].trim()) {
+          headerRowIndex = i;
+          break;
+        }
+      }
+    }
+  }
+  
+  // If still no headers found, throw error
+  if (headerRowIndex === -1) {
+    throw new Error('Could not detect CSV headers. Please ensure your file has a header row with column names like "Company Name", "Website", etc.');
+  }
+  
+  // Extract data starting from the line after headers
+  const dataLines = lines.slice(headerRowIndex + 1)
+    .filter(line => line && line.trim()) // Remove empty lines
+    .filter(line => {
+      // Filter out separator lines or metadata
+      const trimmed = line.trim();
+      return !trimmed.match(/^[,\s]*$/) && // Not just commas/spaces
+             !trimmed.startsWith('Search Url') && // Not metadata
+             !trimmed.match(/^https:\/\/.*sourcescrub\.com/); // Not search URLs
+    });
+  
+  // Reconstruct CSV with headers and data
+  const csvData = [lines[headerRowIndex], ...dataLines].join('\n');
+  
+  console.log(`Parsing CSV with ${dataLines.length} data rows (header at line ${headerRowIndex + 1})`);
   
   return new Promise((resolve, reject) => {
     Papa.parse(csvData, {
       header: true,
       skipEmptyLines: 'greedy',
+      transformHeader: (header) => {
+        // Clean headers of extra whitespace
+        return header.trim();
+      },
       complete: (results) => {
+        // Validate that we got meaningful data
+        if (!results.data || results.data.length === 0) {
+          reject(new Error('No data rows found in CSV'));
+          return;
+        }
+        
         const headers = results.meta.fields || [];
+        
+        // Validate headers contain expected fields
+        const hasCompanyName = headers.some(h => 
+          h.toLowerCase().includes('company') || 
+          h.toLowerCase().includes('name')
+        );
+        const hasWebsite = headers.some(h => 
+          h.toLowerCase().includes('website') || 
+          h.toLowerCase().includes('url')
+        );
+        
+        if (!hasCompanyName && !hasWebsite) {
+          console.warn('Warning: CSV may not have expected columns (Company Name, Website)');
+          console.log('Found headers:', headers);
+        }
+        
         const headerMap = mapHeaders(headers);
         
         // Map raw data to canonical field names
-        const rows = results.data.map(row => {
+        const rows = results.data.map((row, index) => {
           const mapped = {};
+          let hasAnyData = false;
+          
           for (const [rawKey, value] of Object.entries(row)) {
             const canonicalKey = headerMap[rawKey];
-            mapped[canonicalKey] = typeof value === 'string' ? value.trim() : value;
+            const cleanValue = typeof value === 'string' ? value.trim() : value;
+            mapped[canonicalKey] = cleanValue;
+            
+            // Check if this row has any non-empty data
+            if (cleanValue && cleanValue !== '') {
+              hasAnyData = true;
+            }
           }
+          
+          // Skip completely empty rows
+          if (!hasAnyData) {
+            console.log(`Skipping empty row ${index + 1}`);
+            return null;
+          }
+          
           return mapped;
-        });
+        }).filter(row => row !== null); // Remove null rows
+        
+        console.log(`Successfully parsed ${rows.length} valid data rows`);
+        
+        // Final validation
+        if (rows.length === 0) {
+          reject(new Error('No valid data rows found after parsing'));
+          return;
+        }
+        
+        // Log sample of first row for debugging
+        if (rows[0]) {
+          const sampleFields = ['companyName', 'website', 'city', 'state'];
+          const sample = {};
+          sampleFields.forEach(field => {
+            if (rows[0][field]) {
+              sample[field] = rows[0][field];
+            }
+          });
+          console.log('Sample of first row:', sample);
+        }
         
         resolve({ headerMap, rows });
       },
-      error: reject
+      error: (error) => {
+        console.error('Papa.parse error:', error);
+        reject(error);
+      }
     });
   });
 }
 
 // ============= Data Processing =============
 function processRow(row) {
-  // Core fields
-  const website = row.website || '';
+  // Validate row has minimum required data
+  if (!row.companyName && !row.informalName) {
+    console.warn('Row missing company name, skipping:', row);
+    return null;
+  }
+  
+  // Core fields with better fallbacks
+  const website = row.website || row.url || row.web || '';
   const domain = extractDomain(website);
   
-  // Company info
-  const companyName = row.companyName || '';
+  // Company info with multiple fallback options
+  const companyName = row.companyName || row.company || row.name || row.organization || '';
   const informalName = row.informalName || companyName;
   
   // Location
@@ -749,6 +985,21 @@ function renderStats() {
   $('statRevenue').textContent = formatMoney(median(revenues));
   $('statEmployees').textContent = formatNumber(median(employees));
   $('statStates').textContent = states.length;
+  
+  // Add data quality indicator
+  const missingWebsites = data.filter(row => !row.website).length;
+  const missingDescriptions = data.filter(row => !row.description).length;
+  
+  if (missingWebsites > 0 || missingDescriptions > 0) {
+    const qualityMsg = [];
+    if (missingWebsites > 0) {
+      qualityMsg.push(`${missingWebsites} missing websites`);
+    }
+    if (missingDescriptions > 0) {
+      qualityMsg.push(`${missingDescriptions} missing descriptions`);
+    }
+    console.warn('Data quality issues:', qualityMsg.join(', '));
+  }
   
   // State distribution
   const stateCount = {};
@@ -1850,7 +2101,26 @@ async function processFile(file) {
     showMessage('Processing file...', 'success');
     
     // Parse CSV
-    const { headerMap, rows } = await parseCSV(file);
+    let parseResult;
+    try {
+      parseResult = await parseCSV(file);
+    } catch (parseError) {
+      console.error('CSV parsing failed:', parseError);
+      showMessage(`Failed to parse CSV: ${parseError.message}`, 'error');
+      $('uploadBtn').disabled = false;
+      $('uploadBtn').textContent = 'Select CSV File';
+      return;
+    }
+    
+    const { headerMap, rows } = parseResult;
+    
+    // Additional validation
+    if (!rows || rows.length === 0) {
+      showMessage('No valid data found in the CSV file. Please check the file format.', 'error');
+      $('uploadBtn').disabled = false;
+      $('uploadBtn').textContent = 'Select CSV File';
+      return;
+    }
     
     AppState.raw = rows;
     AppState.headerMap = headerMap;
