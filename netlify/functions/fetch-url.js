@@ -1,4 +1,10 @@
-const { URL } = require('url');
+/**
+ * Enhanced URL fetching with intelligent retry
+ */
+
+const RetryManager = require('../../src/lib/retry-manager');
+const { fetchWithEnhancedClient } = require('../../src/lib/http/simple-enhanced-client');
+const ContentExtractor = require('../../src/lib/content-extractor');
 
 // Simplified CORS headers
 const corsHeaders = {
@@ -64,60 +70,70 @@ exports.handler = async (event, context) => {
       };
     }
     
-    // Fetch the URL with timeout
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const retryManager = new RetryManager({
+      maxRetries: 5,
+      baseBackoffMs: 2000,
+      maxBackoffMs: 30000
+    });
     
     try {
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'EdgeScraperPro/1.0'
-        }
-      });
-      
-      clearTimeout(timeout);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      const html = await response.text();
+      // Execute fetch with retry logic
+      const result = await retryManager.executeWithRetry(
+        async (urlToFetch) => {
+          const response = await fetchWithEnhancedClient(urlToFetch, {
+            timeout: 30000,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; EdgeScraperPro/2.0)'
+            }
+          });
+          
+          if (!response.ok) {
+            const error = new Error(`HTTP ${response.status}`);
+            error.status = response.status;
+            throw error;
+          }
+          
+          const html = await response.text();
+          
+          // Extract content
+          const extractor = new ContentExtractor();
+          const extracted = extractor.extract(urlToFetch, html);
+          
+          return {
+            url: urlToFetch,
+            status: response.status,
+            ...extracted
+          };
+        },
+        url
+      );
       
       return {
         statusCode: 200,
-        headers: corsHeaders,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           ok: true,
-          data: {
-            url: url,
-            html: html
-          },
-          contentLength: html.length,
+          data: result,
           timestamp: new Date().toISOString()
         })
       };
       
-    } catch (fetchError) {
-      clearTimeout(timeout);
-      
-      if (fetchError.name === 'AbortError') {
-        return {
-          statusCode: 504,
-          headers: corsHeaders,
-          body: JSON.stringify({
-            ok: false,
-            error: { message: 'Request timeout (15s)' }
-          })
-        };
-      }
+    } catch (error) {
+      console.error('[fetch-url] Error:', error);
       
       return {
-        statusCode: 502,
+        statusCode: error.status || 500,
         headers: corsHeaders,
         body: JSON.stringify({
           ok: false,
-          error: { message: fetchError.message }
+          error: {
+            message: error.message,
+            code: error.code,
+            retryAttempts: error.retryAttempts || 0
+          }
         })
       };
     }
