@@ -15,11 +15,30 @@ class SessionManager {
     this.maxSessions = options.maxSessions || 100;
     
     this.currentSession = null;
-    this.initDirectory();
+    this.initDirectorySync();
   }
   
-  async initDirectory() {
-    await fs.mkdir(this.sessionsDir, { recursive: true });
+  initDirectorySync() {
+    try {
+      require('fs').mkdirSync(this.sessionsDir, { recursive: true });
+    } catch (error) {
+      console.warn(`[SessionManager] Could not create sessions directory: ${error.message}`);
+    }
+  }
+  
+  static async create(options = {}) {
+    const manager = new SessionManager(options);
+    // Ensure directory exists asynchronously
+    await manager.ensureDirectory();
+    return manager;
+  }
+  
+  async ensureDirectory() {
+    try {
+      await fs.mkdir(this.sessionsDir, { recursive: true });
+    } catch (error) {
+      console.warn(`[SessionManager] Could not ensure sessions directory: ${error.message}`);
+    }
   }
   
   generateSessionId() {
@@ -305,8 +324,24 @@ class SessionManager {
     const session = await this.loadSession(sessionId);
     
     const elapsed = Date.now() - session.metadata.createdAt;
-    const urlsPerSecond = session.currentIndex / (elapsed / 1000);
-    const estimatedTimeRemaining = (session.totalUrls - session.currentIndex) / urlsPerSecond;
+    const elapsedSeconds = elapsed / 1000;
+    
+    // Guard against division by zero
+    const urlsPerSecond = session.currentIndex > 0 && elapsedSeconds > 0 
+      ? session.currentIndex / elapsedSeconds 
+      : 0;
+    
+    const estimatedTimeRemaining = urlsPerSecond > 0 
+      ? (session.totalUrls - session.currentIndex) / urlsPerSecond 
+      : 0;
+    
+    const averageTimePerUrl = session.currentIndex > 0 
+      ? elapsed / session.currentIndex 
+      : 0;
+    
+    const successRate = session.currentIndex > 0 
+      ? (session.results.successCount / session.currentIndex * 100) 
+      : 0;
     
     return {
       sessionId: session.id,
@@ -314,17 +349,19 @@ class SessionManager {
       progress: {
         current: session.currentIndex,
         total: session.totalUrls,
-        percentage: (session.currentIndex / session.totalUrls * 100).toFixed(1)
+        percentage: session.totalUrls > 0 
+          ? (session.currentIndex / session.totalUrls * 100).toFixed(1)
+          : '0.0'
       },
       performance: {
         urlsPerSecond: urlsPerSecond.toFixed(2),
-        averageTimePerUrl: (elapsed / session.currentIndex).toFixed(0),
+        averageTimePerUrl: averageTimePerUrl.toFixed(0),
         estimatedTimeRemaining: estimatedTimeRemaining.toFixed(0)
       },
       results: {
         success: session.results.successCount,
         failed: session.results.failureCount,
-        successRate: (session.results.successCount / session.currentIndex * 100).toFixed(1)
+        successRate: successRate.toFixed(1)
       },
       checkpoints: session.checkpoints.length,
       lastCheckpoint: session.checkpoints[session.checkpoints.length - 1] || null

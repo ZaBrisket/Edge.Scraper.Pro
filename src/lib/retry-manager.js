@@ -168,7 +168,8 @@ class RetryManager {
         this.retryHistory.get(url).push({
           attempt,
           error: error.code || error.message,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          attemptedUrl: url
         });
         
         // Determine retry strategy
@@ -189,7 +190,14 @@ class RetryManager {
         
         // Apply pre-retry modifications if needed
         if (strategy.beforeRetry) {
-          url = await this.applyPreRetryStrategy(strategy.beforeRetry, url, error);
+          const newUrl = await this.applyPreRetryStrategy(strategy.beforeRetry, url, error);
+          if (newUrl !== url) {
+            // Initialize retry history for new URL if it doesn't exist
+            if (!this.retryHistory.has(newUrl)) {
+              this.retryHistory.set(newUrl, []);
+            }
+            url = newUrl;
+          }
         }
         
         // Calculate delay
@@ -201,8 +209,8 @@ class RetryManager {
         
         // Update function with new URL if changed
         if (strategy.beforeRetry) {
+          const originalFn = fn; // Store original before reassignment
           fn = async (modifiedUrl) => {
-            const originalFn = options.originalFn || fn;
             return originalFn(modifiedUrl);
           };
         }
@@ -340,7 +348,7 @@ class RetryManager {
     // Return first variation we haven't tried
     for (const variant of variations) {
       const history = this.retryHistory.get(url) || [];
-      const tried = history.some(h => h.url === variant);
+      const tried = history.some(h => h.attemptedUrl === variant);
       if (!tried) {
         console.log(`[RetryManager] Trying URL variant: ${variant}`);
         return variant;

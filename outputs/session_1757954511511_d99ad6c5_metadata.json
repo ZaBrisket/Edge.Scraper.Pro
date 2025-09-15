@@ -1,0 +1,18 @@
+{
+  "sessionId": "session_1757954511511_d99ad6c5",
+  "status": "complete",
+  "stats": {
+    "totalUrls": 1,
+    "processedUrls": 1,
+    "failedUrls": 0,
+    "totalChunks": 1,
+    "processedChunks": 1,
+    "bytesWritten": 910,
+    "startTime": 1757954511511,
+    "peakMemoryMB": 314,
+    "duration": 2392,
+    "averageTimePerUrl": 2392
+  },
+  "outputFile": "/workspace/outputs/session_1757954511511_d99ad6c5_results.jsonl",
+  "completedAt": "2025-09-15T16:41:53.903Z"
+}
