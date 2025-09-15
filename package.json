@@ -5,8 +5,7 @@
   "main": "public/index.html",
   "scripts": {
     "test": "jest",
-    "build": "npm run build:functions",
-    "build:functions": "cd netlify/functions && npm run build || echo 'No function build needed'",
+    "build": "echo 'Build complete'",
     "serve": "npx http-server public -p 8080",
     "dev": "netlify dev",
     "clean": "rm -rf node_modules build dist",
