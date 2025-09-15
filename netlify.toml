@@ -1,10 +1,7 @@
 [build]
-  # Serve the public directory directly
-  publish = "public"
-  # Serverless functions location
+  command = "npm install && npm run build"
   functions = "netlify/functions"
-  # No build needed for static HTML
-  command = "echo 'Deploying standalone HTML app'"
+  publish = "public"
 
 [build.environment]
   NODE_VERSION = "18"
@@ -14,9 +11,12 @@
   PUBLIC_API_KEY = "public-2024"
 
 [functions]
-  directory = "netlify/functions"
   node_bundler = "esbuild"
-  included_files = ["src/**"]
+  external_node_modules = ["natural", "compromise", "jsdom", "cheerio"]
+  included_files = ["src/**/*.js", "src/**/*.json"]
+
+[functions."ma-news-scraper"]
+  external_node_modules = ["natural", "compromise", "jsdom", "cheerio", "axios", "xml2js"]
 
 # Redirect API calls to Netlify Functions
 [[redirects]]
@@ -49,3 +49,23 @@
   for = "/*.css"
   [headers.values]
     Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Headers = "Content-Type, Accept"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+
+[[redirects]]
+  from = "/api/ma-news/*"
+  to = "/.netlify/functions/ma-news-scraper"
+  status = 200
+  force = true
