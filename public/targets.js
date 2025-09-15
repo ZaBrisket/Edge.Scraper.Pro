@@ -11,7 +11,13 @@ const CONFIG = {
   STORAGE_MAX_SIZE: 5 * 1024 * 1024, // 5MB
   CLEARBIT_API: 'https://logo.clearbit.com',
   DEFAULT_LOGO_SIZE: 64,
-  SESSION_EXPIRY_HOURS: 24
+  SESSION_EXPIRY_HOURS: 24,
+  ENABLE_DESCRIPTION_STANDARDIZATION: true,
+  REQUIRED_COLUMNS: [
+    'Company Name',
+    'Website',
+    'Latest Estimated Revenue ($)'
+  ]
 };
 
 // ============= Template-Based Summarization Configuration =============
@@ -483,44 +489,84 @@ async function parseCSV(file) {
 
 // ============= Data Processing =============
 function processRow(row) {
-  // Basic fields
+  // Core fields
   const website = row.website || '';
   const domain = extractDomain(website);
   
-  // Clean employee range (remove tabs)
+  // Company info
+  const companyName = row.companyName || '';
+  const informalName = row.informalName || companyName;
+  
+  // Location
+  const city = row.city || '';
+  const state = row.state || '';
+  const cityState = [city, state].filter(Boolean).join(', ');
+  
+  // Raw description data
+  const rawDescription = row.description || '';
+  const mzSummary = row.mzSummary || row['mz summary description'];
+  const specialties = row.specialties || '';
+  const industries = row.industries || '';
+  const endMarkets = row.endMarkets || '';
+  
+  // Generate standardized description if enabled
+  let description;
+  if (CONFIG.ENABLE_DESCRIPTION_STANDARDIZATION && typeof DescriptionStandardizer !== 'undefined') {
+    try {
+      description = DescriptionStandardizer.standardize({
+        companyName,
+        informalName,
+        website,
+        description: mzSummary || rawDescription,
+        specialties,
+        industries,
+        endMarkets
+      });
+    } catch (error) {
+      console.error('Error standardizing description:', error);
+      // Fallback to original logic
+      description = (mzSummary && mzSummary.trim()) ? mzSummary : rawDescription;
+    }
+  } else {
+    // Original logic
+    description = (mzSummary && mzSummary.trim()) ? mzSummary : rawDescription;
+  }
+  
+  // Employee data
+  const employeeCount = parseNumber(row.employeeCount);
   const employeeRange = cleanEmployeeRange(row.employeeRange);
   
-  // Parse numeric fields
-  const employeeCount = parseNumber(row.employeeCount);
+  // Revenue data
   const revenue = parseMoney(row.estRevenue);
   const revenueMin = parseMoney(row.estRevenueMin);
   const revenueMax = parseMoney(row.estRevenueMax);
   const revenueMM = revenue ? revenue / 1000000 : null;
   
-  // Executive info
-  const execFirstName = row.execFirstName || '';
-  const execLastName = row.execLastName || '';
-  const execName = [execFirstName, execLastName].filter(Boolean).join(' ');
+  // Executive data
+  const execFirst = row.execFirstName || '';
+  const execLast = row.execLastName || '';
   const execTitle = row.execTitle || '';
+  const execName = [execFirst, execLast].filter(Boolean).join(' ');
   const execBlock = [execName, execTitle].filter(Boolean).join('\n');
+  const execEmail = row.execEmail || '';
   
-  // Parse list fields
-  const industries = parseList(row.industries);
-  const endMarkets = parseList(row.endMarkets);
+  // Categories
+  const industriesList = parseList(industries);
+  const endMarketsList = parseList(endMarkets);
   
-  // Generate accurate summary (CRITICAL NEW FEATURE)
-  const summary = generateAccurateSummary(row);
-  const structuredSummary = generateStructuredSummary(row);
+  // Additional metadata
+  const foundingYear = parseNumber(row.foundingYear);
+  const sourcesCount = parseNumber(row.sourcesCount);
   
   return {
-    // Core identifiers
-    companyName: row.companyName || '',
-    informalName: row.informalName || row.companyName || '',
+    // Identifiers
+    companyName,
+    informalName,
     
     // Location
-    city: row.city || '',
-    state: row.state || '',
-    cityState: [row.city, row.state].filter(Boolean).join(', '),
+    city,
+    state,
+    cityState,
     country: row.country || '',
     
     // Web presence
@@ -528,10 +574,9 @@ function processRow(row) {
     domain,
     logoUrl: domain ? `${CONFIG.CLEARBIT_API}/${domain}?size=${CONFIG.DEFAULT_LOGO_SIZE}` : '',
     
-    // Descriptions - BOTH concise and full
-    description: summary,  // Concise summary for display
-    descriptionFull: row.description || '',  // Original verbose text
-    descriptionStructured: structuredSummary,  // Structured format
+    // Description (now standardized)
+    description,
+    rawDescription, // Keep original for reference
     
     // Size metrics
     employeeCount,
@@ -544,31 +589,26 @@ function processRow(row) {
     revenueMM,
     
     // Executive info
-    execFirstName,
-    execLastName,
-    execName,
+    execFirst,
+    execLast,
     execTitle,
+    execName,
     execBlock,
-    execEmail: row.execEmail || '',
+    execEmail,
     execLinkedIn: row.execLinkedIn || '',
     
     // Categories
-    industries,
-    endMarkets,
-    businessType: classifyBusinessType(row),
-    primaryService: extractPrimaryService(row),
+    industries: industriesList,
+    endMarkets: endMarketsList,
     
     // Additional data
-    foundingYear: parseNumber(row.foundingYear),
+    foundingYear,
     ownership: row.ownership || '',
     totalRaised: parseMoney(row.totalRaised),
     profileUrl: row.profileUrl || '',
     linkedinCompany: row.linkedinCompany || '',
-    sourcesCount: parseNumber(row.sourcesCount),
-    specialties: row.specialties || '',
-    
-    // Raw row for export
-    _raw: row
+    sourcesCount,
+    specialties
   };
 }
 
@@ -601,7 +641,7 @@ function validateData(processed) {
   }
   
   // Check summary generation
-  const missingSummary = processed.filter(r => !r.description || r.description === 'private company').length;
+  const missingSummary = processed.filter(r => !r.description || r.description.length < 10).length;
   if (missingSummary > 0) {
     warnings.push(`${missingSummary} companies with limited summary information`);
   }
@@ -800,7 +840,7 @@ function renderTable() {
     
     // Use concise description, with title attribute showing full text
     const descriptionCell = row.description ? 
-      `<span title="${escapeHtml(row.descriptionFull.substring(0, 500))}">${escapeHtml(row.description)}</span>` : '';
+      `<span title="${escapeHtml((row.rawDescription || '').substring(0, 500))}">${escapeHtml(row.description)}</span>` : '';
     
     return `<tr>
       <td>${index + 1}</td>
@@ -877,22 +917,18 @@ function exportCSV() {
   
   const includePII = $('includePII').checked;
   
-  // Headers - includes both summary and structured description
+  // Headers
   const headers = [
     '#',
     'Company',
-    'City',
+    'City', 
     'State',
     'City, State',
     'Website',
     'Domain',
-    'Summary',  // Concise summary
-    'Business Type',
-    'Primary Service',
-    'Specialties',
-    'End Markets',
-    'Employee Count',
-    'Employee Range',
+    'Standardized Description', // Changed from 'Description'
+    'Original Description', // Add this
+    'Count',
     'Est. Rev ($MM)',
     'Executive Title',
     'Executive Name',
@@ -903,27 +939,20 @@ function exportCSV() {
     headers.push('Executive Email');
   }
   
-  // Always include full description at the end
-  headers.push('Full Description');
-  
   // Data rows
   const rows = [headers];
-  data.forEach((row, i) => {
+  data.forEach((row, index) => {
     const csvRow = [
-      i + 1,
+      index + 1,
       row.informalName,
       row.city,
       row.state,
       row.cityState,
       row.website,
       row.domain,
-      row.description,  // Concise summary
-      row.businessType,
-      row.primaryService || '',
-      row.specialties,
-      row.endMarkets.join(', '),
-      row.employeeCount || '',
-      row.employeeRange,
+      row.description, // Standardized
+      row.rawDescription || '', // Original
+      row.employeeCount != null ? row.employeeCount : row.employeeRange,
       row.revenueMM ? row.revenueMM.toFixed(2) : '',
       row.execTitle,
       row.execName,
@@ -933,9 +962,6 @@ function exportCSV() {
     if (includePII) {
       csvRow.push(row.execEmail);
     }
-    
-    // Add full description at end
-    csvRow.push(row.descriptionFull);
     
     rows.push(csvRow);
   });
@@ -958,20 +984,19 @@ function exportExcel() {
   // Create workbook
   const wb = XLSX.utils.book_new();
   
-  // Sheet 1: Target Universe (curated view with summaries)
+  // Sheet 1: Target Universe
   const targetHeaders = [
     '#',
+    'Logo',
     'Company',
     'City',
     'State',
     'City, State',
     'Website',
     'Domain',
-    'Summary',  // Concise version
-    'Business Type',
-    'Specialties',
-    'End Markets',
-    'Employees',
+    'Standardized Description', // Changed
+    'Original Description', // Add this
+    'Count',
     'Est. Rev ($MM)',
     'Executive Title',
     'Executive Name',
@@ -983,20 +1008,19 @@ function exportExcel() {
   }
   
   const targetData = [targetHeaders];
-  data.forEach((row, i) => {
+  data.forEach((row, index) => {
     const excelRow = [
-      i + 1,
+      index + 1,
+      row.domain ? { f: `IFERROR(IMAGE("${CONFIG.CLEARBIT_API}/${row.domain}?size=64"), "")` } : '',
       row.informalName,
       row.city,
       row.state,
       row.cityState,
       row.website,
       row.domain,
-      row.description,  // Concise summary
-      row.businessType,
-      row.specialties,
-      row.endMarkets.join(', '),
-      row.employeeCount || row.employeeRange,
+      row.description, // Standardized
+      row.rawDescription || '', // Original
+      row.employeeCount != null ? row.employeeCount : row.employeeRange,
       row.revenueMM ? Number(row.revenueMM.toFixed(2)) : '',
       row.execTitle,
       row.execName,
@@ -1012,20 +1036,19 @@ function exportExcel() {
   
   const ws1 = XLSX.utils.aoa_to_sheet(targetData);
   
-  // Set column widths for better readability
+  // Set column widths
   ws1['!cols'] = [
     { wch: 5 },   // #
+    { wch: 10 },  // Logo
     { wch: 25 },  // Company
     { wch: 15 },  // City
     { wch: 8 },   // State
     { wch: 20 },  // City, State
     { wch: 25 },  // Website
     { wch: 20 },  // Domain
-    { wch: 50 },  // Summary
-    { wch: 25 },  // Business Type
-    { wch: 30 },  // Specialties
-    { wch: 25 },  // End Markets
-    { wch: 12 },  // Employees
+    { wch: 50 },  // Standardized Description
+    { wch: 50 },  // Original Description
+    { wch: 12 },  // Count
     { wch: 12 },  // Revenue
     { wch: 20 },  // Exec Title
     { wch: 20 },  // Exec Name
@@ -1033,29 +1056,6 @@ function exportExcel() {
   ];
   
   XLSX.utils.book_append_sheet(wb, ws1, 'Target Universe');
-  
-  // Sheet 2: Full Descriptions
-  const descHeaders = ['Company', 'Summary', 'Full Description'];
-  const descData = [descHeaders];
-  data.forEach(row => {
-    descData.push([
-      row.informalName,
-      row.description,
-      row.descriptionFull
-    ]);
-  });
-  
-  const ws2 = XLSX.utils.aoa_to_sheet(descData);
-  ws2['!cols'] = [
-    { wch: 25 },  // Company
-    { wch: 50 },  // Summary
-    { wch: 100 }  // Full Description
-  ];
-  XLSX.utils.book_append_sheet(wb, ws2, 'Descriptions');
-  
-  // Sheet 3: Raw Source Data
-  const ws3 = XLSX.utils.json_to_sheet(AppState.raw);
-  XLSX.utils.book_append_sheet(wb, ws3, 'Source Data');
   
   // Export
   const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
@@ -1137,6 +1137,49 @@ function clearSession() {
   localStorage.removeItem(CONFIG.STORAGE_KEY);
 }
 
+/**
+ * Batch process descriptions with progress indicator
+ */
+async function batchStandardizeDescriptions(rows, onProgress) {
+  const BATCH_SIZE = 50;
+  const results = [];
+  
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE);
+    
+    // Process batch
+    const batchResults = await Promise.all(
+      batch.map(row => {
+        return new Promise((resolve) => {
+          // Use setTimeout to prevent blocking
+          setTimeout(() => {
+            try {
+              const processed = processRow(row);
+              resolve(processed);
+            } catch (error) {
+              console.error('Error processing row:', error);
+              resolve(row); // Return original on error
+            }
+          }, 0);
+        });
+      })
+    );
+    
+    results.push(...batchResults);
+    
+    // Report progress
+    if (onProgress) {
+      const progress = Math.min(100, Math.round((i + BATCH_SIZE) / rows.length * 100));
+      onProgress(progress);
+    }
+    
+    // Allow UI to update
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+  
+  return results;
+}
+
 // ============= File Processing =============
 async function processFile(file) {
   try {
@@ -1153,8 +1196,11 @@ async function processFile(file) {
       lastModified: file.lastModified
     };
     
-    // Process rows with summarization
-    AppState.processed = rows.map(processRow);
+    // Process rows with batch processing
+    showMessage('Processing companies...', 'info');
+    AppState.processed = await batchStandardizeDescriptions(rows, (progress) => {
+      showMessage(`Processing companies: ${progress}%`, 'info');
+    });
     AppState.filtered = AppState.processed;
     
     // Validate
@@ -1171,7 +1217,7 @@ async function processFile(file) {
     renderStats();
     renderTable();
     
-    showMessage(`Successfully loaded ${AppState.processed.length} companies with concise summaries`, 'success');
+    showMessage(`Successfully loaded ${AppState.processed.length} companies with standardized descriptions`, 'success');
     
   } catch (error) {
     console.error('File processing error:', error);
@@ -1268,6 +1314,25 @@ function initializeApp() {
       $('endMarketFilter').value = '';
       
       showMessage('All data cleared', 'success');
+    }
+  });
+  
+  // Add event listener for standardization toggle
+  $('toggleStandardization').addEventListener('change', (e) => {
+    CONFIG.ENABLE_DESCRIPTION_STANDARDIZATION = e.target.checked;
+    
+    // Reprocess all rows with new setting
+    if (AppState.raw.length > 0) {
+      AppState.processed = AppState.raw.map(processRow);
+      applyFilters();
+      renderStats();
+      renderTable();
+      showMessage(
+        e.target.checked ? 
+        'Description standardization enabled' : 
+        'Using original descriptions',
+        'success'
+      );
     }
   });
   
