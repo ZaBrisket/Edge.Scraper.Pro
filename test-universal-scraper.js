@@ -36,6 +36,7 @@ const TEST_URLS = {
   ]
 };
 
+// Create client with longer timeout for real requests
 const httpClient = new UniversalHttpClient({
   maxRetries: 3,
   timeout: 20000

@@ -1,116 +1,88 @@
-# Bug Fixes Summary
+# Bug Fixes Summary for Universal M&A News Scraper
 
 ## Issues Fixed
 
-### 1. ✅ Fetch API Compatibility and Timeout Issues
+### 1. P0: node-fetch v3 CommonJS Import Issue
+**Problem**: The code was using `require('node-fetch')` with node-fetch v3, which is an ES module and throws `ERR_REQUIRE_ESM`.
 
-**Problem**: 
-- The `fetch()` API was used without ensuring its availability in older Node.js versions
-- The timeout option passed to `fetch()` is not supported by the native API
-- Requests could hang indefinitely without proper timeout handling
+**Solution**: 
+- Downgraded to node-fetch v2.7.0 which supports CommonJS
+- Added fallback to use native fetch when available (Node 18+)
+- Code now uses: `const fetch = globalThis.fetch || require('node-fetch');`
 
-**Solution**:
-- Added polyfill for `node-fetch` for older Node.js versions
-- Implemented proper timeout using `Promise.race()` pattern
-- Created separate timeout promise that rejects after specified duration
-
-**Code Changes**:
-```javascript
-// Added polyfill
-if (typeof fetch === 'undefined') {
-    global.fetch = require('node-fetch');
-}
-
-// Fixed timeout implementation
-const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error(`Request timeout after ${this.timeout}ms`)), this.timeout);
-});
-
-const fetchPromise = fetch(url, { /* options */ });
-const response = await Promise.race([fetchPromise, timeoutPromise]);
-```
-
-### 2. ✅ Undefined Values Break Numeric Options
-
-**Problem**:
-- Argument parsing loop incremented by 2, expecting a value for every flag
-- If a flag was provided without a value, `args[i + 1]` was undefined
-- `parseInt(undefined)` set numeric options to `NaN`, breaking the scraper's configuration
+### 2. P1: Timeout Not Enforced
+**Problem**: The timeout option was passed to fetch but ignored, allowing requests to hang indefinitely.
 
 **Solution**:
-- Fixed argument parsing to handle missing values gracefully
-- Added validation to ensure values exist before parsing
-- Added proper error messages for missing required values
-- Fixed loop increment to only skip when a value is consumed
+- Implemented AbortController with proper timeout handling
+- Each retry attempt gets a fresh AbortController
+- Timeout is enforced via `setTimeout(() => controller.abort(), this.config.timeout)`
+- Clear timeout error messaging: "Request timeout after {timeout}ms"
 
-**Code Changes**:
-```javascript
-// Fixed argument parsing
-for (let i = 1; i < args.length; i++) {
-    const flag = args[i];
-    const value = args[i + 1];
-    
-    switch (flag) {
-        case '--concurrency':
-            if (value && !isNaN(parseInt(value))) {
-                options.concurrency = parseInt(value);
-                i++; // Skip the value in next iteration
-            } else {
-                console.error('Error: --concurrency requires a numeric value');
-                process.exit(1);
-            }
-            break;
-        // ... similar fixes for other options
-    }
-}
+### 3. P1: Missing API Key Validation
+**Problem**: The handler removed API key validation, exposing the endpoint to unauthenticated use.
+
+**Solution**:
+- Restored API key validation at the beginning of the handler
+- Checks `x-api-key` header against `PUBLIC_API_KEY` environment variable
+- Respects `BYPASS_AUTH` environment variable for development
+- Returns 401 status for invalid/missing API key
+
+### 4. URL Validation Crash
+**Problem**: Invalid URLs would crash `getSiteProfile` when calling `new URL()`.
+
+**Solution**:
+- Added explicit URL validation before calling any other functions
+- Validates URL format and protocol (http/https only)
+- Returns 400 status with clear error message for invalid URLs
+- Prevents downstream crashes from malformed URLs
+
+## Code Changes
+
+### `/workspace/src/lib/http/universal-client.js`
+- Replaced ES module import with CommonJS-compatible approach
+- Added AbortController for timeout enforcement
+- Fixed retry logic to use fresh AbortController per attempt
+
+### `/workspace/netlify/functions/fetch-url.js`
+- Restored API key validation
+- Added URL format validation
+- Improved error responses
+
+### `/workspace/package.json`
+- Changed node-fetch from v3 to v2.7.0 for CommonJS compatibility
+
+## Testing
+
+Run the bug fix verification script:
+```bash
+node test-bug-fixes.js
 ```
 
-## Testing Results
+This will verify:
+1. ✓ Fetch module loads correctly
+2. ✓ Timeouts are properly enforced
+3. ✓ Invalid URLs are rejected
+4. ✓ Site profiles handle gracefully
 
-### ✅ Fetch Compatibility
-- **Tested with**: Node.js versions that don't have native fetch
-- **Result**: Successfully polyfilled and working
-- **Timeout**: Properly implemented with Promise.race pattern
+## Environment Variables
 
-### ✅ Argument Parsing
-- **Tested scenarios**:
-  - Valid arguments: `--concurrency 1 --delay 500 --timeout 15000`
-  - Missing values: `--concurrency` (without value)
-  - Invalid values: `--concurrency abc`
-- **Result**: All scenarios handled correctly with proper error messages
+Ensure these are set in production:
+- `PUBLIC_API_KEY`: API key for authentication
+- `BYPASS_AUTH`: Set to "true" only in development
+- `PROXY_URL`: Optional proxy for certain sites
 
-### ✅ Timeout Functionality
-- **Tested with**: Various timeout values (1000ms, 15000ms, 30000ms)
-- **Result**: Timeouts work correctly, requests fail gracefully when timeout exceeded
-
-## Dependencies Added
+## Deployment
 
 ```bash
-npm install node-fetch@2
+# Install dependencies
+npm ci
+
+# Test fixes
+node test-bug-fixes.js
+
+# Deploy
+git add .
+git commit -m "Fix P0/P1 bugs: node-fetch import, timeout enforcement, API auth, URL validation"
+git push origin main
 ```
-
-## Verification Commands
-
-```bash
-# Test basic functionality
-node fix-and-scrape.js --demo
-
-# Test with custom arguments
-node fix-and-scrape.js --demo --concurrency 1 --delay 500 --timeout 15000
-
-# Test error handling (should fail with proper error message)
-node fix-and-scrape.js --demo --concurrency
-
-# Test timeout functionality
-node test-timeout.js
-```
-
-## Impact
-
-These fixes ensure:
-1. **Cross-platform compatibility**: Works on older Node.js versions
-2. **Reliable timeout handling**: Requests won't hang indefinitely
-3. **Robust argument parsing**: Handles edge cases gracefully
-4. **Better error messages**: Users get clear feedback on configuration issues
-
-The scraper is now more robust and handles edge cases properly, preventing the configuration issues that could cause scraping failures.

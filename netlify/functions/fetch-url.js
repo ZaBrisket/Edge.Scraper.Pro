@@ -29,13 +29,48 @@ exports.handler = async (event) => {
     };
   }
 
+  // API key validation
+  const apiKey = event.headers['x-api-key'];
+  const expectedKey = process.env.PUBLIC_API_KEY || 'public-2024';
+  
+  if (process.env.BYPASS_AUTH !== 'true' && apiKey !== expectedKey) {
+    return {
+      statusCode: 401,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        success: false,
+        error: 'Invalid or missing API key'
+      })
+    };
+  }
+
   const url = event.queryStringParameters?.url;
   
   if (!url) {
     return {
       statusCode: 400,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'URL parameter required' })
+      body: JSON.stringify({ 
+        success: false,
+        error: 'URL parameter required' 
+      })
+    };
+  }
+  
+  // Validate URL format
+  try {
+    const parsedUrl = new URL(url);
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      throw new Error('Invalid protocol');
+    }
+  } catch (e) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        success: false,
+        error: 'Invalid URL format'
+      })
     };
   }
   

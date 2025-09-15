@@ -3,11 +3,13 @@
  * Handles all major news outlets and PR wire services
  */
 
-const fetch = require('node-fetch');
 const https = require('https');
 const { getSiteProfile } = require('./site-profiles');
 const antiBotBypass = require('./anti-bot-bypass');
 const { HttpsProxyAgent } = require('https-proxy-agent');
+
+// Use built-in fetch if available (Node 18+), otherwise use node-fetch v2
+const fetch = globalThis.fetch || require('node-fetch');
 
 class UniversalHttpClient {
   constructor(config = {}) {
@@ -50,6 +52,7 @@ class UniversalHttpClient {
    * Main fetch method with all protections
    */
   async fetchWithProtection(url, options = {}) {
+    
     const siteProfile = getSiteProfile(url);
     
     // Apply rate limiting
@@ -60,16 +63,6 @@ class UniversalHttpClient {
     
     // Determine agent
     const agent = siteProfile.requiresProxy ? this.proxyAgent : this.httpsAgent;
-    
-    const fetchOptions = {
-      ...options,
-      headers: { ...headers, ...options.headers },
-      agent,
-      compress: true,
-      redirect: 'follow',
-      follow: 10,
-      timeout: this.config.timeout
-    };
 
     let lastError;
     let attempt = 0;
@@ -77,8 +70,23 @@ class UniversalHttpClient {
     while (attempt < this.config.maxRetries) {
       attempt++;
       
+      // Create new AbortController for each attempt
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
+      
+      const fetchOptions = {
+        ...options,
+        headers: { ...headers, ...options.headers },
+        agent,
+        compress: true,
+        redirect: 'follow',
+        follow: 10,
+        signal: controller.signal
+      };
+      
       try {
         const response = await fetch(url, fetchOptions);
+        clearTimeout(timeoutId);
         
         // Handle Cloudflare challenge
         if (response.status === 503 || response.status === 403) {
@@ -111,7 +119,16 @@ class UniversalHttpClient {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         
       } catch (error) {
-        lastError = error;
+        clearTimeout(timeoutId);
+        
+        // Handle timeout specifically
+        if (error.name === 'AbortError') {
+          lastError = new Error(`Request timeout after ${this.config.timeout}ms`);
+          lastError.code = 'ETIMEDOUT';
+        } else {
+          lastError = error;
+        }
+        
         this.updateMetrics(siteProfile, false);
         
         if (attempt < this.config.maxRetries) {
