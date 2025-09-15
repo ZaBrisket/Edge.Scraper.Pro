@@ -17,6 +17,10 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
   included_files = ["src/**"]
+  external_node_modules = ["natural", "compromise", "jsdom", "cheerio", "axios", "xml2js"]
+
+[functions."ma-news-scraper"]
+  external_node_modules = ["natural", "compromise", "jsdom", "cheerio", "axios", "xml2js"]
 
 # Redirect API calls to Netlify Functions
 [[redirects]]
@@ -29,6 +33,12 @@
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
+
+[[redirects]]
+  from = "/api/ma-news/*"
+  to = "/.netlify/functions/ma-news-scraper"
+  status = 200
+  force = true
 
 # CORS headers for API
 [[headers]]

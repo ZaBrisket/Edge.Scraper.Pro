@@ -359,6 +359,309 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        /* M&A News Scraper Styles */
+        .ma-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin: 30px auto;
+            max-width: 1200px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .ma-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+        }
+        
+        .ma-title {
+            font-size: 28px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .ma-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        
+        .ma-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .ma-control-group {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .ma-control-label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+        
+        .ma-checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        
+        .ma-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            padding: 5px 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        .ma-checkbox-label:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .ma-checkbox-label input {
+            cursor: pointer;
+        }
+        
+        .ma-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .ma-input::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+        
+        .ma-date-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .ma-date-inputs input {
+            flex: 1;
+        }
+        
+        .ma-action-bar {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .ma-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .ma-btn-primary {
+            background: white;
+            color: #667eea;
+        }
+        
+        .ma-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .ma-btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        
+        .ma-btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .ma-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .ma-results {
+            margin-top: 30px;
+            background: white;
+            color: #333;
+            border-radius: 12px;
+            padding: 25px;
+            display: none;
+        }
+        
+        .ma-results.active {
+            display: block;
+        }
+        
+        .ma-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .ma-stat {
+            text-align: center;
+            padding: 15px;
+            background: #f7f7f7;
+            border-radius: 8px;
+        }
+        
+        .ma-stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .ma-stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+        
+        .ma-deals {
+            display: grid;
+            gap: 20px;
+        }
+        
+        .ma-deal {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            background: #fafafa;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .ma-deal:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .ma-deal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+        
+        .ma-deal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .ma-deal-url {
+            font-size: 12px;
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .ma-deal-url:hover {
+            text-decoration: underline;
+        }
+        
+        .ma-confidence {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .ma-confidence-high {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .ma-confidence-medium {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .ma-confidence-low {
+            background: #f44336;
+            color: white;
+        }
+        
+        .ma-deal-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .ma-detail {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .ma-detail-label {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        
+        .ma-detail-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .ma-deal-value {
+            color: #4caf50;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .ma-loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .ma-loading.active {
+            display: block;
+        }
+        
+        .ma-spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
     </style>
 </head>
 <body>
@@ -515,6 +818,100 @@
             </table>
             
             <div class="results-output" id="resultsOutput"></div>
+        </div>
+
+        <!-- M&A News Scraper Section -->
+        <div class="ma-section">
+            <div class="ma-header">
+                <div class="ma-title">
+                    💼 M&A News Scraper
+                    <span class="ma-badge">BETA</span>
+                </div>
+            </div>
+            
+            <div class="ma-controls">
+                <div class="ma-control-group">
+                    <div class="ma-control-label">📰 News Sources</div>
+                    <div class="ma-checkbox-group">
+                        <label class="ma-checkbox-label">
+                            <input type="checkbox" name="ma-source" value="businesswire" checked>
+                            Business Wire
+                        </label>
+                        <label class="ma-checkbox-label">
+                            <input type="checkbox" name="ma-source" value="prnewswire" checked>
+                            PR Newswire
+                        </label>
+                        <label class="ma-checkbox-label">
+                            <input type="checkbox" name="ma-source" value="globenewswire">
+                            GlobeNewswire
+                        </label>
+                        <label class="ma-checkbox-label">
+                            <input type="checkbox" name="ma-source" value="reuters">
+                            Reuters
+                        </label>
+                        <label class="ma-checkbox-label">
+                            <input type="checkbox" name="ma-source" value="bloomberg">
+                            Bloomberg
+                        </label>
+                        <label class="ma-checkbox-label">
+                            <input type="checkbox" name="ma-source" value="seekingalpha">
+                            Seeking Alpha
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="ma-control-group">
+                    <div class="ma-control-label">🔍 Search Keywords</div>
+                    <input type="text" id="ma-keywords" class="ma-input" 
+                           placeholder="e.g., Microsoft, technology, $1 billion">
+                </div>
+                
+                <div class="ma-control-group">
+                    <div class="ma-control-label">📅 Date Range (Optional)</div>
+                    <div class="ma-date-inputs">
+                        <input type="date" id="ma-date-from" class="ma-input">
+                        <span>to</span>
+                        <input type="date" id="ma-date-to" class="ma-input">
+                    </div>
+                </div>
+                
+                <div class="ma-control-group">
+                    <div class="ma-control-label">⚙️ Options</div>
+                    <div class="ma-checkbox-group">
+                        <label class="ma-checkbox-label">
+                            <input type="checkbox" id="ma-auto-discover" checked>
+                            Auto-discover URLs
+                        </label>
+                        <label class="ma-checkbox-label">
+                            <input type="checkbox" id="ma-use-rss" checked>
+                            Use RSS feeds
+                        </label>
+                        <label class="ma-checkbox-label">
+                            <input type="checkbox" id="ma-high-confidence">
+                            High confidence only
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="ma-action-bar">
+                <button id="ma-scrape-btn" class="ma-btn ma-btn-primary">
+                    🚀 Scrape M&A News
+                </button>
+                <button id="ma-export-btn" class="ma-btn ma-btn-secondary" style="display: none;">
+                    📥 Export Results
+                </button>
+                <button id="ma-clear-btn" class="ma-btn ma-btn-secondary" style="display: none;">
+                    🗑️ Clear Results
+                </button>
+            </div>
+            
+            <div id="ma-loading" class="ma-loading">
+                <div class="ma-spinner"></div>
+                <p style="color: white; margin-top: 15px;">Discovering and scraping M&A news...</p>
+            </div>
+            
+            <div id="ma-results" class="ma-results"></div>
         </div>
 
         <!-- Footer -->
@@ -1014,6 +1411,211 @@
 
         // Make startScraping available globally for compatibility
         window.startScraping = startScraping;
+    })();
+    
+    // M&A News Scraper JavaScript
+    (function() {
+        const scrapeBtn = document.getElementById('ma-scrape-btn');
+        const exportBtn = document.getElementById('ma-export-btn');
+        const clearBtn = document.getElementById('ma-clear-btn');
+        const loadingDiv = document.getElementById('ma-loading');
+        const resultsDiv = document.getElementById('ma-results');
+        
+        let lastResults = null;
+        
+        scrapeBtn.addEventListener('click', async function() {
+            // Get configuration
+            const sources = Array.from(document.querySelectorAll('input[name="ma-source"]:checked'))
+                .map(cb => cb.value);
+            
+            if (sources.length === 0) {
+                alert('Please select at least one news source.');
+                return;
+            }
+            
+            const keywords = document.getElementById('ma-keywords').value;
+            const dateFrom = document.getElementById('ma-date-from').value;
+            const dateTo = document.getElementById('ma-date-to').value;
+            const autoDiscover = document.getElementById('ma-auto-discover').checked;
+            const useRSS = document.getElementById('ma-use-rss').checked;
+            const highConfidenceOnly = document.getElementById('ma-high-confidence').checked;
+            
+            // Get URLs from main textarea if not auto-discovering
+            const urlTextarea = document.getElementById('urlInput');
+            const manualUrls = !autoDiscover && urlTextarea ? 
+                urlTextarea.value.split('\n').filter(u => u.trim()) : [];
+            
+            // Show loading
+            scrapeBtn.disabled = true;
+            loadingDiv.classList.add('active');
+            resultsDiv.classList.remove('active');
+            exportBtn.style.display = 'none';
+            clearBtn.style.display = 'none';
+            
+            try {
+                const response = await fetch('/.netlify/functions/ma-news-scraper', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        urls: manualUrls,
+                        mode: 'ma',
+                        discover: autoDiscover,
+                        sources: sources,
+                        keywords: keywords,
+                        dateRange: {
+                            from: dateFrom,
+                            to: dateTo
+                        },
+                        concurrency: 3,
+                        maxUrls: 50
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    lastResults = data;
+                    displayResults(data, highConfidenceOnly);
+                    exportBtn.style.display = 'inline-flex';
+                    clearBtn.style.display = 'inline-flex';
+                } else {
+                    alert('Error: ' + (data.error || 'Scraping failed'));
+                }
+            } catch (error) {
+                alert('Network error: ' + error.message);
+            } finally {
+                scrapeBtn.disabled = false;
+                loadingDiv.classList.remove('active');
+            }
+        });
+        
+        function displayResults(data, highConfidenceOnly = false) {
+            const minConfidence = highConfidenceOnly ? 75 : 50;
+            const deals = data.results
+                .filter(r => r.success && r.data && r.data.confidence >= minConfidence)
+                .sort((a, b) => (b.data.confidence || 0) - (a.data.confidence || 0));
+            
+            let html = `
+                <div class="ma-stats">
+                    <div class="ma-stat">
+                        <div class="ma-stat-value">${data.stats.total}</div>
+                        <div class="ma-stat-label">URLs Processed</div>
+                    </div>
+                    <div class="ma-stat">
+                        <div class="ma-stat-value">${data.stats.successful}</div>
+                        <div class="ma-stat-label">Successful</div>
+                    </div>
+                    <div class="ma-stat">
+                        <div class="ma-stat-value">${data.stats.ma_detected}</div>
+                        <div class="ma-stat-label">M&A Deals Found</div>
+                    </div>
+                    <div class="ma-stat">
+                        <div class="ma-stat-value">${data.stats.deals_with_value || 0}</div>
+                        <div class="ma-stat-label">With Deal Value</div>
+                    </div>
+                </div>
+            `;
+            
+            if (deals.length > 0) {
+                html += '<h3>🎯 Detected M&A Transactions</h3>';
+                html += '<div class="ma-deals">';
+                
+                deals.forEach(deal => {
+                    const d = deal.data;
+                    const confidenceClass = d.confidence >= 75 ? 'ma-confidence-high' : 
+                                           d.confidence >= 50 ? 'ma-confidence-medium' : 
+                                           'ma-confidence-low';
+                    
+                    html += `
+                        <div class="ma-deal">
+                            <div class="ma-deal-header">
+                                <div>
+                                    <div class="ma-deal-title">${d.title || 'Untitled'}</div>
+                                    <a href="${deal.url}" target="_blank" class="ma-deal-url">${deal.url}</a>
+                                </div>
+                                <span class="ma-confidence ${confidenceClass}">${d.confidence}% Confidence</span>
+                            </div>
+                            
+                            <div class="ma-deal-details">
+                                ${d.dealValue ? `
+                                    <div class="ma-detail">
+                                        <div class="ma-detail-label">Deal Value</div>
+                                        <div class="ma-detail-value ma-deal-value">${d.dealValue.display}</div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${d.companies && d.companies.length > 0 ? `
+                                    <div class="ma-detail">
+                                        <div class="ma-detail-label">Companies</div>
+                                        <div class="ma-detail-value">${d.companies.slice(0, 3).join(', ')}</div>
+                                    </div>
+                                ` : ''}
+                                
+                                <div class="ma-detail">
+                                    <div class="ma-detail-label">Transaction Type</div>
+                                    <div class="ma-detail-value">${d.transactionType || 'Unknown'}</div>
+                                </div>
+                                
+                                ${d.dates && d.dates.length > 0 ? `
+                                    <div class="ma-detail">
+                                        <div class="ma-detail-label">Date</div>
+                                        <div class="ma-detail-value">${d.dates[0].parsed}</div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${d.advisors && d.advisors.length > 0 ? `
+                                    <div class="ma-detail">
+                                        <div class="ma-detail-label">Advisors</div>
+                                        <div class="ma-detail-value">${d.advisors.slice(0, 2).join(', ')}</div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
+                            ${d.summary ? `
+                                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                                    <div class="ma-detail-label">Summary</div>
+                                    <div style="margin-top: 5px; color: #666; font-size: 13px; line-height: 1.5;">
+                                        ${d.summary}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            } else {
+                html += '<p style="text-align: center; color: #999; margin: 30px 0;">No M&A transactions detected in the scraped content.</p>';
+            }
+            
+            resultsDiv.innerHTML = html;
+            resultsDiv.classList.add('active');
+        }
+        
+        exportBtn.addEventListener('click', function() {
+            if (!lastResults) return;
+            
+            const dataStr = JSON.stringify(lastResults, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ma-news-results-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        
+        clearBtn.addEventListener('click', function() {
+            resultsDiv.classList.remove('active');
+            resultsDiv.innerHTML = '';
+            exportBtn.style.display = 'none';
+            clearBtn.style.display = 'none';
+            lastResults = null;
+        });
     })();
     </script>
     
