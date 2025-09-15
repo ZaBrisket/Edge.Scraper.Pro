@@ -1144,22 +1144,63 @@ async function batchStandardizeDescriptions(rows, onProgress) {
   const BATCH_SIZE = 50;
   const results = [];
   
+  // Helper function to safely process a row
+  function safeProcessRow(row) {
+    try {
+      return processRow(row);
+    } catch (error) {
+      console.error('Error processing row:', error, row);
+      
+      // Return a valid processed row structure without standardization
+      // Just map the raw fields to expected structure
+      return {
+        companyName: row['company name'] || '',
+        informalName: row['informal name'] || row['company name'] || '',
+        website: row['website'] || '',
+        domain: extractDomain(row['website'] || ''),
+        description: row['description'] || row['mz summary description'] || '',
+        rawDescription: row['description'] || '',
+        city: row['city'] || '',
+        state: row['state'] || '',
+        cityState: [row['city'], row['state']].filter(Boolean).join(', '),
+        country: row['country'] || '',
+        logoUrl: row['website'] ? `${CONFIG.CLEARBIT_API}/${extractDomain(row['website'])}?size=${CONFIG.DEFAULT_LOGO_SIZE}` : '',
+        employeeCount: parseNumber(row['employee count']),
+        employeeRange: cleanEmployeeRange(row['employee range']),
+        revenue: parseMoney(row['latest estimated revenue ($)']),
+        revenueMin: parseMoney(row['latest estimated revenue min ($)']),
+        revenueMax: parseMoney(row['latest estimated revenue max ($)']),
+        revenueMM: parseMoney(row['latest estimated revenue ($)']) ? parseMoney(row['latest estimated revenue ($)']) / 1000000 : null,
+        execFirst: row['executive first name'] || '',
+        execLast: row['executive last name'] || '',
+        execTitle: row['executive title'] || '',
+        execName: [row['executive first name'], row['executive last name']].filter(Boolean).join(' '),
+        execBlock: [[row['executive first name'], row['executive last name']].filter(Boolean).join(' '), row['executive title']].filter(Boolean).join('\n'),
+        execEmail: row['executive email'] || '',
+        execLinkedIn: row['executive linkedin'] || '',
+        industries: parseList(row['industries'] || ''),
+        endMarkets: parseList(row['end markets'] || ''),
+        foundingYear: parseNumber(row['founding year']),
+        ownership: row['ownership'] || '',
+        totalRaised: parseMoney(row['total raised']),
+        profileUrl: row['profileurl'] || '',
+        linkedinCompany: row['linkedin account'] || '',
+        sourcesCount: parseNumber(row['sources count']),
+        specialties: row['specialties'] || '',
+        processingError: true
+      };
+    }
+  }
+  
   for (let i = 0; i < rows.length; i += BATCH_SIZE) {
     const batch = rows.slice(i, i + BATCH_SIZE);
     
-    // Process batch
+    // Process batch with safe wrapper
     const batchResults = await Promise.all(
       batch.map(row => {
         return new Promise((resolve) => {
-          // Use setTimeout to prevent blocking
           setTimeout(() => {
-            try {
-              const processed = processRow(row);
-              resolve(processed);
-            } catch (error) {
-              console.error('Error processing row:', error);
-              resolve(row); // Return original on error
-            }
+            resolve(safeProcessRow(row));
           }, 0);
         });
       })

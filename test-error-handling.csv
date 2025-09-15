@@ -1,0 +1,6 @@
+Company Name,Website,Description,Latest Estimated Revenue ($)
+"Normal Company Inc",https://normal.com,"A standard company description",1000000
+"Missing Data Corp",,,"" 
+"Problematic & Special Chars!!",invalid-url,"Description with special chars: @#$%^&*()[]{}",abc
+"Unicode Company 🏢",https://unicode.com,"Company with unicode: αβγδε ñüñez café naïve résumé",2500000
+"Very Long Company Name That Exceeds Normal Limits And Contains Many Words That Could Cause Issues",https://toolong.com,"This is an extremely long description that goes on and on with lots of marketing fluff and buzzwords like innovative leading cutting-edge revolutionary world-class premier best-in-class state-of-the-art exceptional outstanding superior excellence over 50 years of experience serving clients nationwide globally worldwide",5000000
