@@ -36,10 +36,15 @@
       Papa.parse(file,{
         header:true, // still run embedded-header promotion if needed
         skipEmptyLines:true,
-        worker:true,
+        worker:false,
         complete: (res)=>{
-          const records = res.data || [];
-          finish(records);
+          try {
+            const records = res.data || [];
+            finish(records);
+          } catch (err) {
+            console.error(err);
+            mapDiv.textContent = `Error: ${err.message||String(err)}`;
+          }
           resolve();
         },
         error: (err)=>reject(err)
@@ -48,14 +53,23 @@
   }
 
   async function parseXlsx(file){
-    const buf = await file.arrayBuffer();
-    const wb = XLSX.read(buf, { type:"array" });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const records = XLSX.utils.sheet_to_json(ws, { defval:"", raw:false });
-    finish(records);
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type:"array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const records = XLSX.utils.sheet_to_json(ws, { defval:"", raw:false });
+      finish(records);
+    } catch (err) {
+      console.error(err);
+      mapDiv.textContent = `Error: ${err.message||String(err)}`;
+    }
   }
 
   function finish(records){
+    if (!window.CDSEngine || typeof window.CDSEngine.processRecords !== 'function'){
+      mapDiv.textContent = 'Error: Standardization engine unavailable';
+      return;
+    }
     const result = window.CDSEngine.processRecords(records);
     latestRows = result.rows || [];
 
@@ -119,7 +133,7 @@
       let s = String(v==null?"":v);
       // Prevent CSV / formula injection (Excel etc.)
       if (/^[=+\-@]/.test(s)) s = `'${s}`;
-      if (s.includes('"') || s.includes(",") || s.includes("\n")) s = `"${s.replace(/\"/g,'\"\"')}"`;
+      if (s.includes('"') || s.includes(",") || s.includes("\n")) s = `"${s.replace(/"/g,'""')}"`;
       return s;
     };
     const out = [];

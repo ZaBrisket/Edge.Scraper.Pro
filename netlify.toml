@@ -65,3 +65,9 @@
   from = "/targets"
   to   = "/targets/"
   status = 301
+
+# Ensure directory index is served for trailing-slash path
+[[redirects]]
+  from = "/targets/"
+  to   = "/targets/index.html"
+  status = 200

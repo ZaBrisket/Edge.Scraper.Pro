@@ -72,7 +72,7 @@
       kept.push(s);
     }
     const x = kept.join(" ").replace(FLUFF," ").replace(/\s+/g," ").trim();
-    return x.replace(/^[;,- ]+|[;,- ]+$/g,"");
+    return x.replace(/^[-;, ]+|[-;, ]+$/g,"");
   }
 
   function chooseVerb(text, source){
