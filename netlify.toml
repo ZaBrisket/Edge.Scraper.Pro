@@ -60,8 +60,14 @@
   [headers.values]
     Cache-Control = "public, max-age=604800"
 
-# M&A Target Lists page
+# Static route for Targets page
 [[redirects]]
   from = "/targets"
-  to = "/targets.html"
+  to   = "/targets/"
+  status = 301
+
+# Ensure directory index is served for trailing-slash path
+[[redirects]]
+  from = "/targets/"
+  to   = "/targets/index.html"
   status = 200
