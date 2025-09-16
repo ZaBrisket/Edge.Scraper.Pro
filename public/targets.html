@@ -656,6 +656,114 @@
       to { transform: rotate(360deg); }
     }
     
+    /* Standardization Section Styles */
+    .standardization-upload {
+      padding: 1rem;
+      border: 2px dashed var(--border-secondary);
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
+
+    .mapping-summary {
+      background: var(--bg-primary);
+      padding: 1rem;
+      border-radius: 4px;
+      margin: 1rem 0;
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+    }
+
+    .mapping-controls {
+      margin: 1rem 0;
+    }
+
+    .mapping-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+
+    .mapping-select {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--border-secondary);
+      border-radius: 4px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    .export-actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin: 1rem 0;
+    }
+
+    .btn-export {
+      padding: 0.5rem 1rem;
+      background: var(--success);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .btn-export:hover {
+      background: #1ea04d;
+    }
+
+    .btn-export:disabled {
+      background: var(--text-muted);
+      cursor: not-allowed;
+    }
+
+    .result-count {
+      margin-left: auto;
+      color: var(--text-secondary);
+    }
+
+    #std-results-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    #std-results-table th,
+    #std-results-table td {
+      padding: 0.75rem;
+      border: 1px solid var(--border-primary);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    #std-results-table thead th {
+      background: var(--bg-tertiary);
+      font-weight: bold;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    #std-results-table tbody tr:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .mapping-controls summary {
+      cursor: pointer;
+      padding: 0.5rem;
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+    }
+
+    .mapping-controls summary:hover {
+      background: var(--bg-primary);
+    }
+
+    .hint {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       .header-content {
@@ -812,6 +920,80 @@
         </details>
       </div>
       
+      <!-- Company Description Standardization Section -->
+      <div class="panel" id="standardization-section">
+        <h2 class="panel-title">📝 Company Description Standardization</h2>
+        
+        <div class="standardization-upload">
+          <h3>Upload Company List</h3>
+          <input type="file" id="std-file-input" accept=".csv,.xlsx,.xls" />
+          <p class="hint">Upload CSV/XLSX with company descriptions (SourceScrub exports supported)</p>
+        </div>
+
+        <div id="std-mapping-section" style="display:none;">
+          <h3>Column Mapping</h3>
+          <div id="std-auto-mapping" class="mapping-summary"></div>
+          
+          <details id="std-manual-mapping" class="mapping-controls">
+            <summary>Manual Override (Optional)</summary>
+            <div class="mapping-grid">
+              <label>
+                Company Name:
+                <select id="map-company-name" class="mapping-select"></select>
+              </label>
+              <label>
+                Website:
+                <select id="map-website" class="mapping-select"></select>
+              </label>
+              <label>
+                Description:
+                <select id="map-description" class="mapping-select"></select>
+              </label>
+              <label>
+                Specialties:
+                <select id="map-specialties" class="mapping-select"></select>
+              </label>
+              <label>
+                Products & Services:
+                <select id="map-products" class="mapping-select"></select>
+              </label>
+              <label>
+                Industries:
+                <select id="map-industries" class="mapping-select"></select>
+              </label>
+              <label>
+                End Markets:
+                <select id="map-end-markets" class="mapping-select"></select>
+              </label>
+            </div>
+            <button id="std-apply-mapping" class="btn btn-primary">Apply Manual Mapping</button>
+          </details>
+        </div>
+
+        <div id="std-results-section" style="display:none;">
+          <h3>Standardized Results</h3>
+          <div class="export-actions">
+            <button id="std-export-csv" class="btn-export">Export CSV</button>
+            <button id="std-export-xlsx" class="btn-export">Export Excel</button>
+            <span id="std-count" class="result-count"></span>
+          </div>
+          
+          <div class="table-container">
+            <table id="std-results-table">
+              <thead>
+                <tr>
+                  <th style="width: 20%">Company Name</th>
+                  <th style="width: 20%">Website</th>
+                  <th style="width: 30%">Original</th>
+                  <th style="width: 30%">Standardized (≤30 words)</th>
+                </tr>
+              </thead>
+              <tbody id="std-results-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
       <!-- Footer -->
       <div class="panel">
         <p class="text-small text-muted">
@@ -833,5 +1015,9 @@
   
   <!-- Application Code -->
   <script src="/targets.js"></script>
+  
+  <!-- Standardization Module -->
+  <script src="standardization-engine-v2.js"></script>
+  <script src="targets-standardization-handler.js"></script>
 </body>
 </html>
