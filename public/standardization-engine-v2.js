@@ -157,7 +157,18 @@
     ].map(normalizeColumnName));
 
     for (let i = 0; i < Math.min(25, rows.length); i++) {
-      const values = Object.values(rows[i]).map(v => normalizeColumnName(v));
+      const row = rows[i];
+      const values = [];
+      
+      // Extract all values including those in __parsed_extra
+      Object.keys(row).forEach(key => {
+        if (key === '__parsed_extra' && Array.isArray(row[key])) {
+          values.push(...row[key].map(v => normalizeColumnName(v)));
+        } else if (key !== '__parsed_extra') {
+          values.push(normalizeColumnName(row[key]));
+        }
+      });
+      
       const matches = values.filter(v => headerKeywords.has(v)).length;
       
       if (matches >= 3) {
@@ -351,13 +362,42 @@
 
     if (headerIndex >= 0) {
       // Promote embedded header
-      headers = Object.values(records[headerIndex]);
+      const headerRow = records[headerIndex];
+      headers = [];
+      
+      // Extract all column values including those in __parsed_extra
+      Object.keys(headerRow).forEach(key => {
+        if (key === '__parsed_extra' && Array.isArray(headerRow[key])) {
+          // Add each extra column
+          headers.push(...headerRow[key]);
+        } else if (key !== '__parsed_extra') {
+          headers.push(headerRow[key]);
+        }
+      });
+      
+      // Reconstruct data rows with proper column mapping
       dataRows = records.slice(headerIndex + 1).map(row => {
         const newRow = {};
-        const values = Object.values(row);
-        headers.forEach((header, i) => {
-          newRow[header] = values[i] || '';
+        let colIndex = 0;
+        
+        // Map regular columns
+        Object.keys(row).forEach(key => {
+          if (key === '__parsed_extra' && Array.isArray(row[key])) {
+            // Map extra columns
+            row[key].forEach(value => {
+              if (headers[colIndex]) {
+                newRow[headers[colIndex]] = value || '';
+              }
+              colIndex++;
+            });
+          } else if (key !== '__parsed_extra') {
+            if (headers[colIndex]) {
+              newRow[headers[colIndex]] = row[key] || '';
+            }
+            colIndex++;
+          }
         });
+        
         return newRow;
       });
     }

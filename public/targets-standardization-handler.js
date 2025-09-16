@@ -240,18 +240,15 @@
   elements.exportCsv?.addEventListener('click', () => {
     if (currentResults.length === 0) return;
     
+    // Sanitize each field to prevent CSV injection
     const csvData = currentResults.map(row => ({
-      'Company Name': row['Company Name'],
-      'Website': row['Website'],
-      'Summary': row['Summary']
+      'Company Name': sanitizeForCsv(row['Company Name']),
+      'Website': sanitizeForCsv(row['Website']),
+      'Summary': sanitizeForCsv(row['Summary'])
     }));
     
     const csv = Papa.unparse(csvData);
-    
-    // Add CSV injection protection
-    const safeCsv = csv.replace(/^([=+\-@])/gm, "'$1");
-    
-    downloadFile(safeCsv, 'standardized_companies.csv', 'text/csv');
+    downloadFile(csv, 'standardized_companies.csv', 'text/csv');
   });
 
   // Export to Excel
@@ -282,6 +279,22 @@
     
     downloadFile(blob, 'standardized_companies.xlsx');
   });
+
+  // Utility: Sanitize CSV fields to prevent formula injection
+  function sanitizeForCsv(value) {
+    if (!value) return '';
+    
+    // Convert to string if not already
+    const str = String(value);
+    
+    // If the field starts with =, +, -, @, or tab, prefix with '
+    // This prevents Excel from interpreting it as a formula
+    if (/^[=+\-@\t]/.test(str)) {
+      return "'" + str;
+    }
+    
+    return str;
+  }
 
   // Utility: Download file
   function downloadFile(content, filename, type) {
