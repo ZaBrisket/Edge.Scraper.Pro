@@ -833,5 +833,265 @@
   
   <!-- Application Code -->
   <script src="/targets.js"></script>
+
+  <!-- CDSEngine: deterministic company one-liners -->
+  <script src="./js/summary-engine.js"></script>
+  <script>
+  /* Minimal integration glue: Adds/updates row.Summary using CDSEngine.
+     Assumes the page already parses CSV/XLSX and holds a rows array. */
+  (function(){
+    // Helper: build a column map from the keys of the first row if not already mapped
+    function __espBuildColMapFromRows(rows){
+      if (!rows || !rows.length) return null;
+      const headers = Object.keys(rows[0]||{});
+      return (window.CDSEngine && window.CDSEngine.buildColMap)
+        ? window.CDSEngine.buildColMap(headers)
+        : null;
+    }
+
+    // Idempotent pass: compute row.Summary if missing or empty
+    function __espApplySummaries(rows){
+      if (!Array.isArray(rows) || !rows.length || !window.CDSEngine) return rows;
+      const prepared = window.CDSEngine.prepare(rows);
+      const cols = prepared.cols || __espBuildColMapFromRows(rows) || {};
+      for (let i=0; i<prepared.rows.length; i++){
+        const r = prepared.rows[i];
+        const s = window.CDSEngine.makeSummary(r, cols);
+        if (!r.Summary || typeof r.Summary !== "string" || !r.Summary.trim()) {
+          r.Summary = s;
+        } else {
+          // If an existing Summary exceeds 30 words or is multi-sentence, replace it.
+          const words = r.Summary.trim().split(/\s+/);
+          if (words.length > 30 || /[.!?].+/.test(r.Summary.trim())) r.Summary = s;
+        }
+      }
+      return prepared.rows;
+    }
+
+    // CSV injection guard (prefixes risky cells with apostrophe)
+    function __espSanitizeForCsv(v){
+      let s = String(v==null?"":v);
+      if (/^[=+\-@]/.test(s)) s = "'" + s;
+      if (s.includes('"') || s.includes(",") || s.includes("\n")) s = '"' + s.replace(/"/g,'""') + '"';
+      return s;
+    }
+
+    // Patch common export helpers if present
+    function __espWrapCsvExporter(){
+      try{
+        // Detect a global toCsv function; wrap if found
+        if (typeof window.toCsv === "function" && !window.__espToCsvWrapped){
+          const orig = window.toCsv;
+          window.toCsv = function(rows, headers){
+            rows = __espApplySummaries(rows);
+            const out = [];
+            out.push(headers.join(","));
+            for (const r of rows){
+              out.push(headers.map(h=>__espSanitizeForCsv(r[h])).join(","));
+            }
+            return out.join("\n");
+          };
+          window.__espToCsvWrapped = true;
+        }
+      }catch(e){}
+    }
+
+    // Try to discover likely data arrays and keep them standardized
+    function __espTryPatchPipelines(){
+      // 1) If a global like latestRows / rows / records exists, standardize it in-place
+      const cands = ["latestRows","rows","records","tableRows","data","dataset","targets","targetsData"];
+      for (const name of cands){
+        if (Array.isArray(window[name]) && window[name].length){
+          window[name] = __espApplySummaries(window[name]);
+        }
+      }
+
+      // 2) Patch CSV exporter if present
+      __espWrapCsvExporter();
+
+      // 3) Hook common XLSX export calls if reachable
+      if (window.XLSX && XLSX.utils && typeof XLSX.utils.json_to_sheet === "function" && !window.__espXlsxHooked){
+        const origJsonToSheet = XLSX.utils.json_to_sheet;
+        XLSX.utils.json_to_sheet = function(rows, opts){
+          rows = __espApplySummaries(rows);
+          return origJsonToSheet(rows, opts);
+        };
+        window.__espXlsxHooked = true;
+      }
+    }
+
+    // Run once after page scripts load
+    if (document.readyState === "complete" || document.readyState === "interactive") {
+      setTimeout(__espTryPatchPipelines, 0);
+    } else {
+      document.addEventListener("DOMContentLoaded", __espTryPatchPipelines);
+    }
+
+    // Safety: re-run before export buttons if they exist
+    function __espAttachExportGuards(){
+      const btnTexts = ["Export CSV","Export XLSX","Export Excel"];
+      document.addEventListener("click", function(ev){
+        const el = ev.target;
+        if (!el || el.tagName !== "BUTTON") return;
+        const t = (el.textContent||"").trim();
+        if (btnTexts.includes(t)) {
+          __espTryPatchPipelines(); // ensure summaries are fresh
+        }
+      }, true);
+    }
+    __espAttachExportGuards();
+
+    // Override legacy standardizer to route through CDSEngine
+    (function __espOverrideStandardizer(){
+      try{
+        if (window.DescriptionStandardizer && window.CDSEngine && !window.__espStdOverridden){
+          const original = window.DescriptionStandardizer.standardize;
+          window.DescriptionStandardizer.standardize = function(data){
+            try{
+              const cols = {
+                companyName: 'companyName',
+                website: 'website',
+                description: 'description',
+                specialties: 'specialties',
+                products: 'productsServices',
+                endMarkets: 'endMarkets',
+                industries: 'industries'
+              };
+              // Prefer raw description text if present on input
+              if (data && data.rawDescription && !data.description) {
+                data.description = data.rawDescription;
+              }
+              return window.CDSEngine.makeSummary(data || {}, cols);
+            }catch(e){
+              try{ return original(data); }catch{ return (data && (data.description||'')) || ''; }
+            }
+          };
+          window.__espStdOverridden = true;
+        }
+      }catch(e){}
+    })();
+
+    // Ensure Summary column is visible in preview by augmenting the table after render
+    function __espEnsurePreviewSummary(){
+      try{
+        const thead = document.getElementById('tableHead');
+        const tbody = document.getElementById('tableBody');
+        if (!thead || !tbody) return;
+        const headerRow = thead.querySelector('tr');
+        if (!headerRow) return;
+        const headerTexts = Array.from(headerRow.children).map(th => (th.textContent||'').trim());
+        if (!headerTexts.includes('Summary')){
+          const th = document.createElement('th');
+          th.textContent = 'Summary';
+          headerRow.appendChild(th);
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+          const data = (window.AppState && Array.isArray(AppState.filtered)) ? AppState.filtered : [];
+          rows.forEach((tr, idx)=>{
+            const td = document.createElement('td');
+            td.className = 'wrap';
+            const r = data[idx] || {};
+            const cols = {
+              companyName: 'companyName',
+              website: 'website',
+              description: r.rawDescription ? 'rawDescription' : 'description',
+              specialties: 'specialties',
+              products: 'productsServices',
+              endMarkets: 'endMarkets',
+              industries: 'industries'
+            };
+            let s = r.Summary && String(r.Summary).trim();
+            if (!s && window.CDSEngine){ s = window.CDSEngine.makeSummary(r, cols); }
+            td.textContent = s || (r.description || '');
+            tr.appendChild(td);
+          });
+        }
+      }catch(e){}
+    }
+
+    // Wrap renderTable to append Summary column after it runs
+    (function __espWrapRender(){
+      try{
+        if (typeof window.renderTable === 'function' && !window.__espRenderWrapped){
+          const orig = window.renderTable;
+          window.renderTable = function(){
+            const res = orig.apply(this, arguments);
+            __espEnsurePreviewSummary();
+            return res;
+          };
+          window.__espRenderWrapped = true;
+        }
+      }catch(e){}
+    })();
+
+    // Override CSV export to include Summary and guard against injection
+    (function __espOverrideExportCsv(){
+      try{
+        if (typeof window.exportCSV === 'function' && !window.__espExportCsvOverridden){
+          window.exportCSV = function(){
+            const data = (window.AppState && Array.isArray(AppState.filtered)) ? AppState.filtered : [];
+            if (!data.length){
+              if (typeof window.showMessage === 'function') showMessage('No data to export', 'warning');
+              return;
+            }
+            const includePII = (document.getElementById('includePII')||{}).checked;
+            const headers = [
+              '#','Company','City','State','City, State','Website','Domain',
+              'Standardized Description','Summary','Original Description','Count','Est. Rev ($MM)','Executive Title','Executive Name','Latest Revenue ($)'
+            ];
+            if (includePII) headers.push('Executive Email');
+            const out = [];
+            out.push(headers.join(','));
+            for (let i=0;i<data.length;i++){
+              const r = data[i] || {};
+              const cols = {
+                companyName: 'companyName',
+                website: 'website',
+                description: r.rawDescription ? 'rawDescription' : 'description',
+                specialties: 'specialties',
+                products: 'productsServices',
+                endMarkets: 'endMarkets',
+                industries: 'industries'
+              };
+              const summary = (r.Summary && String(r.Summary).trim()) || (window.CDSEngine ? window.CDSEngine.makeSummary(r, cols) : (r.description||''));
+              const rowArr = [
+                i + 1,
+                r.informalName || r.companyName || '',
+                r.city || '',
+                r.state || '',
+                r.cityState || [r.city||'', r.state||''].filter(Boolean).join(', '),
+                r.website || '',
+                r.domain || '',
+                r.description || '',
+                summary || '',
+                r.rawDescription || '',
+                (r.employeeCount != null ? r.employeeCount : (r.employeeRange || '')),
+                (r.revenueMM != null ? Number(r.revenueMM).toFixed(2) : ''),
+                r.execTitle || '',
+                r.execName || '',
+                r.revenue || ''
+              ];
+              if (includePII) rowArr.push(r.execEmail || '');
+              out.push(rowArr.map(__espSanitizeForCsv).join(','));
+            }
+            const csv = out.join('\n');
+            const timestamp = new Date().toISOString().split('T')[0];
+            if (typeof window.downloadFile === 'function'){
+              downloadFile(csv, `target-universe-${timestamp}.csv`, 'text/csv');
+            } else {
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `target-universe-${timestamp}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }
+          };
+          window.__espExportCsvOverridden = true;
+        }
+      }catch(e){}
+    })();
+  })();
+  </script>
 </body>
 </html>
