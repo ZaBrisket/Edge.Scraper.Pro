@@ -78,14 +78,15 @@
     const lines = [];
     lines.push("Auto-mapped columns:");
     for (const k of ["companyName","website","description","specialties","products","endMarkets","industries"]){
-      lines.push(`• ${k}: ${cols && cols[k] ? "\""+cols[k]+"\"" : "(not found)"}`);
+      const val = cols && cols[k] ? `"${String(cols[k])}"` : "(not found)";
+      lines.push(`• ${k}: ${val}`);
     }
     if (result.messages && result.messages.length){
       lines.push("");
       lines.push("Notes:");
-      for (const m of result.messages) lines.push(`– ${m}`);
+      for (const m of result.messages) lines.push(`– ${String(m)}`);
     }
-    mapDiv.innerHTML = lines.join("<br>");
+    mapDiv.innerHTML = lines.map(escapeHtml).join("<br>");
 
     // Render table (preserve input order)
     const frag = document.createDocumentFragment();
