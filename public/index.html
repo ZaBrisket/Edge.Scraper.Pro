@@ -1421,6 +1421,7 @@
             const dateTo = document.getElementById('ma-date-to').value;
             const autoDiscover = document.getElementById('ma-auto-discover').checked;
             const useRSS = document.getElementById('ma-use-rss').checked;
+            const minConfidence = highConfidenceOnly ? 75 : 0;
             const highConfidenceOnly = document.getElementById('ma-high-confidence').checked;
             
             // Get URLs from main textarea if not auto-discovering
@@ -1452,7 +1453,9 @@
                             to: dateTo
                         },
                         concurrency: 3,
-                        maxUrls: 50
+                        maxUrls: 50,
+                        useRSS: useRSS,
+                        minConfidence: minConfidence
                     })
                 });
                 

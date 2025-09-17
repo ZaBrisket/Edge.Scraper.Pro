@@ -103,7 +103,9 @@ exports.handler = async (event, context) => {
       keywords = '',
       dateRange = {},
       concurrency = 3,
-      maxUrls = 50
+      maxUrls = 50,
+      useRSS = true,
+      minConfidence = 0
     } = body;
     
     console.log(`MA News Scraper invoked - Mode: ${mode}, Discover: ${discover}, Sources: ${sources.join(',')}`);
@@ -118,7 +120,7 @@ exports.handler = async (event, context) => {
         sources: sources,
         keywords: keywords || 'merger acquisition',
         maxUrls: maxUrls,
-        useRSS: true,
+        useRSS: !!useRSS,
         useSearch: !!keywords,
         useSitemap: false
       });
@@ -126,7 +128,8 @@ exports.handler = async (event, context) => {
       urlsToScrape = discoveredUrls.map(u => ({
         url: u.url,
         source: u.source,
-        title: u.title
+        title: u.title,
+        date: u.date || u.publishedAt || u.pubDate || null
       }));
       
       console.log(`Discovered ${urlsToScrape.length} M&A-related URLs`);
@@ -147,16 +150,26 @@ exports.handler = async (event, context) => {
     // Process URLs
     const results = await Promise.all(
       urlsToScrape.map(item => 
-        queue.add(() => 
-          scrapeUrl(item.url, newsSources.getSource(item.source))
-        )
+        queue.add(async () => {
+          const res = await scrapeUrl(item.url, newsSources.getSource(item.source));
+          // Attach discovered metadata if available
+          if (item.title && (!res.data || !res.data.title)) {
+            if (!res.data) res.data = {};
+            res.data.title = item.title;
+          }
+          if (item.date) {
+            if (!res.data) res.data = {};
+            res.data.publishedAt = item.date;
+          }
+          return res;
+        })
       )
     );
     
     // Calculate statistics
     const successful = results.filter(r => r.success);
     const failed = results.filter(r => !r.success);
-    const withMAData = successful.filter(r => r.data?.confidence > 50);
+    const withMAData = successful.filter(r => (r.data?.confidence || 0) > Math.max(0, minConfidence));
     const withDealValue = successful.filter(r => r.data?.dealValue);
     
     // Sort by confidence
