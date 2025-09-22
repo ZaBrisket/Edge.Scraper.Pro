@@ -23,6 +23,7 @@ class EnhancedFetchClient {
     this.options = {
       timeout: options.timeout || 30000,
       maxRedirects: options.maxRedirects || 5,
+      maxRetries: options.maxRetries || 3,
       respectRobots: options.respectRobots !== false,
       enableCanonicalization: options.enableCanonicalization !== false,
       enablePaginationDiscovery: options.enablePaginationDiscovery !== false,
@@ -332,7 +333,7 @@ class EnhancedFetchClient {
       clearTimeout(timeoutId);
       
       // Handle 429 rate limit with retry
-      if (response.status === 429 && retryCount < this.options.maxRedirects) {
+      if (response.status === 429 && retryCount < (this.options.maxRetries || 3)) {
         const retryAfter = response.headers.get('retry-after');
         let delay = 1000 * Math.pow(2, retryCount); // Default exponential backoff
         

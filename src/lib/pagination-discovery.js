@@ -185,8 +185,20 @@ class PaginationDiscovery {
           const activePage = paginationContainer.querySelector(
             '.active, .current, [aria-current="page"]'
           );
+          
           if (activePage) {
             const activePageNum = parseInt(activePage.textContent?.trim());
+            if (!isNaN(activePageNum)) {
+              paginationInfo.currentPage = activePageNum;
+            }
+          }
+        } else {
+          // Fallback: try to detect current page from links with active/current class
+          const activeLinks = Array.from(document.querySelectorAll('a.active, a.current, a[aria-current="page"]'))
+            .filter(el => /^\d+$/.test(el.textContent?.trim() || ''));
+          
+          if (activeLinks.length > 0) {
+            const activePageNum = parseInt(activeLinks[0].textContent?.trim());
             if (!isNaN(activePageNum)) {
               paginationInfo.currentPage = activePageNum;
             }
