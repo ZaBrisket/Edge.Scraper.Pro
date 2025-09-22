@@ -180,14 +180,16 @@ class PaginationDiscovery {
       if (paginationInfo.pageNumbers.length > 0) {
         paginationInfo.totalPages = Math.max(...paginationInfo.pageNumbers);
 
-        // Look for current/active page indicator
-        const activePage = paginationContainer.querySelector(
-          '.active, .current, [aria-current="page"]'
-        );
-        if (activePage) {
-          const activePageNum = parseInt(activePage.textContent?.trim());
-          if (!isNaN(activePageNum)) {
-            paginationInfo.currentPage = activePageNum;
+        // Look for current/active page indicator (only if we have a container)
+        if (paginationContainer) {
+          const activePage = paginationContainer.querySelector(
+            '.active, .current, [aria-current="page"]'
+          );
+          if (activePage) {
+            const activePageNum = parseInt(activePage.textContent?.trim());
+            if (!isNaN(activePageNum)) {
+              paginationInfo.currentPage = activePageNum;
+            }
           }
         }
       }
