@@ -88,8 +88,11 @@ class PFRValidator {
         return result;
       }
 
-      // Check if it's a player URL
-      const pattern = PLAYER_URL_PATTERNS[hostname];
+      // Check if it's a player URL - normalize hostname for pattern lookup
+      // Remove www. prefix if present
+      const normalizedHostname = hostname.replace(/^www\./, '');
+      
+      const pattern = PLAYER_URL_PATTERNS[normalizedHostname] || PLAYER_URL_PATTERNS[hostname];
       if (!pattern) {
         result.category = VALIDATION_CATEGORIES.NON_PLAYER;
         result.error = `No player URL pattern defined for ${hostname}`;
@@ -116,7 +119,7 @@ class PFRValidator {
       }
 
       // Extract and validate player slug for PFR
-      if (hostname === 'pro-football-reference.com') {
+      if (normalizedHostname === 'pro-football-reference.com') {
         const slugMatch = url.pathname.match(
           /\/players\/[A-Z]\/([A-Za-z]{4}[A-Z][a-z]\d{2})\.htm$/
         );

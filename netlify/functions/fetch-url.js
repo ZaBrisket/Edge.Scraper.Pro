@@ -8,7 +8,7 @@ const MAX_TOTAL_MS = Math.min(
   parseInt(process.env.HTTP_DEADLINE_MS || '28000', 10),
   29000
 );
-const DEFAULT_TIMEOUT_MS = Math.min(12000, MAX_TOTAL_MS - 4000);
+const DEFAULT_TIMEOUT_MS = Math.max(0, Math.min(12000, MAX_TOTAL_MS - 4000));
 const REFERER = process.env.REQUEST_REFERER || 'https://news.google.com/';
 
 const BROWSER_UAS = [

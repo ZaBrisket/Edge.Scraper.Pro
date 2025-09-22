@@ -36,11 +36,15 @@ function normalizeHeader(header: string): string {
  * Calculate string similarity using Levenshtein distance
  */
 function calculateSimilarity(str1: string, str2: string): number {
+  // Handle empty/null cases
+  if (!str1 && !str2) return 1;
+  if (!str1 || !str2) return 0;
+  
   const len1 = str1.length;
   const len2 = str2.length;
 
-  if (len1 === 0) return len2;
-  if (len2 === 0) return len1;
+  if (len1 === 0 && len2 === 0) return 1;
+  if (len1 === 0 || len2 === 0) return 0;
 
   const matrix: number[][] = [];
 
