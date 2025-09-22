@@ -23,6 +23,7 @@ class EnhancedFetchClient {
     this.options = {
       timeout: options.timeout || 30000,
       maxRedirects: options.maxRedirects || 5,
+      maxRetries: options.maxRetries || 3,
       respectRobots: options.respectRobots !== false,
       enableCanonicalization: options.enableCanonicalization !== false,
       enablePaginationDiscovery: options.enablePaginationDiscovery !== false,
@@ -75,6 +76,35 @@ class EnhancedFetchClient {
       'Sec-Fetch-Site': 'none',
       'Sec-Fetch-User': '?1',
       'Upgrade-Insecure-Requests': '1',
+    };
+  }
+
+  /**
+   * Public fetch method that returns structured response data
+   * @param {string} url - URL to fetch
+   * @param {object} options - Fetch options
+   * @returns {Promise<object>} Structured response object
+   */
+  async fetch(url, options) {
+    const result = await this.enhancedFetch(url, options);
+    const response = result.response;
+    
+    // Get response headers as object
+    const headers = {};
+    response.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    
+    // Get response text
+    const text = await response.text();
+    
+    return {
+      url: result.resolvedUrl || url,
+      status: response.status,
+      statusText: response.statusText,
+      headers: headers,
+      text: text,
+      responseTime: result.responseTime
     };
   }
 
@@ -148,11 +178,34 @@ class EnhancedFetchClient {
     const lines = robotsContent.split('\n').map(line => line.trim());
     let currentUserAgent = null;
     let isRelevantSection = false;
+    const allowRules = [];
+    const disallowRules = [];
 
     for (const line of lines) {
       if (line.startsWith('#') || !line) continue;
 
       if (line.toLowerCase().startsWith('user-agent:')) {
+        // If we were in a relevant section, process the rules we collected
+        if (isRelevantSection && (allowRules.length > 0 || disallowRules.length > 0)) {
+          // Check Allow rules first (they override Disallow)
+          for (const rule of allowRules) {
+            if (this.matchesRule(path, rule)) {
+              return true;
+            }
+          }
+          
+          // Then check Disallow rules
+          for (const rule of disallowRules) {
+            if (this.matchesRule(path, rule)) {
+              return false;
+            }
+          }
+        }
+        
+        // Reset for new user agent section
+        allowRules.length = 0;
+        disallowRules.length = 0;
+        
         const ua = line.substring(11).trim();
         currentUserAgent = ua;
         isRelevantSection = ua === '*' || userAgent.includes(ua);
@@ -161,15 +214,56 @@ class EnhancedFetchClient {
 
       if (!isRelevantSection) continue;
 
-      if (line.toLowerCase().startsWith('disallow:')) {
+      if (line.toLowerCase().startsWith('allow:')) {
+        const allowedPath = line.substring(6).trim();
+        if (allowedPath) {
+          allowRules.push(allowedPath);
+        }
+      } else if (line.toLowerCase().startsWith('disallow:')) {
         const disallowedPath = line.substring(9).trim();
-        if (disallowedPath && path.startsWith(disallowedPath)) {
+        if (disallowedPath) {
+          disallowRules.push(disallowedPath);
+        }
+      }
+    }
+    
+    // Process the last section
+    if (isRelevantSection) {
+      // Check Allow rules first (they override Disallow)
+      for (const rule of allowRules) {
+        if (this.matchesRule(path, rule)) {
+          return true;
+        }
+      }
+      
+      // Then check Disallow rules
+      for (const rule of disallowRules) {
+        if (this.matchesRule(path, rule)) {
           return false;
         }
       }
     }
 
     return true;
+  }
+  
+  /**
+   * Check if a path matches a robots.txt rule (with wildcard support)
+   * @param {string} path - Path to check
+   * @param {string} rule - Rule pattern
+   * @returns {boolean} Whether path matches rule
+   */
+  matchesRule(path, rule) {
+    // Handle wildcards in rules
+    if (rule.includes('*')) {
+      const regexPattern = rule
+        .replace(/[.+?^${}()|[\]\\]/g, '\\$&') // Escape special regex chars
+        .replace(/\*/g, '.*'); // Replace * with .*
+      return new RegExp('^' + regexPattern).test(path);
+    }
+    
+    // Simple prefix match for rules without wildcards
+    return path.startsWith(rule);
   }
 
   /**
@@ -216,12 +310,13 @@ class EnhancedFetchClient {
   }
 
   /**
-   * Base fetch implementation
+   * Base fetch implementation with retry support
    * @param {string} url - URL to fetch
    * @param {object} options - Fetch options
+   * @param {number} retryCount - Current retry attempt
    * @returns {Promise<Response>} Response object
    */
-  async baseFetch(url, options = {}) {
+  async baseFetch(url, options = {}, retryCount = 0) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), options.timeout || this.options.timeout);
 
@@ -236,6 +331,27 @@ class EnhancedFetchClient {
       });
 
       clearTimeout(timeoutId);
+      
+      // Handle 429 rate limit with retry
+      if (response.status === 429 && retryCount < (this.options.maxRetries || 3)) {
+        const retryAfter = response.headers.get('retry-after');
+        let delay = 1000 * Math.pow(2, retryCount); // Default exponential backoff
+        
+        if (retryAfter) {
+          // If retry-after is a number, it's seconds
+          const retryAfterNum = parseInt(retryAfter);
+          if (!isNaN(retryAfterNum)) {
+            delay = retryAfterNum * 1000;
+          }
+        }
+        
+        this.logger.debug({ url, retryCount, delay }, 'Rate limited, retrying after delay');
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        // Retry with ALL original options preserved
+        return this.baseFetch(url, options, retryCount + 1);
+      }
+      
       return response;
     } catch (error) {
       clearTimeout(timeoutId);

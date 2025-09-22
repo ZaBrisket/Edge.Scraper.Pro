@@ -103,7 +103,12 @@ class PaginationDiscovery {
 
       // Look for pagination controls if no rel="next"
       if (!paginationInfo.hasNext) {
-        for (const selector of this.options.paginationSelectors) {
+        // First try the CSS selectors (excluding :contains which is invalid)
+        const validSelectors = this.options.paginationSelectors.filter(
+          sel => !sel.includes(':contains')
+        );
+        
+        for (const selector of validSelectors) {
           const elements = document.querySelectorAll(selector);
 
           for (const element of elements) {
@@ -127,6 +132,18 @@ class PaginationDiscovery {
 
           if (paginationInfo.hasNext) break;
         }
+        
+        // If still no next link found, search all links for "Next" text
+        if (!paginationInfo.hasNext) {
+          const nextLinks = Array.from(document.querySelectorAll('a'))
+            .filter(el => el.textContent?.toLowerCase().includes('next'));
+          
+          if (nextLinks.length > 0 && nextLinks[0].href) {
+            paginationInfo.hasNext = true;
+            paginationInfo.nextUrl = new URL(nextLinks[0].href, baseUrl).toString();
+            this.logger.debug({ nextUrl: paginationInfo.nextUrl }, 'Found next link by text content');
+          }
+        }
       }
 
       // Extract page numbers from pagination controls
@@ -144,17 +161,44 @@ class PaginationDiscovery {
             paginationInfo.pageNumbers.push(pageNum);
           }
         }
+      } else {
+        // If no pagination container found, look for numbered links throughout the page
+        const pageLinks = Array.from(document.querySelectorAll('a'))
+          .filter(el => /^\d+$/.test(el.textContent?.trim() || ''));
+        
+        for (const link of pageLinks) {
+          const text = link.textContent?.trim();
+          const pageNum = parseInt(text);
 
-        // Try to determine current page and total
-        if (paginationInfo.pageNumbers.length > 0) {
-          paginationInfo.totalPages = Math.max(...paginationInfo.pageNumbers);
+          if (!isNaN(pageNum) && pageNum > 0 && pageNum <= 100) { // Reasonable page limit
+            paginationInfo.pageNumbers.push(pageNum);
+          }
+        }
+      }
 
-          // Look for current/active page indicator
+      // Try to determine current page and total
+      if (paginationInfo.pageNumbers.length > 0) {
+        paginationInfo.totalPages = Math.max(...paginationInfo.pageNumbers);
+
+        // Look for current/active page indicator (only if we have a container)
+        if (paginationContainer) {
           const activePage = paginationContainer.querySelector(
             '.active, .current, [aria-current="page"]'
           );
+          
           if (activePage) {
             const activePageNum = parseInt(activePage.textContent?.trim());
+            if (!isNaN(activePageNum)) {
+              paginationInfo.currentPage = activePageNum;
+            }
+          }
+        } else {
+          // Fallback: try to detect current page from links with active/current class
+          const activeLinks = Array.from(document.querySelectorAll('a.active, a.current, a[aria-current="page"]'))
+            .filter(el => /^\d+$/.test(el.textContent?.trim() || ''));
+          
+          if (activeLinks.length > 0) {
+            const activePageNum = parseInt(activeLinks[0].textContent?.trim());
             if (!isNaN(activePageNum)) {
               paginationInfo.currentPage = activePageNum;
             }
