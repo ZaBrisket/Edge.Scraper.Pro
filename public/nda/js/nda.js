@@ -252,50 +252,234 @@ function evaluateAndRender() {
 }
 
 function yamlToJson(y) {
+  const KEY_MAP = {
+    id: "id",
+    title: "title",
+    clause: "clause",
+    category: "category",
+    recommendation: "recommendation",
+    level: "level",
+    severity: "severity",
+    when: "when",
+    failif: "failIf",
+    require: "require",
+    forbid: "forbid",
+    patternsany: "patternsAny",
+    antipatternsany: "antiPatternsAny",
+    tags: "tags",
+    references: "references",
+  };
+  const ARRAY_KEYS = new Set(["require", "forbid", "patternsAny", "antiPatternsAny", "tags", "references"]);
+
+  const stripInlineComment = (value) => {
+    if (!value) return "";
+    let inSingle = false;
+    let inDouble = false;
+    for (let i = 0; i < value.length; i += 1) {
+      const ch = value[i];
+      if (ch === "'" && !inDouble) {
+        inSingle = !inSingle;
+        continue;
+      }
+      if (ch === "\"" && !inSingle) {
+        inDouble = !inDouble;
+        continue;
+      }
+      if (ch === "#" && !inSingle && !inDouble) {
+        return value.slice(0, i).trim();
+      }
+    }
+    return value.trim();
+  };
+
+  const stripQuotes = (value) => {
+    if (!value) return "";
+    if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
+      return value.slice(1, -1);
+    }
+    return value;
+  };
+
+  const parseScalar = (value) => {
+    const cleaned = stripQuotes(stripInlineComment(value || ""));
+    if (cleaned === "") return "";
+    if (/^-?\d+(?:\.\d+)?$/.test(cleaned)) return Number(cleaned);
+    if (/^(true|false)$/i.test(cleaned)) return cleaned.toLowerCase() === "true";
+    return cleaned;
+  };
+
+  const parseJsonish = (value) => {
+    const cleaned = stripInlineComment(value || "");
+    const trimmed = cleaned.trim();
+    if (!trimmed) return "";
+    const looksJson = trimmed.startsWith("{") || trimmed.startsWith("[");
+    if (looksJson) {
+      try {
+        return JSON.parse(trimmed);
+      } catch (err) {
+        if (!trimmed.includes('"') && trimmed.includes("'")) {
+          try {
+            return JSON.parse(trimmed.replace(/'/g, '"'));
+          } catch (_) {
+            return parseScalar(trimmed);
+          }
+        }
+        return parseScalar(trimmed);
+      }
+    }
+    return parseScalar(trimmed);
+  };
+
   const rules = [];
+  const meta = {};
   let current = null;
+  let currentIndent = null;
+  let pendingListKey = null;
 
   const commit = () => {
     if (!current) return;
     if (!current.id) current.id = current.title || `rule_${rules.length + 1}`;
     rules.push(current);
     current = null;
+    currentIndent = null;
+    pendingListKey = null;
   };
 
-  const assignProp = (target, key, rawVal) => {
-    const stripped = rawVal.trim().replace(/^['"]|['"]$/g, "");
-    const normalizedKey = key.toLowerCase();
-    let value;
-    if (/^-?\d+(?:\.\d+)?$/.test(stripped)) value = Number(stripped);
-    else if (/^(true|false)$/i.test(stripped)) value = stripped.toLowerCase() === "true";
-    else value = stripped;
-    target[normalizedKey] = value;
+  const applyProp = (target, key, rawVal) => {
+    if (!target) return;
+    const lower = key.trim().toLowerCase();
+    const canonical = KEY_MAP[lower] || key.trim();
+    const valueText = typeof rawVal === "string" ? rawVal : "";
+
+    if (ARRAY_KEYS.has(canonical)) {
+      const arr = Array.isArray(target[canonical])
+        ? target[canonical]
+        : target[canonical] != null
+          ? [target[canonical]]
+          : [];
+      const cleaned = stripInlineComment(valueText);
+      if (!cleaned) {
+        target[canonical] = arr;
+        pendingListKey = canonical;
+        return;
+      }
+      if (cleaned.startsWith("[") || cleaned.startsWith("{")) {
+        const parsed = parseJsonish(cleaned);
+        if (Array.isArray(parsed)) arr.push(...parsed);
+        else if (parsed !== "") arr.push(parsed);
+      } else {
+        const scalar = parseScalar(cleaned);
+        if (scalar !== "") arr.push(scalar);
+      }
+      target[canonical] = arr;
+      pendingListKey = canonical;
+      return;
+    }
+
+    pendingListKey = null;
+
+    if (canonical === "severity") {
+      const num = Number(stripInlineComment(valueText));
+      target[canonical] = Number.isFinite(num) ? num : 5;
+      return;
+    }
+    if (canonical === "when" || canonical === "failIf") {
+      target[canonical] = parseJsonish(valueText);
+      return;
+    }
+
+    target[canonical] = parseScalar(valueText);
   };
 
-  y.split(/\r?\n/).forEach((line) => {
-    if (/^\s*#/.test(line)) return;
-    if (/^\s*$/.test(line)) return;
-    if (/^\s*rules:\s*$/i.test(line)) return;
+  const lines = y.split(/\r?\n/);
+  lines.forEach((line) => {
+    const indent = (line.match(/^\s*/) || [""])[0].length;
+    const trimmed = line.trim();
+    if (!trimmed) {
+      pendingListKey = null;
+      return;
+    }
+    if (trimmed.startsWith("#")) return;
+    if (/^rules:\s*$/i.test(trimmed)) {
+      pendingListKey = null;
+      return;
+    }
+
+    if (pendingListKey && current && indent > (currentIndent ?? -1)) {
+      const listMatch = trimmed.match(/^-\s*(.*)$/);
+      if (listMatch) {
+        const arr = Array.isArray(current[pendingListKey]) ? current[pendingListKey] : [];
+        const item = listMatch[1];
+        if (item) {
+          if (item.startsWith("[") || item.startsWith("{")) {
+            const parsed = parseJsonish(item);
+            if (Array.isArray(parsed)) arr.push(...parsed);
+            else if (parsed !== "") arr.push(parsed);
+          } else {
+            const scalar = parseScalar(item);
+            if (scalar !== "") arr.push(scalar);
+          }
+        }
+        current[pendingListKey] = arr;
+        return;
+      }
+    }
 
     const startMatch = line.match(/^\s*-\s*(.*)$/);
-    if (startMatch) {
+    if (startMatch && (!current || indent <= (currentIndent ?? 0))) {
       commit();
       current = {};
-      const rest = startMatch[1].trim();
+      currentIndent = indent;
+      pendingListKey = null;
+      const rest = startMatch[1];
       if (rest) {
         const prop = rest.match(/^([a-zA-Z0-9_]+):\s*(.*)$/);
-        if (prop) assignProp(current, prop[1], prop[2]);
+        if (prop) applyProp(current, prop[1], prop[2]);
       }
       return;
     }
 
-    if (!current) return;
-    const propMatch = line.match(/^\s*([a-zA-Z0-9_]+):\s*(.*)$/);
-    if (propMatch) assignProp(current, propMatch[1], propMatch[2]);
+    const propMatch = line.match(/^\s+([a-zA-Z0-9_]+):\s*(.*)$/);
+    if (propMatch) {
+      if (!current) {
+        current = {};
+        currentIndent = indent;
+      }
+      applyProp(current, propMatch[1], propMatch[2]);
+      return;
+    }
+
+    const metaMatch = line.match(/^([a-zA-Z0-9_]+):\s*(.*)$/);
+    if (metaMatch) {
+      const lower = metaMatch[1].trim().toLowerCase();
+      const canonical = KEY_MAP[lower] || metaMatch[1].trim();
+      const valueText = metaMatch[2];
+      if (ARRAY_KEYS.has(canonical)) {
+        const arr = Array.isArray(meta[canonical])
+          ? meta[canonical]
+          : meta[canonical] != null
+            ? [meta[canonical]]
+            : [];
+        const scalar = parseScalar(valueText);
+        if (scalar !== "") {
+          arr.push(scalar);
+          meta[canonical] = arr;
+        }
+      } else {
+        meta[canonical] = parseScalar(valueText);
+      }
+      pendingListKey = null;
+      return;
+    }
+
+    pendingListKey = null;
   });
 
   commit();
-  return { rules };
+
+  if (!rules.length) throw new Error("No rules found in YAML playbook.");
+
+  return { ...meta, rules: rules.filter(Boolean) };
 }
 
 async function run() {
