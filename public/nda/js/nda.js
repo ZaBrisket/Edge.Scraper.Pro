@@ -319,26 +319,73 @@ function evaluateAndRender(){
 function yamlToJson(y) {
   // Minimal YAML → JSON for simple lists/maps (playbooks). Not a full parser.
   const lines = y.split(/\r?\n/).filter(l => !/^\s*#/.test(l));
-  const obj = { rules: [] }; let cur = null;
+  const obj = { rules: [] };
+  let cur = null;
+  const pushCurrent = () => {
+    if (!cur) return;
+    if (!Object.keys(cur).length) { cur = null; return; }
+    if (!cur.id) cur.id = cur.title || `rule_${obj.rules.length + 1}`;
+    obj.rules.push(cur);
+    cur = null;
+  };
   for (const line of lines) {
-    if (!line.trim()) continue;
-    if (/^rules:\s*$/.test(line)) continue;
-    if (/^\s*-\s+id:/.test(line)) { if (cur) obj.rules.push(cur); cur = { id: line.replace(/^\s*-\s+id:\s*/, "").trim() }; continue; }
-    const m = line.match(/^\s+([a-zA-Z0-9_]+):\s*(.*)$/); if (!m) continue;
-    const [, k, v] = m;
-    if (["require","forbid","patternsAny","antiPatternsAny","tags"].includes(k)) {
-      cur[k] = cur[k] || [];
-      if (v) cur[k].push(v);
-    } else if (k === "category" || k === "clause" || k === "title" || k === "recommendation" || k === "level") {
-      cur[k] = v;
-    } else if (k === "severity") cur[k] = Number(v) || 5;
-    else if (k === "when" || k === "failIf") {
-      try { cur[k] = JSON.parse(v); } catch { cur[k] = v; }
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (/^rules:\s*$/i.test(trimmed)) continue;
+
+    const startMatch = line.match(/^\s*-\s*(.*)$/);
+    if (startMatch) {
+      pushCurrent();
+      cur = {};
+      const rest = startMatch[1];
+      if (rest) {
+        const prop = rest.match(/^([a-zA-Z0-9_]+):\s*(.*)$/);
+        if (prop) applyYamlProp(cur, prop[1], prop[2]);
+      }
+      continue;
+    }
+
+    const propMatch = line.match(/^\s+([a-zA-Z0-9_]+):\s*(.*)$/);
+    if (propMatch) {
+      if (!cur) cur = {};
+      applyYamlProp(cur, propMatch[1], propMatch[2]);
+      continue;
+    }
+
+    const metaMatch = line.match(/^([a-zA-Z0-9_]+):\s*(.*)$/);
+    if (metaMatch) {
+      obj[metaMatch[1]] = metaMatch[2];
     }
   }
-  if (cur) obj.rules.push(cur);
+  pushCurrent();
   if (!obj.rules.length) throw new Error("No rules found in YAML playbook.");
   return obj;
+}
+
+function applyYamlProp(target, key, value) {
+  if (key === "id") {
+    target.id = value;
+    return;
+  }
+  if (["require", "forbid", "patternsAny", "antiPatternsAny", "tags"].includes(key)) {
+    target[key] = target[key] || [];
+    if (value) target[key].push(value);
+    return;
+  }
+  if (["category", "clause", "title", "recommendation", "level"].includes(key)) {
+    target[key] = value;
+    return;
+  }
+  if (key === "severity") {
+    target.severity = Number(value) || 5;
+    return;
+  }
+  if (key === "when" || key === "failIf") {
+    try { target[key] = JSON.parse(value); }
+    catch { target[key] = value; }
+    return;
+  }
+  target[key] = value;
 }
 
 async function run() {

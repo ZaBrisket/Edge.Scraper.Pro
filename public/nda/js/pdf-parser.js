@@ -36,22 +36,41 @@ export async function parsePdf(data, onProgress = () => {}) {
  */
 export function ocrPdf(file, worker, onProgress = () => {}) {
   return new Promise((resolve, reject) => {
-    const onMsg = (e) => {
-      const { type, payload } = e.data || {};
-      if (type === "progress") onProgress(payload.percent || 0, payload.message);
-      else if (type === "done") { onProgress(100, "Done"); cleanup(); resolve(payload); }
-      else if (type === "error") { cleanup(); reject(new Error(payload.message || "OCR worker error")); }
-    };
+    let settled = false;
     const cleanup = () => {
       try { worker.removeEventListener("message", onMsg); } catch {}
+      try { worker.removeEventListener("error", onError); } catch {}
+      try { worker.removeEventListener("messageerror", onError); } catch {}
       try { worker.terminate(); } catch {}
     };
+    const finish = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      fn(value);
+    };
+    const onMsg = (e) => {
+      const { type, payload } = e.data || {};
+      if (type === "progress") {
+        onProgress(payload.percent || 0, payload.message);
+      } else if (type === "done") {
+        onProgress(100, "Done");
+        finish(resolve, payload);
+      } else if (type === "error") {
+        finish(reject, new Error(payload.message || "OCR worker error"));
+      }
+    };
+    const onError = (event) => {
+      const message = event?.message || event?.data || "OCR worker failed";
+      finish(reject, new Error(message));
+    };
     worker.addEventListener("message", onMsg);
+    worker.addEventListener("error", onError);
+    worker.addEventListener("messageerror", onError);
     try {
       worker.postMessage({ file });
     } catch (err) {
-      cleanup();
-      reject(err);
+      finish(reject, err);
     }
   });
 }
