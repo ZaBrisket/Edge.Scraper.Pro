@@ -11,7 +11,7 @@ default-src 'self';
 img-src 'self' data:;
 style-src 'self' 'unsafe-inline';
 connect-src 'self' data:;
-script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'unsafe-eval' 'wasm-unsafe-eval';
+script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com 'unsafe-eval' 'wasm-unsafe-eval';
 worker-src 'self' blob:;
 child-src 'self' blob:;
 font-src 'self' data:;
@@ -23,7 +23,7 @@ frame-ancestors 'none';
   <link rel="stylesheet" href="./css/nda.css" />
 
   <!-- Vendor: mammoth (browser build) for DOCX -> text -->
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script defer src="https://unpkg.com/mammoth@1.6.0/dist/mammoth.browser.min.js" data-lib="mammoth"></script>
 </head>
 <body>
   <header class="site-header">

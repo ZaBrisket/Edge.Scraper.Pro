@@ -1,5 +1,5 @@
 import { parsePdf, ocrPdf } from "./pdf-parser.js";
-import { parseDocx } from "./docx-parser.js";
+import { parseDocx, whenMammothReady } from "./docx-parser.js";
 import { parseTxt } from "./txt-parser.js";
 import { compilePlaybook, evaluate, riskLabel } from "./rules-engine.js";
 import { buildRedlinesDoc } from "./docx-redline.js";
@@ -109,7 +109,6 @@ function humanSize(bytes) {
   if (bytes < 1024) return `${bytes} B`; const kb = bytes/1024; if (kb < 1024) return `${kb.toFixed(1)} KB`; const mb = kb/1024; return `${mb.toFixed(1)} MB`;
 }
 
-function docxSupported() { return !!window?.mammoth?.extractRawText; }
 function ocrSupported() { return typeof Worker !== "undefined" && typeof OffscreenCanvas !== "undefined"; }
 function formatError(err) { return err?.message || String(err || "Unknown error"); }
 
@@ -193,7 +192,6 @@ async function extract(file, useOcr) {
   }
   if (isDocx) {
     const buf = await file.arrayBuffer();
-    if (!docxSupported()) throw new Error("DOCX parsing unavailable because the mammoth library failed to load.");
     try {
       return await parseDocx(new Uint8Array(buf), (p) => showProgress(p, "Parsing DOCX…"));
     } catch (err) {
@@ -346,9 +344,17 @@ function yamlToJson(y) {
 async function run() {
   wireDrop();
 
-  if (!docxSupported()) {
-    showAppError("DOCX parsing is disabled because the Mammoth library did not load.", { level: "warning", persistent: true });
-  }
+  whenMammothReady()
+    .then(() => {
+      console.info("[NDA][DOCX] Mammoth ready for DOCX parsing");
+      const diag = window["__ndaDiagnostics"] = window["__ndaDiagnostics"] || {};
+      diag.docx = diag.docx || {};
+      diag.docx.mammothReadyNotified = true;
+    })
+    .catch((err) => {
+      console.error("Mammoth failed to load", err);
+      showAppError("DOCX parsing is disabled because the Mammoth library did not load.", { level: "warning", persistent: true });
+    });
   if (!ocrSupported()) {
     if (els.useOcr) {
       els.useOcr.checked = false;
