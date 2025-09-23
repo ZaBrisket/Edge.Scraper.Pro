@@ -2,76 +2,131 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>EdgeScraperPro — NDA Reviewer (BETA)</title>
+  <title>NDA Reviewer 1.0 — EdgeScraperPro</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
+  <!-- CSP tailored for pinned CDNs + ESM workers + WASM -->
+  <meta http-equiv="Content-Security-Policy" content="
+default-src 'self';
+img-src 'self' data:;
+style-src 'self' 'unsafe-inline';
+connect-src 'self' data:;
+script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com 'unsafe-eval' 'wasm-unsafe-eval';
+worker-src 'self' blob:;
+child-src 'self' blob:;
+font-src 'self' data:;
+object-src 'none';
+base-uri 'self';
+frame-ancestors 'none';
+  ">
+
   <link rel="stylesheet" href="./nda.css" />
 
-  <!-- PDF.js (ESM) -->
-  <script type="module">
-    import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.149/pdf.min.mjs";
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.149/pdf.worker.min.mjs";
-    window.pdfjsLib = pdfjsLib;
-  </script>
-
-  <!-- Mammoth.js (DOCX→text/HTML) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.11.0/mammoth.browser.min.js" defer></script>
-
-  <!-- diff-match-patch (global diff_match_patch class) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js" defer></script>
-
-  <!-- html-docx-js (HTML→DOCX export) -->
-  <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.4.0/dist/html-docx.js" defer></script>
-
-  <!-- (Optional) Tesseract.js OCR -->
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js" defer></script>
-
-  <!-- App code -->
-  <script type="module" src="./nda.js" defer></script>
+  <!-- Vendor: mammoth (browser build) for DOCX -> text -->
+  <script defer src="https://unpkg.com/mammoth@1.6.0/dist/mammoth.browser.min.js" data-lib="mammoth"></script>
 </head>
 <body>
-  <header class="nda-header">
-    <h1>NDA Reviewer (BETA)</h1>
-    <p class="sub">Reviews inbound NDAs against the <strong>Edgewater NDA Checklist</strong>. All processing happens locally in your browser. <strong>Not legal advice.</strong></p>
+  <header class="site-header">
+    <nav>
+      <a href="/">Scrape</a>
+      <a href="/targets">Target Lists</a>
+      <span aria-current="page">NDA Reviewer</span>
+    </nav>
   </header>
 
-  <main class="nda-layout">
-    <section class="panel uploader">
-      <div class="drop">
-        <input id="file" type="file" accept=".pdf,.docx,.txt" />
-        <label for="file" class="btn primary">Upload NDA (PDF/DOCX/TXT)</label>
-        <label class="checkbox"><input id="use-ocr" type="checkbox" /> Use OCR for scanned PDFs (slower)</label>
+  <main class="container" id="app" aria-busy="false">
+    <h1>NDA Reviewer 1.0</h1>
+    <div id="app-error" class="alert" role="status" aria-live="polite" hidden></div>
+    <p class="disclaimer">
+      Reviews inbound NDAs against a configurable playbook. All processing happens locally in your browser.
+      <strong>Not legal advice.</strong>
+    </p>
+
+    <section class="uploader" aria-label="Upload NDA">
+      <label class="file-drop" id="file-drop">
+        <span>Drop PDF/DOCX/TXT here</span>
+        <input id="file-input" type="file" accept=".pdf,.docx,.txt" />
+      </label>
+      <div class="controls">
+        <label><input id="use-ocr" type="checkbox" /> Use OCR for scanned PDFs (slower)</label>
+        <button id="analyze-btn" class="primary">Analyze</button>
+        <span id="file-hint" class="muted"></span>
       </div>
-      <div id="file-meta" class="meta"></div>
+      <div id="progress" class="progress" aria-hidden="true">
+        <div id="progress-bar" class="progress-bar" style="width:0%"></div>
+        <div id="progress-text" class="progress-text">Idle</div>
+      </div>
     </section>
 
-    <section class="panel two-col">
+    <section class="filters panel" aria-label="Filters">
+      <div class="row">
+        <label>Category
+          <select id="filter-category">
+            <option value="">All</option>
+          </select>
+        </label>
+        <label>Severity ≥
+          <input id="filter-severity" type="number" min="1" max="10" value="1" />
+        </label>
+        <label><input id="filter-blockers" type="checkbox" /> Blockers only</label>
+        <input id="filter-text" class="flex" type="search" placeholder="Filter text (title/evidence/recommendation)"/>
+      </div>
+      <div class="row">
+        <label>Playbook
+          <select id="playbook-select">
+            <option value="edgewater">Edgewater (default)</option>
+            <option value="custom">Custom… (import JSON/YAML)</option>
+          </select>
+        </label>
+        <input id="custom-playbook-file" type="file" accept=".json,.yaml,.yml" hidden />
+        <button id="export-playbook" class="secondary">Export Current Playbook</button>
+        <span id="playbook-meta" class="muted"></span>
+      </div>
+    </section>
+
+    <section class="panes">
       <div class="pane">
-        <h3>Original</h3>
-        <pre id="original" class="scroll"></pre>
+        <h2>Original</h2>
+        <pre id="original" class="mono"></pre>
       </div>
       <div class="pane">
-        <h3>Redlines</h3>
-        <div id="redlines" class="scroll redlines"></div>
-        <div class="actions">
-          <button id="export-docx" class="btn">Export Redlines (.docx)</button>
+        <h2>Redlines</h2>
+        <div id="redlines-list" class="redlines-list" aria-live="polite"></div>
+        <button id="export-redlines" class="secondary">Export Redlines (.docx)</button>
+      </div>
+      <div class="pane">
+        <h2>Checklist Compliance</h2>
+        <div class="table-actions">
+          <button id="export-csv">Export Checklist (CSV)</button>
+          <button id="export-json">Export Checklist (JSON)</button>
+        </div>
+        <table id="results" class="results">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Category</th>
+              <th>Clause</th>
+              <th>Title</th>
+              <th>Severity</th>
+              <th>Evidence</th>
+              <th>Recommendation</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="risk">
+          <strong>Overall Risk:</strong> <span id="risk-score">—</span>
+          <span id="risk-pill" class="pill"></span>
         </div>
       </div>
     </section>
 
-    <section class="panel">
-      <h3>Checklist Compliance</h3>
-      <table id="checklist" class="checklist"></table>
-      <div class="actions">
-        <button id="export-csv" class="btn">Export Checklist (CSV)</button>
-        <button id="export-json" class="btn">Export Checklist (JSON)</button>
-      </div>
-    </section>
-
-    <section class="panel disclaimer">
-      <p><strong>Scope:</strong> NDA review only. Uses the <em>Edgewater NDA Checklist</em> as the single source of truth. No drafting from scratch. <strong>Not legal advice.</strong></p>
-    </section>
+    <p class="scope">
+      Scope: NDA review only. Configurable via playbook (JSON/YAML). Deterministic and explainable checks.
+    </p>
   </main>
+
+  <!-- App entry -->
+  <script type="module" src="./js/nda.js"></script>
 </body>
 </html>
