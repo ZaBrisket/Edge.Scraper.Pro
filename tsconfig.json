@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noEmit": true,
+    "incremental": true,
+    "module": "esnext",
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve"
+  },
+  "include": [
+    "next-env.d.ts",
+    "pages/**/*.ts",
+    "pages/**/*.tsx",
+    "src/nda/**/*.ts",
+    "src/lib/rate-limit.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "netlify",
+    "bin",
+    "core",
+    "tests",
+    "api",
+    "worker",
+    "dist",
+    "build",
+    "out"
+  ]
+}

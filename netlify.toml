@@ -1,73 +1,25 @@
+# Netlify configuration (append to existing if present)
+
 [build]
-  publish = "public"
-  command = "npm ci"
-
-[build.environment]
-  NODE_VERSION = "18"
-  # Critical environment variables
-  BYPASS_AUTH = "true"
-  HTTP_DEADLINE_MS = "28000"
-  PUBLIC_API_KEY = "public-2024"
-  REQUEST_REFERER = "https://news.google.com/"
-
-[functions]
-  directory = "netlify/functions"
-  node_bundler = "esbuild"
-  included_files = ["src/**"]
-  external_node_modules = [
-    "natural", "compromise", "jsdom", "cheerio", "axios", "xml2js",
-    "undici", "set-cookie-parser", "@mozilla/readability"
-  ]
-
-[functions."ma-news-scraper"]
-  external_node_modules = ["natural", "compromise", "jsdom", "cheerio", "axios", "xml2js"]
-
-# Redirect API calls to Netlify Functions
-[[redirects]]
-  from = "/api/fetch-url"
-  to = "/.netlify/functions/fetch-url"
-  status = 200
-  force = true
+  command = "npm run build"
+  publish = ".next"
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/api/nda/review"
+  to = "/.netlify/functions/nda-review"
   status = 200
 
 [[redirects]]
-  from = "/api/ma-news/*"
-  to = "/.netlify/functions/ma-news-scraper"
+  from = "/api/nda/export-docx"
+  to = "/.netlify/functions/nda-export-docx"
   status = 200
-  force = true
 
-# CORS headers for API
-[[headers]]
-  for = "/.netlify/functions/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, X-API-Key"
-    Access-Control-Max-Age = "86400"
-
-# Cache static assets
-[[headers]]
-  for = "/*.js"
-  [headers.values]
-    Cache-Control = "public, max-age=604800"
-
-[[headers]]
-  for = "/*.css"
-  [headers.values]
-    Cache-Control = "public, max-age=604800"
-
-# Static route for Targets page
 [[redirects]]
-  from = "/targets"
-  to   = "/targets/"
-  status = 301
+  from = "/api/nda/export-basic"
+  to = "/.netlify/functions/nda-export-basic"
+  status = 200
 
-# Ensure directory index is served for trailing-slash path
 [[redirects]]
-  from = "/targets/"
-  to   = "/targets/index.html"
+  from = "/api/telemetry"
+  to = "/.netlify/functions/telemetry"
   status = 200
