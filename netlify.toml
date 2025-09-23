@@ -4,22 +4,4 @@
   command = "npm run build"
   publish = ".next"
 
-[[redirects]]
-  from = "/api/nda/review"
-  to = "/.netlify/functions/nda-review"
-  status = 200
-
-[[redirects]]
-  from = "/api/nda/export-docx"
-  to = "/.netlify/functions/nda-export-docx"
-  status = 200
-
-[[redirects]]
-  from = "/api/nda/export-basic"
-  to = "/.netlify/functions/nda-export-basic"
-  status = 200
-
-[[redirects]]
-  from = "/api/telemetry"
-  to = "/.netlify/functions/telemetry"
-  status = 200
+# Next.js handles API routes directly; no manual redirects required.

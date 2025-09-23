@@ -51,6 +51,28 @@ export async function limitOrThrow(key: string, conf: LimitConf = { points: 10, 
   }
 }
 
-export function clientIp(event: any, context: any): string {
-  return context?.ip || event?.headers?.['x-nf-client-connection-ip'] || 'unknown';
+type HeaderSource = {
+  headers?: Record<string, string | string[] | undefined> | Headers;
+  connection?: { remoteAddress?: string | null };
+};
+
+function readHeader(headers: HeaderSource['headers'], key: string): string | undefined {
+  if (!headers) return undefined;
+  if (headers instanceof Headers) {
+    return headers.get(key) ?? undefined;
+  }
+  const value = headers[key];
+  if (Array.isArray(value)) return value[0];
+  return value as string | undefined;
+}
+
+export function clientIp(source: HeaderSource | null | undefined, fallback = 'unknown'): string {
+  const header =
+    readHeader(source?.headers, 'x-forwarded-for') ||
+    readHeader(source?.headers, 'x-real-ip') ||
+    readHeader(source?.headers, 'x-nf-client-connection-ip');
+  if (header) {
+    return header.split(',')[0]?.trim() || fallback;
+  }
+  return source?.connection?.remoteAddress || fallback;
 }

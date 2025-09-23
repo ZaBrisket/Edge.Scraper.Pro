@@ -10,7 +10,7 @@ function contains(hay: string, needle: string) {
 }
 function scoreHeadingMatch(heading: string, aliases: string[]): number {
   const h = i(heading);
-  return Math.max(...aliases.map((a) => (h.includes(i(a)) ? 1 : 0)), 0);
+  return Math.max(...aliases.map(a => (h.includes(i(a)) ? 1 : 0)), 0);
 }
 function toMonths(value: number, unit: string): number {
   const u = unit.toLowerCase();
@@ -19,7 +19,10 @@ function toMonths(value: number, unit: string): number {
   return value / 30; // approx days→months
 }
 
-export function runExtraction(raw: string, checklist: Checklist): { findings: ClauseFinding[]; spans: ExtractedSpan[] } {
+export function runExtraction(
+  raw: string,
+  checklist: Checklist
+): { findings: ClauseFinding[]; spans: ExtractedSpan[] } {
   const text = normalizeText(raw);
   const tokens = tokenizeToLemmas(text);
   const sections = splitSections(text);
@@ -28,14 +31,20 @@ export function runExtraction(raw: string, checklist: Checklist): { findings: Cl
 
   for (const clause of checklist.clauses) {
     const bestSection = sections
-      .map((s) => ({ s, score: scoreHeadingMatch(s.heading, clause.aliases) }))
+      .map(s => ({ s, score: scoreHeadingMatch(s.heading, clause.aliases) }))
       .sort((a, b) => b.score - a.score)[0];
 
     const candidateSections = bestSection?.score ? [bestSection.s] : sections;
 
-    const mustOk = (clause.mustInclude || []).every((tok) => candidateSections.some((sec) => contains(sec.body, tok)));
-    const mustNotOk = (clause.mustNotInclude || []).every((tok) => !candidateSections.some((sec) => contains(sec.body, tok)));
-    const shouldOk = (clause.shouldInclude || []).every((tok) => candidateSections.some((sec) => contains(sec.body, tok)));
+    const mustOk = (clause.mustInclude || []).every(tok =>
+      candidateSections.some(sec => contains(sec.body, tok))
+    );
+    const mustNotOk = (clause.mustNotInclude || []).every(
+      tok => !candidateSections.some(sec => contains(sec.body, tok))
+    );
+    const shouldOk = (clause.shouldInclude || []).every(tok =>
+      candidateSections.some(sec => contains(sec.body, tok))
+    );
 
     let numberOk = true;
     if (clause.numberBounds) {
@@ -50,10 +59,15 @@ export function runExtraction(raw: string, checklist: Checklist): { findings: Cl
         }
       }
       const toCmp = (v: number | undefined) =>
-        clause.numberBounds!.kind === 'YEARS' ? (v ?? 0) * 12 : clause.numberBounds!.kind === 'MONTHS' ? v ?? 0 : (v ?? 0) / 30;
+        clause.numberBounds!.kind === 'YEARS'
+          ? (v ?? 0) * 12
+          : clause.numberBounds!.kind === 'MONTHS'
+            ? (v ?? 0)
+            : (v ?? 0) / 30;
       const minM = clause.numberBounds.min !== undefined ? toCmp(clause.numberBounds.min) : 0;
-      const maxM = clause.numberBounds.max !== undefined ? toCmp(clause.numberBounds.max) : Infinity;
-      numberOk = nums.length > 0 && nums.some((m) => m >= minM && m <= maxM);
+      const maxM =
+        clause.numberBounds.max !== undefined ? toCmp(clause.numberBounds.max) : Infinity;
+      numberOk = nums.length > 0 && nums.some(m => m >= minM && m <= maxM);
     }
 
     let logicOk = true;
@@ -66,16 +80,16 @@ export function runExtraction(raw: string, checklist: Checklist): { findings: Cl
       mustOk && mustNotOk && numberOk && logicOk
         ? 'PASS'
         : (!mustOk || !mustNotOk || !logicOk) && clause.severity !== 'LOW'
-        ? 'FAIL'
-        : 'WARN';
+          ? 'FAIL'
+          : 'WARN';
 
     const evidenceSec = candidateSections.slice(0, 2);
-    const ev: ExtractedSpan[] = evidenceSec.map((sec) => ({
+    const ev: ExtractedSpan[] = evidenceSec.map(sec => ({
       heading: sec.heading,
       text: sec.body.slice(0, 800),
       start: sec.start,
       end: sec.end,
-      headingScore: scoreHeadingMatch(sec.heading, clause.aliases)
+      headingScore: scoreHeadingMatch(sec.heading, clause.aliases),
     }));
 
     findings.push({
@@ -90,7 +104,7 @@ export function runExtraction(raw: string, checklist: Checklist): { findings: Cl
         (logicOk ? 0.2 : 0),
       evidence: ev,
       notes: clause.advice ? [clause.advice] : undefined,
-      rationale: logicOk ? 'Logic/terms satisfied' : 'Missing/negated key phrasing'
+      rationale: logicOk ? 'Logic/terms satisfied' : 'Missing/negated key phrasing',
     });
 
     spans.push(...ev);

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { retry } from '../../netlify/functions/nda-export-docx';
+import { retry } from '../../src/nda/aspose';
 
 test('retry aborts after max attempts and throws 503', async () => {
   let count = 0;

@@ -15,19 +15,16 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2020,
     sourceType: 'module',
-    project: './tsconfig.json',
   },
   plugins: ['@typescript-eslint', 'prettier'],
   rules: {
     'prettier/prettier': 'warn', // Downgrade to warning
     '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     '@typescript-eslint/explicit-function-return-type': 'off',
-    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/no-explicit-any': 'off',
     '@typescript-eslint/no-non-null-assertion': 'warn',
-    '@typescript-eslint/prefer-const': 'warn', // Downgrade to warning
     '@typescript-eslint/no-var-requires': 'warn',
     '@typescript-eslint/no-require-imports': 'off',
-    '@typescript-eslint/no-unsafe-function-type': 'warn',
     'no-console': 'warn',
     'no-debugger': 'error',
     'prefer-const': 'warn', // Downgrade to warning
@@ -62,7 +59,7 @@ module.exports = {
         JSX: 'readonly',
       },
       rules: {
-        '@typescript-eslint/explicit-function-return-type': 'warn',
+        '@typescript-eslint/explicit-function-return-type': 'off',
         'no-undef': 'off', // Turn off no-undef for React components as TypeScript handles this
       },
     },

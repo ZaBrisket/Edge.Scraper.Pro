@@ -1,17 +1,10 @@
-import lemmatizer from 'wink-lemmatizer';
 import type { LogicNode } from './types';
+import { legalLemma } from './legal-lemmatizer';
 
 const WORD_RE = /[A-Za-z0-9]+/g;
 
 export function lemma(w: string): string {
-  const s = w.toLowerCase();
-  const v = lemmatizer.verb(s);
-  if (v !== s) return v;
-  const n = lemmatizer.noun(s);
-  if (n !== s) return n;
-  const a = lemmatizer.adjective(s);
-  if (a !== s) return a;
-  return s;
+  return legalLemma(w);
 }
 
 export function tokenizeToLemmas(text: string): string[] {
@@ -21,15 +14,19 @@ export function tokenizeToLemmas(text: string): string[] {
 
 function has(tokens: string[], base: string, synonyms?: string[]): boolean {
   const set = new Set([lemma(base), ...(synonyms || []).map(lemma)]);
-  return tokens.some((t) => set.has(t));
+  return tokens.some(t => set.has(t));
 }
 
-export function evalLogic(node: LogicNode, tokens: string[], syn: Record<string, string[]> = {}): boolean {
+export function evalLogic(
+  node: LogicNode,
+  tokens: string[],
+  syn: Record<string, string[]> = {}
+): boolean {
   switch (node.kind) {
     case 'ALL_OF':
-      return node.terms.every((t) => has(tokens, t, syn[t]));
+      return node.terms.every(t => has(tokens, t, syn[t]));
     case 'ANY_OF':
-      return node.terms.some((t) => has(tokens, t, syn[t]));
+      return node.terms.some(t => has(tokens, t, syn[t]));
     case 'NOT':
       return !evalLogic(node.node, tokens, syn);
     case 'NEAR': {
@@ -41,7 +38,7 @@ export function evalLogic(node: LogicNode, tokens: string[], syn: Record<string,
         if (A.includes(t)) posA.push(i);
         if (B.includes(t)) posB.push(i);
       });
-      return posA.some((i) => posB.some((j) => Math.abs(i - j) <= node.distance));
+      return posA.some(i => posB.some(j => Math.abs(i - j) <= node.distance));
     }
   }
 }
