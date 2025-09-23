@@ -1,18 +1,13 @@
-import { parsePdf, ocrPdf } from "./pdf-parser.js";
-import { parseDocx, whenMammothReady } from "./docx-parser.js";
-import { parseTxt } from "./txt-parser.js";
 import { compilePlaybook, evaluate, riskLabel } from "./rules-engine.js";
 import { buildRedlinesDoc } from "./docx-redline.js";
 
 const els = {
-  drop: document.getElementById("file-drop"),
-  input: document.getElementById("file-input"),
-  useOcr: document.getElementById("use-ocr"),
+  textInput: document.getElementById("nda-text-input"),
   analyze: document.getElementById("analyze-btn"),
   progress: document.getElementById("progress"),
   bar: document.getElementById("progress-bar"),
   text: document.getElementById("progress-text"),
-  hint: document.getElementById("file-hint"),
+  stats: document.getElementById("text-stats"),
   original: document.getElementById("original"),
   redlinesList: document.getElementById("redlines-list"),
   exportRedlines: document.getElementById("export-redlines"),
@@ -42,6 +37,24 @@ let state = {
 
 const errorState = { persistentMessages: [], activeTransient: false };
 
+function sanitizeText(text) {
+  return String(text)
+    .replace(/<script[^>]*>.*?<\/script>/gi, "")
+    .replace(/<iframe[^>]*>.*?<\/iframe>/gi, "")
+    .replace(/<object[^>]*>.*?<\/object>/gi, "")
+    .replace(/<embed[^>]*>/gi, "")
+    .replace(/on\w+\s*=\s*"[^"]*"/gi, "")
+    .replace(/on\w+\s*=\s*'[^']*'/gi, "")
+    .replace(/javascript:/gi, "")
+    .substring(0, 50000);
+}
+
+function updateTextStats() {
+  const len = els.textInput.value.length;
+  els.stats.textContent = `${len.toLocaleString()} / 50,000 characters`;
+  els.stats.style.color = len > 45000 ? "#d73502" : "#666";
+}
+
 function setBusy(b) { document.getElementById("app").setAttribute("aria-busy", String(b)); }
 function showProgress(pct, msg) {
   els.progress.setAttribute("aria-hidden", "false");
@@ -59,7 +72,6 @@ function showAppError(message, { level = "error", persistent = false } = {}) {
     if (!errorState.activeTransient) renderPersistentMessages();
     return;
   }
-
   errorState.activeTransient = true;
   applyAlertLevel(level);
   els.errorBox.textContent = message;
@@ -70,9 +82,7 @@ function clearAppError(force = false) {
   if (!els.errorBox) return;
   if (!force && !errorState.activeTransient) return;
   errorState.activeTransient = false;
-  if (force) {
-    errorState.persistentMessages = [];
-  }
+  if (force) errorState.persistentMessages = [];
   els.errorBox.hidden = true;
   els.errorBox.textContent = "";
   els.errorBox.classList.remove("warn", "info");
@@ -80,13 +90,11 @@ function clearAppError(force = false) {
 }
 
 function renderPersistentMessages() {
-  if (!els.errorBox) return;
-  if (!errorState.persistentMessages.length) return;
-  const level = errorState.persistentMessages.some(entry => entry.level === "error")
-    ? "error"
-    : errorState.persistentMessages.some(entry => entry.level === "warning") ? "warning" : "info";
+  if (!els.errorBox || !errorState.persistentMessages.length) return;
+  const level = errorState.persistentMessages.some(e => e.level === "error") ? "error" 
+    : errorState.persistentMessages.some(e => e.level === "warning") ? "warning" : "info";
   applyAlertLevel(level);
-  els.errorBox.textContent = errorState.persistentMessages.map(entry => `• ${entry.message}`).join("\n");
+  els.errorBox.textContent = errorState.persistentMessages.map(e => `• ${e.message}`).join("\n");
   els.errorBox.hidden = false;
 }
 
@@ -96,26 +104,14 @@ function applyAlertLevel(level) {
   else if (level === "info") els.errorBox.classList.add("info");
 }
 
-function wireDrop() {
-  els.drop.addEventListener("dragover", (e) => { e.preventDefault(); els.drop.classList.add("hover"); });
-  els.drop.addEventListener("dragleave", () => els.drop.classList.remove("hover"));
-  els.drop.addEventListener("drop", (e) => {
-    e.preventDefault(); els.drop.classList.remove("hover");
-    const f = [...e.dataTransfer.files || []][0]; if (f) els.input.files = e.dataTransfer.files;
-  });
-}
-
-function humanSize(bytes) {
-  if (bytes < 1024) return `${bytes} B`; const kb = bytes/1024; if (kb < 1024) return `${kb.toFixed(1)} KB`; const mb = kb/1024; return `${mb.toFixed(1)} MB`;
-}
-
-function ocrSupported() { return typeof Worker !== "undefined" && typeof OffscreenCanvas !== "undefined"; }
 function formatError(err) { return err?.message || String(err || "Unknown error"); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m])); }
+function csvEscape(s){ s = String(s); return /[",\n]/.test(s)? `"${s.replace(/"/g,'""')}"` : s; }
+function statusClass(s) { return s === "pass" ? "status-pass" : s === "fail" ? "status-fail" : "status-review"; }
 
 const PLAYBOOK_CACHE_KEY = "esp_playbook_cache_v2";
 
 async function loadDefaultPlaybook() {
-  // Versioned cache of compiled playbook metadata
   try {
     const cached = JSON.parse(localStorage.getItem(PLAYBOOK_CACHE_KEY) || "null");
     if (cached?.source) {
@@ -143,75 +139,14 @@ async function loadDefaultPlaybook() {
     return pb;
   } catch (err) {
     console.error("Failed to load default playbook", err);
-    showAppError("Failed to load the default Edgewater playbook. Refresh the page or check your connection.", { level: "warning", persistent: true });
+    showAppError("Failed to load the default Edgewater playbook. Refresh the page.", { level: "warning", persistent: true });
     throw err;
   }
 }
-
-function sizeWarning(file) {
-  if (!file) return;
-  if (file.size > 10 * 1024 * 1024) {
-    els.hint.textContent = `Large file (${humanSize(file.size)}). If scanned, enable OCR; processing may take longer.`;
-  } else {
-    els.hint.textContent = "";
-  }
-}
-
-async function extract(file, useOcr) {
-  const name = (file.name || "").toLowerCase();
-  const isPdf = name.endsWith(".pdf");
-  const isDocx = name.endsWith(".docx");
-  const isTxt  = name.endsWith(".txt");
-  if (!isPdf && !isDocx && !isTxt) {
-    const err = new Error("Unsupported file type. Upload PDF, DOCX, or TXT files.");
-    err.code = "UNSUPPORTED_FILE";
-    throw err;
-  }
-  if (isPdf) {
-    if (useOcr) {
-      if (!ocrSupported()) throw new Error("OCR is unavailable in this browser.");
-      let worker;
-      try {
-        worker = new Worker(new URL("../workers/ocr-worker.js", import.meta.url), { type: "module" });
-      } catch (err) {
-        throw new Error(`OCR worker failed to start: ${formatError(err)}`);
-      }
-      try {
-        return await ocrPdf(file, worker, (p, msg) => showProgress(p, msg || "OCR…"));
-      } catch (err) {
-        throw new Error(`OCR failed: ${formatError(err)}`);
-      }
-    } else {
-      const buf = await file.arrayBuffer();
-      try {
-        return await parsePdf(new Uint8Array(buf), (p) => showProgress(p, "Parsing PDF…"));
-      } catch (err) {
-        throw new Error(`PDF parsing failed: ${formatError(err)}`);
-      }
-    }
-  }
-  if (isDocx) {
-    const buf = await file.arrayBuffer();
-    try {
-      return await parseDocx(new Uint8Array(buf), (p) => showProgress(p, "Parsing DOCX…"));
-    } catch (err) {
-      throw new Error(`DOCX parsing failed: ${formatError(err)}`);
-    }
-  }
-  try {
-    return await parseTxt(file, (p) => showProgress(p, "Reading TXT…"));
-  } catch (err) {
-    throw new Error(`TXT parsing failed: ${formatError(err)}`);
-  }
-}
-
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m])); }
-function csvEscape(s){ s = String(s); return /[",\n]/.test(s)? `"${s.replace(/"/g,'""')}"` : s; }
-function statusClass(s) { return s === "pass" ? "status-pass" : s === "fail" ? "status-fail" : "status-review"; }
 
 function renderFilters(categories) {
   const values = [...categories].filter(Boolean);
-  els.filterCategory.innerHTML = `<option value=\"\">All</option>` + values.sort().map(c => `<option>${escapeHtml(c)}</option>`).join("");
+  els.filterCategory.innerHTML = `<option value="">All</option>` + values.sort().map(c => `<option>${escapeHtml(c)}</option>`).join("");
 }
 
 function renderTable(rows) {
@@ -249,14 +184,16 @@ function renderRedlines(rows) {
 }
 
 function exportCsv(rows, meta) {
-  const header = ["filename","filesize","processedAt","processingMs","status","category","clause","title","severity","evidence","recommendation"];
-  const body = rows.map(r => [meta.filename, meta.filesize, meta.processedAt, meta.processingMs, r.status, r.category, r.clause||"", r.title||"", r.severity, r.evidence?.text||"", r.recommendation||""]);
+  const header = ["source","charactersAnalyzed","processedAt","processingMs","status","category","clause","title","severity","evidence","recommendation"];
+  const body = rows.map(r => ["text_input", meta.charactersAnalyzed, meta.processedAt, meta.processingMs, r.status, r.category, r.clause||"", r.title||"", r.severity, r.evidence?.text||"", r.recommendation||""]);
   const csv = [header, ...body].map(line => line.map(csvEscape).join(",")).join("\n");
   downloadBlob(new Blob([csv], { type: "text/csv" }), "nda-checklist.csv");
 }
+
 function exportJson(rows, meta) {
   downloadBlob(new Blob([JSON.stringify({ meta, items: rows }, null, 2)], { type: "application/json" }), "nda-checklist.json");
 }
+
 function downloadBlob(blob, name){
   try {
     const url = URL.createObjectURL(blob);
@@ -267,7 +204,6 @@ function downloadBlob(blob, name){
     URL.revokeObjectURL(url);
   } catch (err) {
     showAppError(`Download failed: ${formatError(err)}`);
-    throw err;
   }
 }
 
@@ -283,7 +219,7 @@ function evaluateAndRender(){
     return;
   }
   clearAppError();
-  els.original.textContent = state.text || "(no text extracted)";
+  els.original.textContent = state.text || "(no text provided)";
   let evaluation;
   try {
     evaluation = evaluate(state.text, state.compiled);
@@ -311,13 +247,7 @@ function evaluateAndRender(){
   };
 }
 
-/**
- * Convert a small YAML subset into the JSON playbook format.
- * @param {string} y
- * @returns {{rules:Array}}
- */
 function yamlToJson(y) {
-  // Minimal YAML → JSON for simple lists/maps (playbooks). Not a full parser.
   const lines = y.split(/\r?\n/);
   const obj = { rules: [] };
   let cur = null;
@@ -330,102 +260,44 @@ function yamlToJson(y) {
     obj.rules.push(normalized);
     cur = null;
   };
-  const ensureRule = (lineNo) => {
-    if (!cur) cur = { __line__: lineNo };
-    return cur;
-  };
-
-  lines.forEach((line, idx) => {
+  lines.forEach((line) => {
     if (/^\s*#/.test(line)) return;
     const trimmed = line.trim();
-    if (!trimmed) return;
-    if (/^rules:\s*$/i.test(trimmed)) return;
-
+    if (!trimmed || /^rules:\s*$/i.test(trimmed)) return;
     const startMatch = line.match(/^\s*-\s*(.*)$/);
     if (startMatch) {
       pushCurrent();
-      cur = { __line__: idx + 1 };
+      cur = {};
       const rest = startMatch[1];
       if (rest) {
         const prop = rest.match(/^([a-zA-Z0-9_]+):\s*(.*)$/);
-        if (prop) applyYamlProp(cur, prop[1], prop[2], idx + 1);
+        if (prop) {
+          const [, key, rawVal] = prop;
+          const val = rawVal.trim().replace(/^["']|["']$/g, '');
+          cur[key.toLowerCase()] = /^\d+$/.test(val) ? Number(val) : val === "true" ? true : val === "false" ? false : val;
+        }
       }
       return;
     }
-
-    const propMatch = line.match(/^\s+([a-zA-Z0-9_]+):\s*(.*)$/);
+    if (!cur) return;
+    const propMatch = line.match(/^\s*([a-zA-Z0-9_]+):\s*(.*)$/);
     if (propMatch) {
-      const ctx = ensureRule(idx + 1);
-      applyYamlProp(ctx, propMatch[1], propMatch[2], idx + 1);
-      return;
-    }
-
-    const metaMatch = line.match(/^([a-zA-Z0-9_]+):\s*(.*)$/);
-    if (metaMatch) {
-      obj[metaMatch[1]] = metaMatch[2];
+      const [, key, rawVal] = propMatch;
+      const val = rawVal.trim().replace(/^["']|["']$/g, '');
+      cur[key.toLowerCase()] = /^\d+$/.test(val) ? Number(val) : val === "true" ? true : val === "false" ? false : val;
     }
   });
-
   pushCurrent();
-  if (!obj.rules.length) throw new Error("No rules found in YAML playbook.");
   return obj;
 }
 
-function applyYamlProp(target, key, value, lineNo) {
-  if (!target) {
-    throw new Error(`Invalid YAML structure near line ${lineNo || "?"}: property is not associated with a rule.`);
-  }
-  const val = typeof value === "string" ? value.trim() : value;
-  if (key === "id") {
-    target.id = val;
-    return;
-  }
-  if (["require", "forbid", "patternsAny", "antiPatternsAny", "tags"].includes(key)) {
-    target[key] = target[key] || [];
-    if (val) target[key].push(val);
-    return;
-  }
-  if (["category", "clause", "title", "recommendation", "level"].includes(key)) {
-    target[key] = val;
-    return;
-  }
-  if (key === "severity") {
-    target.severity = Number(val) || 5;
-    return;
-  }
-  if (key === "when" || key === "failIf") {
-    try { target[key] = typeof val === "string" && val ? JSON.parse(val) : val; }
-    catch { target[key] = val; }
-    return;
-  }
-  target[key] = val;
-}
-
 async function run() {
-  wireDrop();
-
-  whenMammothReady()
-    .then(() => {
-      console.info("[NDA][DOCX] Mammoth ready for DOCX parsing");
-      const diag = window["__ndaDiagnostics"] = window["__ndaDiagnostics"] || {};
-      diag.docx = diag.docx || {};
-      diag.docx.mammothReadyNotified = true;
-    })
-    .catch((err) => {
-      console.error("Mammoth failed to load", err);
-      showAppError("DOCX parsing is disabled because the Mammoth library did not load.", { level: "warning", persistent: true });
-    });
-  if (!ocrSupported()) {
-    if (els.useOcr) {
-      els.useOcr.checked = false;
-      els.useOcr.disabled = true;
-    }
-    showAppError("OCR is unavailable in this browser; scanned PDFs will require native text.", { level: "warning", persistent: true });
-  }
-
   try {
     await loadDefaultPlaybook();
   } catch {}
+
+  els.textInput.addEventListener("input", updateTextStats);
+  updateTextStats();
 
   const onFilter = () => state.evaluation && renderTable(state.evaluation.results);
   [els.filterText, els.filterCategory, els.filterSeverity, els.filterBlockers].forEach(el => el.addEventListener("input", onFilter));
@@ -453,7 +325,7 @@ async function run() {
       else pb = JSON.parse(txt);
       state.playbook = pb; state.compiled = compilePlaybook(pb);
       els.playbookMeta.textContent = `Playbook: ${pb.name || "Custom"} v${pb.version || "1.0"} (custom)`;
-      if (state.text) { evaluateAndRender(); }
+      if (state.text) evaluateAndRender();
     } catch (err) {
       console.error("Custom playbook import failed", err);
       showAppError(`Unable to import playbook: ${formatError(err)}`);
@@ -470,41 +342,41 @@ async function run() {
     try {
       downloadBlob(new Blob([JSON.stringify(state.playbook, null, 2)], {type:"application/json"}), "playbook.json");
     } catch (err) {
-      console.error("Playbook export failed", err);
       showAppError(`Unable to export playbook: ${formatError(err)}`);
     }
   });
 
-  els.input.addEventListener("change", () => sizeWarning(els.input.files?.[0]));
-
   els.analyze.addEventListener("click", async () => {
-    const file = els.input.files?.[0];
-    if (!file) {
-      showAppError("Select a file first.", { level: "warning" });
+    const rawText = els.textInput.value.trim();
+    if (!rawText) {
+      showAppError("Please paste NDA text to analyze.", { level: "warning" });
       return;
     }
     if (!state.compiled) {
       showAppError("Playbook not loaded yet; please retry after the page finishes loading.");
       return;
     }
-    sizeWarning(file);
     try {
       clearAppError();
-      setBusy(true); showProgress(2, "Starting…"); const t0 = performance.now();
-      const textAndMeta = await extract(file, els.useOcr?.checked);
-      hideProgress();
-      state.text = typeof textAndMeta === "string" ? textAndMeta : (textAndMeta?.text ?? "");
+      setBusy(true); 
+      showProgress(50, "Analyzing text...");
+      const t0 = performance.now();
+      state.text = sanitizeText(rawText);
       state.meta = {
-        filename: file.name, filesize: humanSize(file.size),
+        source: "text_input",
+        charactersAnalyzed: state.text.length,
         processedAt: new Date().toISOString(),
-        processingMs: Math.round(performance.now() - t0),
-        pages: textAndMeta.pages || undefined
+        processingMs: Math.round(performance.now() - t0)
       };
       evaluateAndRender();
+      showProgress(100, "Complete");
+      setTimeout(hideProgress, 500);
     } catch (err) {
       console.error("Analysis failed", err);
-      showAppError(`Failed to analyze ${file.name}: ${formatError(err)}`);
-    } finally { setBusy(false); hideProgress(); }
+      showAppError(`Failed to analyze text: ${formatError(err)}`);
+    } finally { 
+      setBusy(false); 
+    }
   });
 }
 
