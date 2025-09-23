@@ -36,10 +36,22 @@
             letter-spacing: -0.5px;
         }
         
+        .nav ul {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav li {
+            list-style: none;
+        }
+
         .nav a {
             color: #0000FF;
             text-decoration: underline;
-            margin-left: 24px;
             font-size: 18px;
         }
         
@@ -670,8 +682,11 @@
         <header class="header">
             <div class="brand">EdgeScraperPro</div>
             <nav class="nav">
-                <a href="/" class="active">Scrape</a>
-                <a href="/targets/">Target Lists</a>
+                <ul>
+                    <li><a href="/" class="active">Scrape</a></li>
+                    <li><a href="/targets/">Target Lists</a></li>
+                    <li><a href="/nda">NDA Reviewer (BETA)</a></li>
+                </ul>
             </nav>
         </header>
 
