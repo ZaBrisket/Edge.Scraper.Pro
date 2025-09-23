@@ -318,74 +318,87 @@ function evaluateAndRender(){
  */
 function yamlToJson(y) {
   // Minimal YAML → JSON for simple lists/maps (playbooks). Not a full parser.
-  const lines = y.split(/\r?\n/).filter(l => !/^\s*#/.test(l));
+  const lines = y.split(/\r?\n/);
   const obj = { rules: [] };
   let cur = null;
   const pushCurrent = () => {
     if (!cur) return;
-    if (!Object.keys(cur).length) { cur = null; return; }
-    if (!cur.id) cur.id = cur.title || `rule_${obj.rules.length + 1}`;
-    obj.rules.push(cur);
+    const normalized = { ...cur };
+    delete normalized.__line__;
+    if (!Object.keys(normalized).length) { cur = null; return; }
+    if (!normalized.id) normalized.id = normalized.title || `rule_${obj.rules.length + 1}`;
+    obj.rules.push(normalized);
     cur = null;
   };
-  for (const line of lines) {
+  const ensureRule = (lineNo) => {
+    if (!cur) cur = { __line__: lineNo };
+    return cur;
+  };
+
+  lines.forEach((line, idx) => {
+    if (/^\s*#/.test(line)) return;
     const trimmed = line.trim();
-    if (!trimmed) continue;
-    if (/^rules:\s*$/i.test(trimmed)) continue;
+    if (!trimmed) return;
+    if (/^rules:\s*$/i.test(trimmed)) return;
 
     const startMatch = line.match(/^\s*-\s*(.*)$/);
     if (startMatch) {
       pushCurrent();
-      cur = {};
+      cur = { __line__: idx + 1 };
       const rest = startMatch[1];
       if (rest) {
         const prop = rest.match(/^([a-zA-Z0-9_]+):\s*(.*)$/);
-        if (prop) applyYamlProp(cur, prop[1], prop[2]);
+        if (prop) applyYamlProp(cur, prop[1], prop[2], idx + 1);
       }
-      continue;
+      return;
     }
 
     const propMatch = line.match(/^\s+([a-zA-Z0-9_]+):\s*(.*)$/);
     if (propMatch) {
-      if (!cur) cur = {};
-      applyYamlProp(cur, propMatch[1], propMatch[2]);
-      continue;
+      const ctx = ensureRule(idx + 1);
+      applyYamlProp(ctx, propMatch[1], propMatch[2], idx + 1);
+      return;
     }
 
     const metaMatch = line.match(/^([a-zA-Z0-9_]+):\s*(.*)$/);
     if (metaMatch) {
       obj[metaMatch[1]] = metaMatch[2];
     }
-  }
+  });
+
   pushCurrent();
   if (!obj.rules.length) throw new Error("No rules found in YAML playbook.");
   return obj;
 }
 
-function applyYamlProp(target, key, value) {
+function applyYamlProp(target, key, value, lineNo) {
+  if (!target) {
+    throw new Error(`Invalid YAML structure near line ${lineNo || "?"}: property is not associated with a rule.`);
+  }
+  const val = typeof value === "string" ? value.trim() : value;
   if (key === "id") {
-    target.id = value;
+    target.id = val;
     return;
   }
   if (["require", "forbid", "patternsAny", "antiPatternsAny", "tags"].includes(key)) {
     target[key] = target[key] || [];
-    if (value) target[key].push(value);
+    if (val) target[key].push(val);
     return;
   }
   if (["category", "clause", "title", "recommendation", "level"].includes(key)) {
-    target[key] = value;
+    target[key] = val;
     return;
   }
   if (key === "severity") {
-    target.severity = Number(value) || 5;
+    target.severity = Number(val) || 5;
     return;
   }
   if (key === "when" || key === "failIf") {
-    try { target[key] = JSON.parse(value); }
-    catch { target[key] = value; }
+    try { target[key] = typeof val === "string" && val ? JSON.parse(val) : val; }
+    catch { target[key] = val; }
     return;
   }
-  target[key] = value;
+  target[key] = val;
 }
 
 async function run() {
@@ -480,7 +493,7 @@ async function run() {
       setBusy(true); showProgress(2, "Starting…"); const t0 = performance.now();
       const textAndMeta = await extract(file, els.useOcr?.checked);
       hideProgress();
-      state.text = textAndMeta.text || textAndMeta || "";
+      state.text = typeof textAndMeta === "string" ? textAndMeta : (textAndMeta?.text ?? "");
       state.meta = {
         filename: file.name, filesize: humanSize(file.size),
         processedAt: new Date().toISOString(),

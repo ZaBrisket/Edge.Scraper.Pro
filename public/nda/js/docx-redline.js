@@ -39,8 +39,9 @@ export async function buildRedlinesDoc({ fullText, results, meta }) {
   for (const r of results.filter(r => r.status !== "pass")) {
     const ev = r.evidence;
     if (!ev?.text) continue;
-    // Locate a paragraph containing the first 50 chars of evidence (case-insensitive)
-    let targetIdx = Math.max(0, lines.findIndex(l => l.toLowerCase().includes(ev.text.slice(0, 50).toLowerCase())));
+    // Locate a paragraph containing the first portion of the evidence (case-insensitive)
+    const snippet = ev.text.slice(0, Math.min(50, ev.text.length)).toLowerCase();
+    let targetIdx = lines.findIndex(l => l.toLowerCase().includes(snippet));
     if (targetIdx < 0) targetIdx = 0;
     const target = paras[targetIdx];
 
