@@ -1,18 +1,13 @@
-import { parsePdf, ocrPdf } from "./pdf-parser.js";
-import { parseDocx, whenMammothReady } from "./docx-parser.js";
-import { parseTxt } from "./txt-parser.js";
 import { compilePlaybook, evaluate, riskLabel } from "./rules-engine.js";
 import { buildRedlinesDoc } from "./docx-redline.js";
 
 const els = {
-  drop: document.getElementById("file-drop"),
-  input: document.getElementById("file-input"),
-  useOcr: document.getElementById("use-ocr"),
+  textInput: document.getElementById("nda-text-input"),
   analyze: document.getElementById("analyze-btn"),
   progress: document.getElementById("progress"),
   bar: document.getElementById("progress-bar"),
   text: document.getElementById("progress-text"),
-  hint: document.getElementById("file-hint"),
+  stats: document.getElementById("text-stats"),
   original: document.getElementById("original"),
   redlinesList: document.getElementById("redlines-list"),
   exportRedlines: document.getElementById("export-redlines"),
@@ -96,20 +91,37 @@ function applyAlertLevel(level) {
   else if (level === "info") els.errorBox.classList.add("info");
 }
 
-function wireDrop() {
-  els.drop.addEventListener("dragover", (e) => { e.preventDefault(); els.drop.classList.add("hover"); });
-  els.drop.addEventListener("dragleave", () => els.drop.classList.remove("hover"));
-  els.drop.addEventListener("drop", (e) => {
-    e.preventDefault(); els.drop.classList.remove("hover");
-    const f = [...e.dataTransfer.files || []][0]; if (f) els.input.files = e.dataTransfer.files;
-  });
+function updateTextStats() {
+  const text = els.textInput.value || "";
+  const chars = text.length;
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  els.stats.textContent = `${chars.toLocaleString()} / 50,000 characters (${words.toLocaleString()} words)`;
 }
 
-function humanSize(bytes) {
-  if (bytes < 1024) return `${bytes} B`; const kb = bytes/1024; if (kb < 1024) return `${kb.toFixed(1)} KB`; const mb = kb/1024; return `${mb.toFixed(1)} MB`;
+function sanitizeText(text) {
+  // Basic XSS protection - remove script tags, event handlers, and dangerous protocols
+  let sanitized = String(text || "");
+  
+  // Remove script tags
+  sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+  
+  // Remove iframe tags
+  sanitized = sanitized.replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "");
+  
+  // Remove event handlers
+  sanitized = sanitized.replace(/\son\w+\s*=/gi, " ");
+  
+  // Remove javascript: protocol
+  sanitized = sanitized.replace(/javascript:/gi, "");
+  
+  // Enforce character limit
+  if (sanitized.length > 50000) {
+    sanitized = sanitized.substring(0, 50000);
+  }
+  
+  return sanitized;
 }
 
-function ocrSupported() { return typeof Worker !== "undefined" && typeof OffscreenCanvas !== "undefined"; }
 function formatError(err) { return err?.message || String(err || "Unknown error"); }
 
 const PLAYBOOK_CACHE_KEY = "esp_playbook_cache_v2";
@@ -145,63 +157,6 @@ async function loadDefaultPlaybook() {
     console.error("Failed to load default playbook", err);
     showAppError("Failed to load the default Edgewater playbook. Refresh the page or check your connection.", { level: "warning", persistent: true });
     throw err;
-  }
-}
-
-function sizeWarning(file) {
-  if (!file) return;
-  if (file.size > 10 * 1024 * 1024) {
-    els.hint.textContent = `Large file (${humanSize(file.size)}). If scanned, enable OCR; processing may take longer.`;
-  } else {
-    els.hint.textContent = "";
-  }
-}
-
-async function extract(file, useOcr) {
-  const name = (file.name || "").toLowerCase();
-  const isPdf = name.endsWith(".pdf");
-  const isDocx = name.endsWith(".docx");
-  const isTxt  = name.endsWith(".txt");
-  if (!isPdf && !isDocx && !isTxt) {
-    const err = new Error("Unsupported file type. Upload PDF, DOCX, or TXT files.");
-    err.code = "UNSUPPORTED_FILE";
-    throw err;
-  }
-  if (isPdf) {
-    if (useOcr) {
-      if (!ocrSupported()) throw new Error("OCR is unavailable in this browser.");
-      let worker;
-      try {
-        worker = new Worker(new URL("../workers/ocr-worker.js", import.meta.url), { type: "module" });
-      } catch (err) {
-        throw new Error(`OCR worker failed to start: ${formatError(err)}`);
-      }
-      try {
-        return await ocrPdf(file, worker, (p, msg) => showProgress(p, msg || "OCR…"));
-      } catch (err) {
-        throw new Error(`OCR failed: ${formatError(err)}`);
-      }
-    } else {
-      const buf = await file.arrayBuffer();
-      try {
-        return await parsePdf(new Uint8Array(buf), (p) => showProgress(p, "Parsing PDF…"));
-      } catch (err) {
-        throw new Error(`PDF parsing failed: ${formatError(err)}`);
-      }
-    }
-  }
-  if (isDocx) {
-    const buf = await file.arrayBuffer();
-    try {
-      return await parseDocx(new Uint8Array(buf), (p) => showProgress(p, "Parsing DOCX…"));
-    } catch (err) {
-      throw new Error(`DOCX parsing failed: ${formatError(err)}`);
-    }
-  }
-  try {
-    return await parseTxt(file, (p) => showProgress(p, "Reading TXT…"));
-  } catch (err) {
-    throw new Error(`TXT parsing failed: ${formatError(err)}`);
   }
 }
 
@@ -249,8 +204,8 @@ function renderRedlines(rows) {
 }
 
 function exportCsv(rows, meta) {
-  const header = ["filename","filesize","processedAt","processingMs","status","category","clause","title","severity","evidence","recommendation"];
-  const body = rows.map(r => [meta.filename, meta.filesize, meta.processedAt, meta.processingMs, r.status, r.category, r.clause||"", r.title||"", r.severity, r.evidence?.text||"", r.recommendation||""]);
+  const header = ["charactersAnalyzed","processedAt","processingMs","status","category","clause","title","severity","evidence","recommendation"];
+  const body = rows.map(r => [meta.charactersAnalyzed, meta.processedAt, meta.processingMs, r.status, r.category, r.clause||"", r.title||"", r.severity, r.evidence?.text||"", r.recommendation||""]);
   const csv = [header, ...body].map(line => line.map(csvEscape).join(",")).join("\n");
   downloadBlob(new Blob([csv], { type: "text/csv" }), "nda-checklist.csv");
 }
@@ -402,26 +357,9 @@ function applyYamlProp(target, key, value, lineNo) {
 }
 
 async function run() {
-  wireDrop();
-
-  whenMammothReady()
-    .then(() => {
-      console.info("[NDA][DOCX] Mammoth ready for DOCX parsing");
-      const diag = window["__ndaDiagnostics"] = window["__ndaDiagnostics"] || {};
-      diag.docx = diag.docx || {};
-      diag.docx.mammothReadyNotified = true;
-    })
-    .catch((err) => {
-      console.error("Mammoth failed to load", err);
-      showAppError("DOCX parsing is disabled because the Mammoth library did not load.", { level: "warning", persistent: true });
-    });
-  if (!ocrSupported()) {
-    if (els.useOcr) {
-      els.useOcr.checked = false;
-      els.useOcr.disabled = true;
-    }
-    showAppError("OCR is unavailable in this browser; scanned PDFs will require native text.", { level: "warning", persistent: true });
-  }
+  // Update text stats when user types
+  els.textInput.addEventListener("input", updateTextStats);
+  updateTextStats();
 
   try {
     await loadDefaultPlaybook();
@@ -475,35 +413,40 @@ async function run() {
     }
   });
 
-  els.input.addEventListener("change", () => sizeWarning(els.input.files?.[0]));
-
   els.analyze.addEventListener("click", async () => {
-    const file = els.input.files?.[0];
-    if (!file) {
-      showAppError("Select a file first.", { level: "warning" });
+    const rawText = els.textInput.value;
+    if (!rawText || !rawText.trim()) {
+      showAppError("Please paste NDA text to analyze.", { level: "warning" });
       return;
     }
     if (!state.compiled) {
       showAppError("Playbook not loaded yet; please retry after the page finishes loading.");
       return;
     }
-    sizeWarning(file);
     try {
       clearAppError();
-      setBusy(true); showProgress(2, "Starting…"); const t0 = performance.now();
-      const textAndMeta = await extract(file, els.useOcr?.checked);
-      hideProgress();
-      state.text = typeof textAndMeta === "string" ? textAndMeta : (textAndMeta?.text ?? "");
+      setBusy(true); showProgress(50, "Processing text…"); const t0 = performance.now();
+      
+      // Sanitize the text
+      state.text = sanitizeText(rawText);
+      
+      // Update textarea if text was sanitized
+      if (state.text !== rawText) {
+        els.textInput.value = state.text;
+        updateTextStats();
+        showAppError("Text was sanitized for security. Some content may have been removed.", { level: "info" });
+      }
+      
       state.meta = {
-        filename: file.name, filesize: humanSize(file.size),
+        charactersAnalyzed: state.text.length,
         processedAt: new Date().toISOString(),
-        processingMs: Math.round(performance.now() - t0),
-        pages: textAndMeta.pages || undefined
+        processingMs: Math.round(performance.now() - t0)
       };
+      
       evaluateAndRender();
     } catch (err) {
       console.error("Analysis failed", err);
-      showAppError(`Failed to analyze ${file.name}: ${formatError(err)}`);
+      showAppError(`Failed to analyze text: ${formatError(err)}`);
     } finally { setBusy(false); hideProgress(); }
   });
 }
