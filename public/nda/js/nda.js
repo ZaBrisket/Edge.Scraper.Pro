@@ -61,7 +61,11 @@ function showProgress(pct, msg) {
   els.bar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
   els.text.textContent = msg || "";
 }
-function hideProgress(){ els.progress.setAttribute("aria-hidden", "true"); els.bar.style.width="0%"; els.text.textContent="Idle"; }
+function hideProgress() {
+  els.progress.setAttribute("aria-hidden", "true");
+  els.bar.style.width = "0%";
+  els.text.textContent = "Idle";
+}
 
 function showAppError(message, { level = "error", persistent = false } = {}) {
   if (!els.errorBox) return;
@@ -146,7 +150,7 @@ async function loadDefaultPlaybook() {
 
 function renderFilters(categories) {
   const values = [...categories].filter(Boolean);
-  els.filterCategory.innerHTML = `<option value="">All</option>` + values.sort().map(c => `<option>${escapeHtml(c)}</option>`).join("");
+  els.filterCategory.innerHTML = '<option value="">All</option>' + values.sort().map(c => `<option>${escapeHtml(c)}</option>`).join("");
 }
 
 function renderTable(rows) {
@@ -213,7 +217,7 @@ function updateRisk(evaluation) {
   els.riskPill.textContent = riskLabel(evaluation.risk.level);
 }
 
-function evaluateAndRender(){
+function evaluateAndRender() {
   if (!state.compiled) {
     showAppError("No playbook loaded; unable to evaluate document.");
     return;
@@ -248,47 +252,50 @@ function evaluateAndRender(){
 }
 
 function yamlToJson(y) {
-  const lines = y.split(/\r?\n/);
-  const obj = { rules: [] };
-  let cur = null;
-  const pushCurrent = () => {
-    if (!cur) return;
-    const normalized = { ...cur };
-    delete normalized.__line__;
-    if (!Object.keys(normalized).length) { cur = null; return; }
-    if (!normalized.id) normalized.id = normalized.title || `rule_${obj.rules.length + 1}`;
-    obj.rules.push(normalized);
-    cur = null;
+  const rules = [];
+  let current = null;
+
+  const commit = () => {
+    if (!current) return;
+    if (!current.id) current.id = current.title || `rule_${rules.length + 1}`;
+    rules.push(current);
+    current = null;
   };
-  lines.forEach((line) => {
+
+  const assignProp = (target, key, rawVal) => {
+    const stripped = rawVal.trim().replace(/^['"]|['"]$/g, "");
+    const normalizedKey = key.toLowerCase();
+    let value;
+    if (/^-?\d+(?:\.\d+)?$/.test(stripped)) value = Number(stripped);
+    else if (/^(true|false)$/i.test(stripped)) value = stripped.toLowerCase() === "true";
+    else value = stripped;
+    target[normalizedKey] = value;
+  };
+
+  y.split(/\r?\n/).forEach((line) => {
     if (/^\s*#/.test(line)) return;
-    const trimmed = line.trim();
-    if (!trimmed || /^rules:\s*$/i.test(trimmed)) return;
+    if (/^\s*$/.test(line)) return;
+    if (/^\s*rules:\s*$/i.test(line)) return;
+
     const startMatch = line.match(/^\s*-\s*(.*)$/);
     if (startMatch) {
-      pushCurrent();
-      cur = {};
-      const rest = startMatch[1];
+      commit();
+      current = {};
+      const rest = startMatch[1].trim();
       if (rest) {
         const prop = rest.match(/^([a-zA-Z0-9_]+):\s*(.*)$/);
-        if (prop) {
-          const [, key, rawVal] = prop;
-          const val = rawVal.trim().replace(/^['"]|['"]$/g, '');
-          cur[key.toLowerCase()] = /^\d+$/.test(val) ? Number(val) : val === "true" ? true : val === "false" ? false : val;
-        }
+        if (prop) assignProp(current, prop[1], prop[2]);
       }
       return;
     }
-    if (!cur) return;
+
+    if (!current) return;
     const propMatch = line.match(/^\s*([a-zA-Z0-9_]+):\s*(.*)$/);
-    if (propMatch) {
-      const [, key, rawVal] = propMatch;
-      const val = rawVal.trim().replace(/^['"]|['"]$/g, '');
-      cur[key.toLowerCase()] = /^\d+$/.test(val) ? Number(val) : val === "true" ? true : val === "false" ? false : val;
-    }
+    if (propMatch) assignProp(current, propMatch[1], propMatch[2]);
   });
-  pushCurrent();
-  return obj;
+
+  commit();
+  return { rules };
 }
 
 async function run() {
