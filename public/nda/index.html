@@ -22,8 +22,6 @@ frame-ancestors 'none';
 
   <link rel="stylesheet" href="./nda.css" />
 
-  <!-- Vendor: mammoth (browser build) for DOCX -> text -->
-  <script defer src="https://unpkg.com/mammoth@1.6.0/dist/mammoth.browser.min.js" data-lib="mammoth"></script>
 </head>
 <body>
   <header class="site-header">
@@ -42,15 +40,15 @@ frame-ancestors 'none';
       <strong>Not legal advice.</strong>
     </p>
 
-    <section class="uploader" aria-label="Upload NDA">
-      <label class="file-drop" id="file-drop">
-        <span>Drop PDF/DOCX/TXT here</span>
-        <input id="file-input" type="file" accept=".pdf,.docx,.txt" />
-      </label>
+    <section class="uploader" aria-label="NDA Text Input">
+      <label for="nda-text-input">Paste NDA text here:</label>
+      <textarea id="nda-text-input" 
+                placeholder="Paste your NDA text here (max 50,000 characters)" 
+                maxlength="50000"
+                style="width: 100%; min-height: 300px; font-family: monospace; padding: 12px; border: 2px solid #ccc; border-radius: 4px;"></textarea>
       <div class="controls">
-        <label><input id="use-ocr" type="checkbox" /> Use OCR for scanned PDFs (slower)</label>
         <button id="analyze-btn" class="primary">Analyze</button>
-        <span id="file-hint" class="muted"></span>
+        <span id="text-stats" class="muted"></span>
       </div>
       <div id="progress" class="progress" aria-hidden="true">
         <div id="progress-bar" class="progress-bar" style="width:0%"></div>
