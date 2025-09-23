@@ -3,96 +3,54 @@
   "version": "2025-09-23",
   "rules": [
     {
-      "id": "mutuality",
-      "clause": "Scope & Mutuality",
-      "title": "Mutual NDA (both parties bound)",
-      "category": "Scope & Mutuality",
+      "id": "employee_non_solicit",
+      "title": "Employee Non-Solicit",
+      "category": "Restrictions",
+      "level": "HIGH",
+      "severity": 8,
+      "require": ["/(employee|personnel)\\s+non[- ]solicit/i"],
+      "prefer": ["/(executive|senior)\\s+(employee|personnel)/i"],
+      "forbid": ["/all\\s+(employees|personnel)/i"],
+      "safe_clause": "During the term of this Agreement and for twelve (12) months thereafter, neither party shall, directly or indirectly, solicit for employment any senior or executive employee of the other party with whom it had material contact in connection with this Agreement; provided, that general solicitations not specifically directed at such employees shall not be deemed a breach.",
+      "notes": "Prefer executive-only limitation; general solicit ok."
+    },
+    {
+      "id": "confidential_info_carveouts",
+      "title": "Confidential Information – Carve-Outs",
+      "category": "Confidentiality",
       "level": "BLOCKER",
       "severity": 10,
-      "require": ["mutual", "/each\\s+party\\s+shall\\s+keep\\s+confidential/i"],
-      "forbid": ["/one[- ]way\\s+non[- ]disclosure/i", "/recipient\\s+shall\\s+keep\\s+confidential\\s+.*?discloser/i"],
-      "recommendation": "Ensure obligations are reciprocal, e.g., 'Each party shall maintain the confidentiality of the other party’s Confidential Information.'"
+      "require": [
+        "/(already\\s+in\\s+the\\s+public\\s+domain|publicly\\s+available)/i",
+        "/(rightfully\\s+known\\s+to\\s+the\\s+recipient|already\\s+known)/i",
+        "/(independently\\s+developed)/i",
+        "/(rightfully\\s+received\\s+from\\s+third\\s+party)/i"
+      ],
+      "prefer": ["/without\\s+breach/i", "/no\\s+obligation\\s+of\\s+confidentiality/i"],
+      "safe_clause": "“Confidential Information” does not include information that (a) is or becomes publicly available without breach of this Agreement; (b) was rightfully known to the receiving party without restriction prior to disclosure; (c) is independently developed by the receiving party without use of or reference to the disclosing party’s Confidential Information; or (d) is rightfully received from a third party without duty of confidentiality.",
+      "notes": "Treat substantial compliance as PASS; avoid heavy replacements if all elements materially present."
     },
     {
-      "id": "residuals",
-      "clause": "Use of Information",
-      "title": "No blanket residuals clause",
-      "category": "IP & Info Use",
-      "level": "BLOCKER",
-      "severity": 9,
-      "forbid": ["/residuals/i", "/independently\\s+retained\\s+knowledge/i", "/unaided\\s+memory/i"],
-      "recommendation": "Remove residuals language or narrowly limit to non-confidential general skills."
-    },
-    {
-      "id": "term_cap",
-      "clause": "Term",
-      "title": "Confidentiality term capped (≤ 2 years)",
-      "category": "Term",
-      "level": "WARN",
+      "id": "affiliate_language",
+      "title": "Affiliate Coverage",
+      "category": "Parties",
+      "level": "MEDIUM",
       "severity": 6,
-      "forbid": ["/perpetual/i", "/in\\s+perpetuity/i"],
-      "recommendation": "Replace perpetual obligations with a fixed term of 2 years from disclosure."
+      "forbid": ["/affiliates\\s+and\\s+all\\s+current\\s+and\\s+future\\s+subsidiaries\\s+and\\s+assigns/i"],
+      "prefer": ["/affiliates\\s+solely\\s+to\\s+the\\s+extent\\s+they\\s+receive\\s+confidential\\s+information/i"],
+      "safe_clause": "References to a party include its Affiliates solely to the extent such Affiliates receive Confidential Information under this Agreement.",
+      "notes": "Down-score over-broad affiliate scope."
     },
     {
-      "id": "non_solicit",
-      "clause": "Restrictions",
-      "title": "No non-solicit/compete in NDA",
-      "category": "Restrictions",
-      "level": "BLOCKER",
-      "severity": 8,
-      "forbid": ["/non[- ]solicit/i", "/non[- ]compete/i", "/noncompetition/i"],
-      "recommendation": "Remove non-solicit/compete; address separately if needed."
-    },
-    {
-      "id": "equitable_relief",
-      "clause": "Remedies",
-      "title": "Equitable relief permitted",
-      "category": "Remedies",
-      "level": "WARN",
-      "severity": 4,
-      "require": ["/injunctive\\s+relief/i", "/equitable\\s+relief/i"],
-      "recommendation": "Include: 'Breach may cause irreparable harm and injunctive relief may be appropriate.'"
-    },
-    {
-      "id": "ip_no_assignment",
-      "clause": "IP",
-      "title": "No transfer of IP ownership",
-      "category": "IP & Info Use",
-      "level": "BLOCKER",
-      "severity": 9,
-      "forbid": ["/assigns\\s+all\\s+right/i", "/transfers\\s+ownership/i"],
-      "recommendation": "Remove any assignment/transfer; NDA should only govern confidentiality."
-    },
-    {
-      "id": "return_destroy",
-      "clause": "Materials",
-      "title": "Return or destroy upon request/termination",
-      "category": "Process",
-      "level": "WARN",
-      "severity": 5,
-      "require": ["/return\\s+or\\s+destroy/i", "/upon\\s+request\\s+.*?(?:return|destroy)/i"],
-      "recommendation": "Add return/destroy obligations upon request or termination."
-    },
-    {
-      "id": "govlaw_ca_party_prefers_ca",
-      "clause": "Governing Law",
-      "title": "If a California party is involved, prefer CA governing law",
-      "category": "Governing Law & Venue",
-      "level": "WARN",
-      "severity": 5,
-      "when": { "contains": [ { "var": "context.partyStates" }, "California" ] },
-      "failIf": { "ne": [ { "var": "context.governingLaw.stateAbbr" }, "CA" ] },
-      "recommendation": "Consider negotiating California governing law given a California party."
-    },
-    {
-      "id": "venue_neutral",
-      "clause": "Venue",
-      "title": "Avoid one-sided exclusive venue",
-      "category": "Governing Law & Venue",
-      "level": "INFO",
+      "id": "legal_modifiers",
+      "title": "Commercially Reasonable vs Best Efforts",
+      "category": "Standards",
+      "level": "LOW",
       "severity": 3,
-      "forbid": ["/exclusive\\s+jurisdiction\\s+in\\s+.+/i"],
-      "recommendation": "Prefer neutral venue or mutual consent."
+      "forbid": ["/best\\s+efforts/i"],
+      "prefer": ["/commercially\\s+reasonable\\s+efforts/i"],
+      "safe_clause": "Each party shall use commercially reasonable efforts to comply with its obligations hereunder.",
+      "notes": "Suggest softening 'best efforts' to 'commercially reasonable efforts'."
     }
   ]
 }

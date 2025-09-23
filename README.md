@@ -91,3 +91,32 @@ GET /.netlify/functions/health
 ## 📝 License
 
 MIT
+## NDA Reviewer — .docx, Context-Aware Redlines, Tracked Changes
+
+### Env Vars (Netlify)
+- `ASPOSE_WORDS_APP_SID` — Aspose.Words Cloud App SID
+- `ASPOSE_WORDS_APP_KEY` — Aspose.Words Cloud App Key
+
+> Set these in Netlify → Site settings → Environment variables.  
+> Without them, export will return `ASPOSE_CREDS_MISSING`.
+
+### Endpoints
+- `/.netlify/functions/nda-analyze` — POST JSON  
+  `{ kind: 'docx', fileBase64 }` or `{ kind: 'text', text }`
+- `/.netlify/functions/nda-export` — POST JSON  
+  `{ originalKind, originalFileBase64?, originalText?, normalizedText, edits }`  
+  Returns `application/vnd.openxmlformats-officedocument.wordprocessingml.document`
+
+### Security
+- `.docx` parsed via `mammoth` (no external entities).  
+- MIME verified with `file-type`.  
+- No XML evaluation.
+
+### Performance
+- Analyze works on normalized text (fast).  
+- Export delegates tracked-changes computation to Aspose Cloud.  
+- Client uses base64 JSON to avoid flaky multipart on Netlify.
+
+### Backwards Compatibility
+- Text flow preserved (`kind:'text'`).  
+- Existing `/nda` route kept; new UI is drop-in.
