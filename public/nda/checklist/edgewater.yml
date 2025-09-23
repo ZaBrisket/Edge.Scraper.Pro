@@ -1,0 +1,39 @@
+# Edgewater NDA Checklist (YAML sample; JSON is canonical)
+rules:
+  - id: mutuality
+    clause: Scope & Mutuality
+    title: Mutual NDA (both parties bound)
+    category: Scope & Mutuality
+    level: BLOCKER
+    severity: 10
+    require: /each\s+party\s+shall\s+keep\s+confidential/i
+    forbid: /one[- ]way\s+non[- ]disclosure/i
+    recommendation: Ensure obligations are reciprocal.
+
+  - id: residuals
+    clause: Use of Information
+    title: No blanket residuals clause
+    category: IP & Info Use
+    level: BLOCKER
+    severity: 9
+    forbid: /residuals/i
+    recommendation: Remove residuals language.
+
+  - id: term_cap
+    clause: Term
+    title: Confidentiality term capped (≤ 2 years)
+    category: Term
+    level: WARN
+    severity: 6
+    forbid: /perpetuity/i
+    recommendation: Cap at 2 years.
+
+  - id: govlaw_ca_party_prefers_ca
+    clause: Governing Law
+    title: If a California party is involved, prefer CA governing law
+    category: Governing Law & Venue
+    level: WARN
+    severity: 5
+    when: { "contains": [ { "var": "context.partyStates" }, "California" ] }
+    failIf: { "ne": [ { "var": "context.governingLaw.stateAbbr" }, "CA" ] }
+    recommendation: Consider negotiating CA governing law.

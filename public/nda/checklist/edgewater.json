@@ -1,0 +1,98 @@
+{
+  "name": "Edgewater NDA Checklist",
+  "version": "2025-09-23",
+  "rules": [
+    {
+      "id": "mutuality",
+      "clause": "Scope & Mutuality",
+      "title": "Mutual NDA (both parties bound)",
+      "category": "Scope & Mutuality",
+      "level": "BLOCKER",
+      "severity": 10,
+      "require": ["mutual", "/each\\s+party\\s+shall\\s+keep\\s+confidential/i"],
+      "forbid": ["/one[- ]way\\s+non[- ]disclosure/i", "/recipient\\s+shall\\s+keep\\s+confidential\\s+.*?discloser/i"],
+      "recommendation": "Ensure obligations are reciprocal, e.g., 'Each party shall maintain the confidentiality of the other party’s Confidential Information.'"
+    },
+    {
+      "id": "residuals",
+      "clause": "Use of Information",
+      "title": "No blanket residuals clause",
+      "category": "IP & Info Use",
+      "level": "BLOCKER",
+      "severity": 9,
+      "forbid": ["/residuals/i", "/independently\\s+retained\\s+knowledge/i", "/unaided\\s+memory/i"],
+      "recommendation": "Remove residuals language or narrowly limit to non-confidential general skills."
+    },
+    {
+      "id": "term_cap",
+      "clause": "Term",
+      "title": "Confidentiality term capped (≤ 2 years)",
+      "category": "Term",
+      "level": "WARN",
+      "severity": 6,
+      "forbid": ["/perpetual/i", "/in\\s+perpetuity/i"],
+      "recommendation": "Replace perpetual obligations with a fixed term of 2 years from disclosure."
+    },
+    {
+      "id": "non_solicit",
+      "clause": "Restrictions",
+      "title": "No non-solicit/compete in NDA",
+      "category": "Restrictions",
+      "level": "BLOCKER",
+      "severity": 8,
+      "forbid": ["/non[- ]solicit/i", "/non[- ]compete/i", "/noncompetition/i"],
+      "recommendation": "Remove non-solicit/compete; address separately if needed."
+    },
+    {
+      "id": "equitable_relief",
+      "clause": "Remedies",
+      "title": "Equitable relief permitted",
+      "category": "Remedies",
+      "level": "WARN",
+      "severity": 4,
+      "require": ["/injunctive\\s+relief/i", "/equitable\\s+relief/i"],
+      "recommendation": "Include: 'Breach may cause irreparable harm and injunctive relief may be appropriate.'"
+    },
+    {
+      "id": "ip_no_assignment",
+      "clause": "IP",
+      "title": "No transfer of IP ownership",
+      "category": "IP & Info Use",
+      "level": "BLOCKER",
+      "severity": 9,
+      "forbid": ["/assigns\\s+all\\s+right/i", "/transfers\\s+ownership/i"],
+      "recommendation": "Remove any assignment/transfer; NDA should only govern confidentiality."
+    },
+    {
+      "id": "return_destroy",
+      "clause": "Materials",
+      "title": "Return or destroy upon request/termination",
+      "category": "Process",
+      "level": "WARN",
+      "severity": 5,
+      "require": ["/return\\s+or\\s+destroy/i", "/upon\\s+request\\s+.*?(?:return|destroy)/i"],
+      "recommendation": "Add return/destroy obligations upon request or termination."
+    },
+    {
+      "id": "govlaw_ca_party_prefers_ca",
+      "clause": "Governing Law",
+      "title": "If a California party is involved, prefer CA governing law",
+      "category": "Governing Law & Venue",
+      "level": "WARN",
+      "severity": 5,
+      "when": { "contains": [ { "var": "context.partyStates" }, "California" ] },
+      "failIf": { "ne": [ { "var": "context.governingLaw.stateAbbr" }, "CA" ] },
+      "recommendation": "Consider negotiating California governing law given a California party."
+    },
+    {
+      "id": "venue_neutral",
+      "clause": "Venue",
+      "title": "Avoid one-sided exclusive venue",
+      "category": "Governing Law & Venue",
+      "level": "INFO",
+      "severity": 3,
+      "forbid": ["/exclusive\\s+jurisdiction\\s+in\\s+.+/i"],
+      "recommendation": "Prefer neutral venue or mutual consent."
+    }
+  ]
+}
