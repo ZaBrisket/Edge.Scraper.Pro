@@ -1,0 +1,193 @@
+{
+  "version": "edgewater-nda-checklist-v1",
+  "rules": [
+    {
+      "id": "non-solicit-customers",
+      "title": "Customer/Supplier Non-Solicit — Exclude",
+      "severity": "blocker",
+      "detect": { "any": ["non\\s*-?\\s*solicit", "non\\s*-?\\s*solicitation"], "near": "customer|client|supplier" },
+      "position": { "action": "delete", "template": "" },
+      "rationale": "Always exclude customer/supplier non-solicit.",
+      "source": "Edgewater NDA Checklist"
+    },
+    {
+      "id": "employee-non-solicit-scope",
+      "title": "Employee Non-Solicit — Limit scope + carve-out",
+      "severity": "must",
+      "detect": { "any": ["employee\\s+non\\s*-?\\s*solicit|employee\\s+non\\s*-?\\s*solicitation"] },
+      "checks": [
+        { "type": "mustIncludeAny", "patterns": ["key\\s+executive|senior\\s+management|c-?suite"] }
+      ],
+      "position": {
+        "action": "replace_or_insert",
+        "template": "Nothing herein shall prevent you from hiring such a person(s) who (i) initiates discussions regarding such employment without any direct solicitation by you, (ii) has had employment discussions with you prior to the date of this Agreement, (iii) responds to any public advertisement placed by you or (iv) has been terminated by the Company prior to commencement of employment discussions between you and such person(s)."
+      },
+      "rationale": "Limit to key executives and add carve-out (i)–(iv).",
+      "source": "Edgewater NDA Checklist"
+    },
+    {
+      "id": "term-duration",
+      "title": "Term ≤ 24 months (18 preferred)",
+      "severity": "must",
+      "detect": { "any": ["\\bterm\\b|\\bduration\\b|\\bperiod\\b"] },
+      "checks": [{ "type": "duration", "maxMonths": 24, "preferredMonths": 18 }],
+      "position": {
+        "action": "replace_or_insert",
+        "template": "The term of this Agreement shall not exceed twenty-four (24) months."
+      },
+      "rationale": "Cap the term at 24 months; 18 months preferred.",
+      "source": "Edgewater NDA Checklist"
+    },
+    {
+      "id": "return-or-destroy",
+      "title": "Return or Destroy; Retention",
+      "severity": "must",
+      "detect": { "any": ["return\\s+or\\s+destroy|return\\s+and\\s+destroy|destroy\\s+and\\s+return|return\\s+only|destroy\\s+documents?"] },
+      "position": {
+        "action": "replace_or_insert",
+        "template": "Upon request, Recipient may destroy all Evaluation Material (in lieu of return). However, you may retain copies of the materials as is necessary for legal, regulatory and archival purposes which copies shall remain subject to all restrictions of this Agreement."
+      },
+      "rationale": "Allow destruction versus return; include retention sentence verbatim.",
+      "source": "Edgewater NDA Checklist"
+    },
+    {
+      "id": "legal-modifiers",
+      "title": "Legal Modifiers — Normalize",
+      "severity": "preferred",
+      "detect": { "any": ["best\\s+efforts|\\bshall\\b|immediate"] },
+      "position": {
+        "action": "replace_map",
+        "template": "Replace “best efforts” → “commercially reasonable”; “shall” → “may” (where appropriate); and “immediate” → “prompt”."
+      },
+      "rationale": "Normalize legal modifiers per checklist.",
+      "source": "Edgewater NDA Checklist"
+    },
+    {
+      "id": "affiliate-language-remove",
+      "title": "Remove obligations flowing to our affiliates",
+      "severity": "must",
+      "detect": { "any": ["our\\s+affiliates|affiliates\\s+of\\s+recipient|recipient'?s\\s+affiliates"] },
+      "position": {
+        "action": "delete_or_narrow",
+        "template": ""
+      },
+      "rationale": "Always remove references to our affiliates; Company affiliates are OK.",
+      "source": "Edgewater NDA Checklist"
+    },
+    {
+      "id": "affiliate-carve-out",
+      "title": "Affiliate Carve-Out (verbatim)",
+      "severity": "must",
+      "detect": { "any": ["affiliate\\b|portfolio\\s+company|representatives?"] },
+      "position": {
+        "action": "insert",
+        "template": "Notwithstanding anything contained in this Confidentiality Agreement to the contrary, (a) none of your affiliates (including any investment fund managed by you or your affiliate or any portfolio company of any such investment fund) shall be deemed to be one of your Representatives or have any obligations hereunder unless such person or entity actually receives Evaluation Material and (b) none of your affiliates or portfolio companies will be deemed to be a Representative or have any obligation hereunder solely due to the fact that one of your managers or employees who has received or had access to Evaluation Material serves as an officer or member of the board of directors (or similar governing body) of such affiliate or portfolio company; provided that such employee does not provide any Evaluation Material to the other directors, officers or employees of such affiliate or portfolio company"
+      },
+      "rationale": "Verbatim language from checklist.",
+      "source": "Edgewater NDA Checklist"
+    },
+    {
+      "id": "governing-law",
+      "title": "Governing Law — Preferred (IL/NY/DE)",
+      "severity": "preferred",
+      "detect": { "any": ["governing\\s+law|jurisdiction|venue"] },
+      "checks": [{ "type": "mustIncludeAny", "patterns": ["illinois|new\\s+york|delaware"] }],
+      "position": {
+        "action": "replace_or_insert",
+        "template": "This Agreement shall be governed by the laws of the State of Delaware."
+      },
+      "rationale": "Avoid foreign jurisdictions; use Illinois, New York, or Delaware.",
+      "source": "Edgewater NDA Checklist"
+    },
+    {
+      "id": "representatives-language",
+      "title": "Representatives — Include full list; no signature requirement",
+      "severity": "must",
+      "detect": { "any": ["representatives?"] },
+      "checks": [
+        { "type": "mustIncludeAll", "patterns": ["directors","officers","advisors","employees","financing\\s+sources","consultants","accountants","attorneys"] },
+        { "type": "disallow", "patterns": ["representatives\\s+.*\\s+sign\\s+this\\s+agreement"] }
+      ],
+      "position": {
+        "action": "replace_or_insert",
+        "template": "For purposes of this Agreement, “Representatives” means your directors, officers, advisors, employees, financing sources, consultants, accountants and attorneys. You will be responsible for any breach of this Agreement by your Representatives; however, your Representatives are not required to execute this Agreement."
+      },
+      "rationale": "Include full set; avoid requiring Representatives to sign.",
+      "source": "Edgewater NDA Checklist (constructed to reflect enumerated roles)"
+    },
+    {
+      "id": "confidential-info-carveouts",
+      "title": "Confidential Information — Standard Carve-Outs (verbatim)",
+      "severity": "must",
+      "detect": { "any": ["confidential\\s+information|evaluation\\s+material"] },
+      "position": {
+        "action": "replace_or_insert",
+        "template": "(i) was publicly available prior to its disclosure to us, (ii) was known to us prior to its disclosure to us and was not received under obligations of confidentiality or from a party so obligated, (iii) was independently developed by us or (iv) is or becomes available to us on a nonconfidential basis from a source other than you, the Company, or their agents or representatives, provided that such other source is not bound by a confidentiality agreement with you or the Company."
+      },
+      "rationale": "Verbatim carve‑outs per checklist.",
+      "source": "Edgewater NDA Checklist"
+    },
+    {
+      "id": "competition-disclaimer",
+      "title": "Competition Disclaimer (verbatim)",
+      "severity": "must",
+      "detect": { "any": ["competitors|quotes|bids|ordinary\\s+course|evaluation\\s+material"] },
+      "position": {
+        "action": "insert",
+        "template": "Notwithstanding anything contained herein to the contrary, we acknowledge that you and your affiliated companies may now and in the future be direct competitors of the Company and that your receipt and possession of the Evaluation Material will not, in and of itself, prevent or restrict you in any way from carrying on your business in the ordinary course, including without limitation, making quotes or bids in direct competition with the Company, provided that in doing so you comply strictly with the obligations of this Agreement."
+      },
+      "rationale": "Verbatim language per checklist.",
+      "source": "Edgewater NDA Checklist"
+    },
+    {
+      "id": "non-solicit-duration",
+      "title": "Non-Solicit duration ≤ 18 months",
+      "severity": "must",
+      "detect": { "any": ["non\\s*-?\\s*solicit|non\\s*-?\\s*solicitation"] },
+      "checks": [{ "type": "duration", "maxMonths": 18, "preferredMonths": 18 }],
+      "position": {
+        "action": "replace_or_insert",
+        "template": "The non-solicitation covenant shall not exceed eighteen (18) months."
+      },
+      "rationale": "Limit non‑solicit to 18 months.",
+      "source": "Edgewater NDA Checklist (Other Additions)"
+    },
+    {
+      "id": "general-solicitation-carveout",
+      "title": "Non-Solicit — General Solicitation Carve-Out",
+      "severity": "must",
+      "detect": { "any": ["non\\s*-?\\s*solicit|non\\s*-?\\s*solicitation"] },
+      "position": {
+        "action": "insert",
+        "template": "Nothing herein prohibits general solicitations not specifically directed to the Company or its personnel, nor any hiring resulting from responses to such general solicitations."
+      },
+      "rationale": "Carve‑out for general solicitations.",
+      "source": "Edgewater NDA Checklist (Other Additions)"
+    },
+    {
+      "id": "destruction-cert-on-request",
+      "title": "Destruction Certification — upon written request",
+      "severity": "preferred",
+      "detect": { "any": ["destroy|destruction|return"] },
+      "position": {
+        "action": "insert",
+        "template": "Upon the Company’s written request, Recipient shall provide a written certification that all Evaluation Material has been destroyed in accordance with this Agreement."
+      },
+      "rationale": "Confirm destruction only upon written request.",
+      "source": "Edgewater NDA Checklist (Other Additions)"
+    },
+    {
+      "id": "fee-shifting-final-judgment",
+      "title": "Fees — Non‑prevailing party after final judgment",
+      "severity": "preferred",
+      "detect": { "any": ["attorneys'?\\s*fees|costs|expenses|prevailing\\s+party|non-?prevailing\\s+party"] },
+      "position": {
+        "action": "replace_or_insert",
+        "template": "The non‑prevailing party shall reimburse the prevailing party’s reasonable costs and expenses (including attorneys’ fees) upon entry of a final judgment by a court of competent jurisdiction."
+      },
+      "rationale": "Condition fee‑shift on a final judgment.",
+      "source": "Edgewater NDA Checklist (Other Additions)"
+    }
+  ]
+}
+
