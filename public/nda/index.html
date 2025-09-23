@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>EdgeScraperPro — NDA Reviewer (BETA)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./nda.css" />
+  <!-- Vendor scripts (pinned) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/diff-match-patch/1.0.5/diff_match_patch.min.js" defer></script>
+  <script src="https://unpkg.com/mammoth@1.7.0/mammoth.browser.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.5.136/build/pdf.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.4.1/dist/html-docx.min.js" defer></script>
+  <!-- Optional OCR (stub for MVP; real impl in follow-up) -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js" defer></script>
+  <script src="./nda.js" defer></script>
+</head>
+<body>
+  <header class="nda-header">
+    <h1>NDA Reviewer (BETA)</h1>
+    <p class="disclaimer">For NDA review only. Not legal advice. Human review required.</p>
+  </header>
+
+  <main class="nda-layout">
+    <section class="uploader">
+      <input id="file" type="file" accept=".pdf,.docx,.txt,.text" />
+      <label for="file" class="btn primary">Upload NDA</label>
+      <label class="toggle">
+        <input id="use-ocr" type="checkbox" />
+        Use OCR if no text found (slower)
+      </label>
+    </section>
+
+    <section class="panes">
+      <div class="pane">
+        <h3>Original (preview)</h3>
+        <pre id="original" class="scroll"></pre>
+      </div>
+      <div class="pane">
+        <h3>Redlines</h3>
+        <div id="redlines" class="redlines scroll"></div>
+        <div class="actions">
+          <button id="export-docx" class="btn">Export Redlines (.docx)</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="checklist">
+      <h3>Checklist Compliance</h3>
+      <table id="checklist">
+        <thead>
+          <tr><th>Rule</th><th>Severity</th><th>Status</th><th>Rationale</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="actions">
+        <button id="export-csv" class="btn">Export Checklist (CSV)</button>
+        <button id="export-json" class="btn">Export Checklist (JSON)</button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

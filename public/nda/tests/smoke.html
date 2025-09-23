@@ -1,0 +1,17 @@
+<!doctype html>
+<html><body>
+<script>
+(async function(){
+  const res = await fetch('../nda/rules/edgewater-nda-checklist.json');
+  if (!res.ok) throw new Error('Rules load failed');
+  const rules = await res.json();
+  const text = `
+    This NDA shall have a term of thirty (30) months. The Parties agree to return all materials upon request.
+    Employees non-solicitation applies to all employees without exception. Governing law is California.
+    Best efforts shall be used for immediate actions.
+  `.toLowerCase();
+  const summary = { ruleCount: rules.rules.length, sample: text.slice(0,120) };
+  document.write(JSON.stringify(summary, null, 2));
+})();
+</script>
+</body></html>
