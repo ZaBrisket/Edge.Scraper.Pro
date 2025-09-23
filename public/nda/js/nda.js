@@ -146,7 +146,7 @@ async function loadDefaultPlaybook() {
 
 function renderFilters(categories) {
   const values = [...categories].filter(Boolean);
-  els.filterCategory.innerHTML = `<option value="">All</option>` + values.sort().map(c => `<option>${escapeHtml(c)}</option>`).join("");
+  els.filterCategory.innerHTML = '<option value="">All</option>' + values.sort().map(c => `<option>${escapeHtml(c)}</option>`).join("");
 }
 
 function renderTable(rows) {
@@ -254,7 +254,6 @@ function yamlToJson(y) {
   const pushCurrent = () => {
     if (!cur) return;
     const normalized = { ...cur };
-    delete normalized.__line__;
     if (!Object.keys(normalized).length) { cur = null; return; }
     if (!normalized.id) normalized.id = normalized.title || `rule_${obj.rules.length + 1}`;
     obj.rules.push(normalized);
