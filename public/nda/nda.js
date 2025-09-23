@@ -100,16 +100,19 @@ function evaluate(text, rules) {
   const lower = text.toLowerCase();
   return rules.rules.map(r => {
     const hit = matchRule(lower, r.detect);
-    const check = runChecks(lower, r);
-    const status = decideStatus(r, hit, check);
     const snippet = firstSnippet(lower, r, 200);
+    const check = runChecks(lower, r, snippet);
+    const status = decideStatus(r, hit, check);
     const suggestion = r.position?.template || '';
     return {
       id: r.id,
       title: r.title,
       severity: r.severity,
-      status, rationale: r.rationale || '',
-      snippet, suggestion, source: r.source || 'Edgewater NDA Checklist'
+      status,
+      rationale: r.rationale || '',
+      snippet,
+      suggestion,
+      source: r.source || 'Edgewater NDA Checklist'
     };
   });
 }
@@ -135,13 +138,14 @@ function extractDurations(lower) {
   return out;
 }
 
-function runChecks(lower, rule) {
+function runChecks(lower, rule, snippetLower) {
   const res = { ok: true, reasons: [], preferred: true };
   if (!rule.checks) return res;
 
   for (const c of rule.checks) {
     if (c.type === 'duration') {
-      const months = extractDurations(lower);
+      const scope = (snippetLower && snippetLower.trim().length > 0) ? snippetLower : lower;
+      const months = extractDurations(scope);
       if (months.length === 0) { res.ok = false; res.reasons.push('duration missing'); continue; }
       const max = c.maxMonths ?? 999;
       const pref = c.preferredMonths ?? null;

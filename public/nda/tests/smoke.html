@@ -2,7 +2,7 @@
 <html><body>
 <script>
 (async function(){
-  const res = await fetch('../nda/rules/edgewater-nda-checklist.json');
+  const res = await fetch('../rules/edgewater-nda-checklist.json');
   if (!res.ok) throw new Error('Rules load failed');
   const rules = await res.json();
   const text = `
