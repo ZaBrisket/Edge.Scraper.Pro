@@ -1,0 +1,8 @@
+{
+  "name": "edgescraperpro-functions",
+  "private": true,
+  "dependencies": {
+    "asposewordscloud": "^25.8.0",
+    "@netlify/blobs": "^7.0.0"
+  }
+}

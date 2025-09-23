@@ -1,0 +1,5 @@
+{
+  "purpose_syn": ["purpose", "use", "in connection with", "related to", "pursuant to", "regarding", "for the purpose of"],
+  "agreement_syn": ["this Agreement", "this NDA", "hereunder", "herein"],
+  "transaction_syn": ["transaction", "deal", "engagement", "evaluation"]
+}

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>NDA Reviewer — EdgeScraperPro</title>
+  <style>
+    :root{--bd:#e5e7eb;--mut:#6b7280}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:1120px;margin:2rem auto;padding:0 1rem}
+    h1{margin-bottom:.25rem} .muted{color:var(--mut)}
+    .row{display:flex;gap:1rem;flex-wrap:wrap}
+    .card{border:1px solid var(--bd);border-radius:12px;padding:1rem}
+    .btn{border:1px solid #111;border-radius:10px;padding:.55rem .9rem;cursor:pointer}
+    .pill{display:inline-block;border:1px solid var(--bd);border-radius:999px;padding:.15rem .55rem;margin:.2rem .35rem .2rem 0}
+    .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+    .area{min-height:140px;border:1px dashed var(--bd);border-radius:10px;padding:.75rem;white-space:pre-wrap;overflow:auto}
+    table{width:100%;border-collapse:collapse} th,td{border-bottom:1px solid #eee;padding:.5rem .6rem;text-align:left;vertical-align:top}
+    .ok{color:#15803d}.warn{color:#a16207}.err{color:#b91c1c}
+    .kvs{font-size:.9rem;border:1px solid var(--bd);border-radius:8px;padding:.35rem .5rem}
+  </style>
+  <!-- Vendors via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.js";</script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+  <h1>NDA Reviewer</h1>
+  <p class="muted">Local-first review against Edgewater checklist. Optional: semantic matching (embeddings) and Pro redlines (Aspose). Not legal advice.</p>
+
+  <div class="card">
+    <div class="row">
+      <div style="flex:1">
+        <label class="pill"><input id="file" type="file" accept=".pdf,.docx,.txt"/> Choose NDA</label>
+        <label class="pill"><input id="use-ocr" type="checkbox"/> OCR (scanned PDFs)</label>
+        <label class="pill"><input id="semantic" type="checkbox" checked/> Semantic matching</label>
+        <label class="pill"><input id="pro-redlines" type="checkbox"/> Pro redlines (Aspose)</label>
+        <label class="pill"><input id="record-precedents" type="checkbox"/> Record decisions</label><br/>
+        <input id="counterparty" class="kvs" placeholder="Counterparty (optional e.g., Acme, Inc.)" style="min-width:320px"/>
+        <label class="pill"><input id="mode-mutual" name="mode" type="radio" value="mutual" checked/> Mutual</label>
+        <label class="pill"><input id="mode-unilateral" name="mode" type="radio" value="unilateral"/> Unilateral</label>
+      </div>
+      <div>
+        <button id="btn-analyze" class="btn">Analyze</button>
+        <button id="btn-export-csv" class="btn" disabled>Export CSV</button>
+        <button id="btn-export-json" class="btn" disabled>Export JSON</button>
+        <button id="btn-export-docx" class="btn" disabled>Export Redlines (.docx)</button>
+      </div>
+    </div>
+    <div class="muted" id="privacy-line" style="margin-top:.5rem">Mode: Local-only. Turn on Pro redlines to use Aspose Cloud.</div>
+  </div>
+
+  <div class="row" style="margin-top:1rem">
+    <div class="card" style="flex:1 1 360px;min-width:320px">
+      <h3>Original</h3>
+      <div id="original" class="area mono"></div>
+    </div>
+    <div class="card" style="flex:1 1 360px;min-width:320px">
+      <h3>Redlines (preview)</h3>
+      <div id="redlines" class="area mono"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:1rem">
+    <h3>Checklist Compliance</h3>
+    <table id="results"><thead>
+      <tr><th>Rule</th><th>Status</th><th>Details</th><th>Suggestion</th></tr>
+    </thead><tbody></tbody></table>
+  </div>
+
+  <div class="card" style="margin-top:1rem">
+    <h3>Quick Insights</h3>
+    <div id="terms"></div>
+    <div id="asymmetry" style="margin-top:.5rem"></div>
+  </div>
+
+  <script defer src="/nda.js"></script>
+</body>
+</html>

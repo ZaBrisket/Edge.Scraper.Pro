@@ -1,0 +1,122 @@
+{
+  "mutual": [
+    {
+      "id": "purpose",
+      "title": "Purpose limited to evaluating a potential transaction",
+      "semantic": "Use of Confidential Information is limited to evaluating a potential transaction between the Parties.",
+      "required": ["(purpose|use)\\s+(of|for|in\\s+connection\\s+with|related\\s+to|pursuant\\s+to)\\s+(this\\s+)?(disclosure|Agreement|transaction)"],
+      "forbidden": ["any\\s+purpose\\s+whatsoever", "unrestricted\\s+use"],
+      "severity": "error",
+      "suggest": {
+        "text": "Limit use to evaluating a potential transaction between the parties.",
+        "anchor": "(use|purpose)",
+        "replace": [
+          { "find": "any\\s+purpose\\s+whatsoever", "with": "the sole purpose of evaluating a potential transaction between the Parties" }
+        ]
+      },
+      "fallback": ["Evaluate transaction only", "Project-only use with written consent", "No purpose restriction (walk-away)"]
+    },
+    {
+      "id": "exclusions",
+      "title": "Standard confidentiality exclusions",
+      "semantic": "Four standard exclusions (publicly available, already known, independently developed, rightfully obtained).",
+      "required": [
+        "public(ly)?\\s+available",
+        "already\\s+known\\s+to\\s+the\\s+recipient",
+        "independently\\s+developed",
+        "rightfully\\s+obtained\\s+from\\s+a\\s+third\\s+party"
+      ],
+      "severity": "error",
+      "suggest": { "comment": "Insert the four standard exclusions if missing.", "anchor": "exclusion|exception" },
+      "fallback": ["All four exclusions", "At least public + independently developed", "No exclusions (walk-away)"]
+    },
+    {
+      "id": "term",
+      "title": "Term of confidentiality",
+      "semantic": "Duration of confidentiality for 2–5 years; trade secrets indefinite.",
+      "required": ["(term|duration).*\\b(year|years)\\b", "trade\\s*secrets.*(indefinite|so\\s+long\\s+as\\s+such\\s+information\\s+remains\\s+a\\s+trade\\s*secret)"],
+      "warn": ["perpetual\\s+obligation(?!.*trade\\s*secret)"],
+      "severity": "warn",
+      "suggest": {
+        "text": "2–5 years (non-trade-secrets); indefinite for trade secrets.",
+        "anchor": "term|duration",
+        "replace": [
+          { "find": "perpetual\\s+obligation", "with": "a confidentiality term of four (4) years (and for trade secrets, for so long as such information remains a trade secret)" }
+        ]
+      },
+      "fallback": ["5 years", "4 years", "3 years"]
+    },
+    {
+      "id": "residuals",
+      "title": "No residuals/memory carve-outs",
+      "semantic": "Residuals carve-out is disallowed.",
+      "forbidden": ["residuals", "memory\\s+of\\s+the\\s+recipient"],
+      "severity": "error",
+      "suggest": {
+        "text": "Remove residuals carve-outs.",
+        "anchor": "residuals",
+        "replace": [{ "find": "residuals", "with": "confidential information" }]
+      },
+      "fallback": ["No residuals", "Residuals only for non-source materials", "Residuals allowed (walk-away)"]
+    },
+    {
+      "id": "injunctive",
+      "title": "Injunctive relief",
+      "semantic": "Irreparable harm and equitable relief are available.",
+      "required": ["irreparable\\s+harm", "injunctive\\s+relief"],
+      "severity": "warn",
+      "suggest": { "comment": "Add standard equitable relief language.", "anchor": "injunctive|equitable" },
+      "fallback": ["Explicit injunctive relief", "Court may grant equitable relief", "No injunctive relief"]
+    },
+    {
+      "id": "disclosure-scope",
+      "title": "Need-to-know to advisors/affiliates under duty",
+      "semantic": "Limited disclosure to personnel/advisors/affiliates under confidentiality obligations.",
+      "required": ["(employees|officers|directors|advisors|affiliates).*need\\s*to\\s*know", "(bound|subject)\\s+to\\s+(confidentiality|duty)"],
+      "severity": "error",
+      "suggest": { "comment": "Add advisors/affiliates need-to-know + confidentiality obligation.", "anchor": "employee|advisor|affiliate" },
+      "fallback": ["Employees + advisors", "Employees only", "No onward disclosure"]
+    },
+    {
+      "id": "return-destroy",
+      "title": "Return/Destroy on request",
+      "semantic": "Return or destroy materials on request or at end of discussions.",
+      "required": ["return(ing)?\\s+or\\s+destroy(ing)"],
+      "severity": "warn",
+      "fallback": ["Return or destroy on request", "Return-only", "No obligation"]
+    },
+    {
+      "id": "non-solicit",
+      "title": "Employee non-solicit window",
+      "semantic": "Employee non-solicit capped 12–24 months.",
+      "warn": ["(non\\s*solicit|no\\s*hire).*(36|48)\\s*months"],
+      "severity": "warn",
+      "suggest": {
+        "text": "Cap at 12–24 months.",
+        "anchor": "solicit|hire",
+        "replace": [{ "find": "(36|48)\\s*months", "with": "18 months" }]
+      },
+      "fallback": ["12 months", "18 months", "24 months"]
+    },
+    {
+      "id": "gov-law",
+      "title": "Governing law and venue",
+      "semantic": "Governing law and venue specified.",
+      "required": ["governing\\s+law", "(venue|jurisdiction)"],
+      "severity": "warn",
+      "fallback": ["DE/NY courts", "Home state courts", "Arbitration only"]
+    },
+    {
+      "id": "assignment",
+      "title": "Assignment with change-of-control carve-out",
+      "semantic": "May assign to affiliates or on change-of-control.",
+      "warn": ["no\\s+assignment\\s+whatsoever"],
+      "severity": "warn",
+      "suggest": { "comment": "Add affiliate / change-of-control assignment carve-out.", "anchor": "assignment" },
+      "fallback": ["Affiliate + CoC", "Affiliate only", "Consent-only"]
+    }
+  ],
+  "unilateral": [
+    { "id": "all-mutual-basics", "title": "Apply all mutual basics", "semantic": "Baseline confidentiality exclusions", "required": ["public(ly)?\\s+available","independently\\s+developed"], "severity": "error" }
+  ]
+}

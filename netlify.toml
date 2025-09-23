@@ -1,4 +1,5 @@
 [build]
+  functions = "netlify/functions"
   publish = "public"
   command = "npm ci"
 
@@ -70,4 +71,10 @@
 [[redirects]]
   from = "/targets/"
   to   = "/targets/index.html"
+  status = 200
+
+# NDA reviewer route
+[[redirects]]
+  from = "/nda"
+  to = "/nda.html"
   status = 200
