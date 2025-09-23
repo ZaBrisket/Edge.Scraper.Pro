@@ -249,43 +249,220 @@ function evaluateAndRender(){
 
 function yamlToJson(y) {
   const lines = y.split(/\r?\n/);
-  const obj = { rules: [] };
+  const obj = {};
   let cur = null;
+  let inRules = false;
+  let ruleIndent = 0;
+  
+  const parseValue = (val) => {
+    val = val.trim();
+    
+    // Handle quoted strings
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      return val.slice(1, -1);
+    }
+    
+    // Handle regex patterns
+    if (val.startsWith('/') && val.match(/\/[igm]*$/)) {
+      return val;
+    }
+    
+    // Handle numbers
+    if (/^-?\d+(\.\d+)?$/.test(val)) {
+      return Number(val);
+    }
+    
+    // Handle booleans
+    if (val === "true") return true;
+    if (val === "false") return false;
+    
+    // Handle null/empty
+    if (val === "null" || val === "") return null;
+    
+    // Handle JSON objects/arrays
+    if ((val.startsWith('{') && val.endsWith('}')) || (val.startsWith('[') && val.endsWith(']'))) {
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        // If JSON parsing fails, return as string
+        return val;
+      }
+    }
+    
+    return val;
+  };
+  
   const pushCurrent = () => {
-    if (!cur) return;
-    const normalized = { ...cur };
-    if (!Object.keys(normalized).length) { cur = null; return; }
-    if (!normalized.id) normalized.id = normalized.title || `rule_${obj.rules.length + 1}`;
-    obj.rules.push(normalized);
+    if (!cur || Object.keys(cur).length === 0) return;
+    
+    // Ensure arrays for require/forbid/tags if they have single values
+    ['require', 'forbid', 'tags'].forEach(field => {
+      if (cur[field] !== undefined && !Array.isArray(cur[field])) {
+        cur[field] = [cur[field]];
+      }
+    });
+    
+    if (!cur.id) cur.id = cur.title || `rule_${(obj.rules || []).length + 1}`;
+    if (!obj.rules) obj.rules = [];
+    obj.rules.push(cur);
     cur = null;
   };
-  lines.forEach((line) => {
-    if (/^\s*#/.test(line)) return;
-    const trimmed = line.trim();
-    if (!trimmed || /^rules:\s*$/i.test(trimmed)) return;
-    const startMatch = line.match(/^\s*-\s*(.*)$/);
-    if (startMatch) {
-      pushCurrent();
-      cur = {};
-      const rest = startMatch[1];
-      if (rest) {
-        const prop = rest.match(/^([a-zA-Z0-9_]+):\s*(.*)$/);
-        if (prop) {
-          const [, key, rawVal] = prop;
-          const val = rawVal.trim().replace(/^["']|["']$/g, '');
-          cur[key.toLowerCase()] = /^\d+$/.test(val) ? Number(val) : val === "true" ? true : val === "false" ? false : val;
+  
+  // Process lines with lookahead for arrays and multi-line JSON
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    
+    // Skip comments
+    if (/^\s*#/.test(line)) {
+      i++;
+      continue;
+    }
+    
+    // Calculate indentation
+    const indent = line.match(/^(\s*)/)[1].length;
+    
+    // Check for top-level properties
+    const topLevelMatch = line.match(/^([a-zA-Z0-9_]+):\s*(.*)$/);
+    if (topLevelMatch && !inRules) {
+      const [, key, value] = topLevelMatch;
+      if (key === "rules") {
+        inRules = true;
+        obj.rules = [];
+        ruleIndent = indent;
+        i++;
+        continue;
+      }
+      obj[key] = parseValue(value);
+      i++;
+      continue;
+    }
+    
+    // Handle rules section
+    if (inRules) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        i++;
+        continue;
+      }
+      
+      // Check for new rule (starts with -)
+      const startMatch = line.match(/^\s*-\s*(.*)$/);
+      if (startMatch && indent === ruleIndent + 2) {
+        pushCurrent();
+        cur = {};
+        
+        const rest = startMatch[1];
+        if (rest) {
+          const prop = rest.match(/^([a-zA-Z0-9_]+):\s*(.*)$/);
+          if (prop) {
+            const [, key, rawVal] = prop;
+            
+            // Check if value is empty (array or object follows)
+            if (!rawVal.trim()) {
+              // Look ahead to see if it's an array
+              let j = i + 1;
+              let isArray = false;
+              
+              while (j < lines.length) {
+                const nextLine = lines[j];
+                if (/^\s*-\s+/.test(nextLine)) {
+                  isArray = true;
+                  break;
+                }
+                if (/^\s*[a-zA-Z0-9_]+:/.test(nextLine) && nextLine.match(/^(\s*)/)[1].length <= indent + 2) {
+                  break;
+                }
+                j++;
+              }
+              
+              if (isArray) {
+                const arrayItems = [];
+                j = i + 1;
+                while (j < lines.length) {
+                  const nextLine = lines[j];
+                  const arrayMatch = nextLine.match(/^\s*-\s+(.+)$/);
+                  
+                  if (arrayMatch && nextLine.match(/^(\s*)/)[1].length > indent + 2) {
+                    arrayItems.push(parseValue(arrayMatch[1]));
+                    j++;
+                  } else {
+                    break;
+                  }
+                }
+                cur[key] = arrayItems;
+                i = j - 1;
+              }
+            } else {
+              cur[key] = parseValue(rawVal);
+            }
+          }
+        }
+        i++;
+        continue;
+      }
+      
+      if (cur) {
+        // Handle property lines
+        const propMatch = line.match(/^\s*([a-zA-Z0-9_]+):\s*(.*)$/);
+        if (propMatch && indent > ruleIndent + 2) {
+          const [, key, rawVal] = propMatch;
+          
+          // Check if this is a JSON object that spans multiple lines
+          if (rawVal.trim() === '{' || (rawVal.includes('{ "') && !rawVal.endsWith('}'))) {
+            let jsonStr = rawVal.trim();
+            
+            // Collect lines until we find the closing }
+            let depth = 1;
+            let j = i + 1;
+            
+            while (j < lines.length && depth > 0) {
+              const nextLine = lines[j].trim();
+              if (nextLine) {
+                jsonStr += ' ' + nextLine;
+                depth += (nextLine.match(/{/g) || []).length;
+                depth -= (nextLine.match(/}/g) || []).length;
+              }
+              j++;
+            }
+            
+            try {
+              cur[key] = JSON.parse(jsonStr);
+              i = j - 1;
+            } catch (e) {
+              cur[key] = jsonStr; // Fallback to string if parsing fails
+            }
+          } else if (!rawVal.trim()) {
+            // Empty value - check if array follows
+            let j = i + 1;
+            const arrayItems = [];
+            
+            while (j < lines.length) {
+              const nextLine = lines[j];
+              const arrayMatch = nextLine.match(/^\s*-\s+(.+)$/);
+              
+              if (arrayMatch && nextLine.match(/^(\s*)/)[1].length > indent) {
+                arrayItems.push(parseValue(arrayMatch[1]));
+                j++;
+              } else {
+                break;
+              }
+            }
+            
+            if (arrayItems.length > 0) {
+              cur[key] = arrayItems;
+              i = j - 1;
+            }
+          } else {
+            cur[key] = parseValue(rawVal);
+          }
         }
       }
-      return;
     }
-    if (!cur) return;
-    const propMatch = line.match(/^\s*([a-zA-Z0-9_]+):\s*(.*)$/);
-    if (propMatch) {
-      const [, key, rawVal] = propMatch;
-      const val = rawVal.trim().replace(/^["']|["']$/g, '');
-      cur[key.toLowerCase()] = /^\d+$/.test(val) ? Number(val) : val === "true" ? true : val === "false" ? false : val;
-    }
-  });
+    
+    i++;
+  }
+  
   pushCurrent();
   return obj;
 }
