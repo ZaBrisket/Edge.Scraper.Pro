@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>EdgeScraperPro — NDA Reviewer (BETA)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="stylesheet" href="./nda.css" />
+
+  <!-- PDF.js (ESM) -->
+  <script type="module">
+    import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.149/pdf.min.mjs";
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.149/pdf.worker.min.mjs";
+    window.pdfjsLib = pdfjsLib;
+  </script>
+
+  <!-- Mammoth.js (DOCX→text/HTML) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.11.0/mammoth.browser.min.js" defer></script>
+
+  <!-- diff-match-patch (global diff_match_patch class) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js" defer></script>
+
+  <!-- html-docx-js (HTML→DOCX export) -->
+  <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.4.0/dist/html-docx.js" defer></script>
+
+  <!-- (Optional) Tesseract.js OCR -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js" defer></script>
+
+  <!-- App code -->
+  <script type="module" src="./nda.js" defer></script>
+</head>
+<body>
+  <header class="nda-header">
+    <h1>NDA Reviewer (BETA)</h1>
+    <p class="sub">Reviews inbound NDAs against the <strong>Edgewater NDA Checklist</strong>. All processing happens locally in your browser. <strong>Not legal advice.</strong></p>
+  </header>
+
+  <main class="nda-layout">
+    <section class="panel uploader">
+      <div class="drop">
+        <input id="file" type="file" accept=".pdf,.docx,.txt" />
+        <label for="file" class="btn primary">Upload NDA (PDF/DOCX/TXT)</label>
+        <label class="checkbox"><input id="use-ocr" type="checkbox" /> Use OCR for scanned PDFs (slower)</label>
+      </div>
+      <div id="file-meta" class="meta"></div>
+    </section>
+
+    <section class="panel two-col">
+      <div class="pane">
+        <h3>Original</h3>
+        <pre id="original" class="scroll"></pre>
+      </div>
+      <div class="pane">
+        <h3>Redlines</h3>
+        <div id="redlines" class="scroll redlines"></div>
+        <div class="actions">
+          <button id="export-docx" class="btn">Export Redlines (.docx)</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h3>Checklist Compliance</h3>
+      <table id="checklist" class="checklist"></table>
+      <div class="actions">
+        <button id="export-csv" class="btn">Export Checklist (CSV)</button>
+        <button id="export-json" class="btn">Export Checklist (JSON)</button>
+      </div>
+    </section>
+
+    <section class="panel disclaimer">
+      <p><strong>Scope:</strong> NDA review only. Uses the <em>Edgewater NDA Checklist</em> as the single source of truth. No drafting from scratch. <strong>Not legal advice.</strong></p>
+    </section>
+  </main>
+</body>
+</html>
