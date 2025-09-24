@@ -40,3 +40,297 @@ a:hover{text-decoration:underline}
 .pill{margin-left:8px;padding:2px 8px;border-radius:999px;font-size:12px}
 .pill.good{background:#003e1f;color:var(--ok)}.pill.warn{background:#3a3100;color:var(--warn)}.pill.bad{background:#3f0000;color:var(--danger)}
 @media (max-width:1120px){.panes{grid-template-columns:1fr}}
+/* Enhanced styles for NDA Reviewer 2.0 */
+
+.input-tabs {
+  display: flex;
+  gap: 1px;
+  background: #ddd;
+  border-radius: 4px 4px 0 0;
+  overflow: hidden;
+  margin-bottom: -1px;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 10px 20px;
+  background: #f5f5f5;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.tab-button:hover {
+  background: #e8e8e8;
+}
+
+.tab-button.active {
+  background: white;
+  color: #0066cc;
+  font-weight: 600;
+}
+
+.tab-content {
+  padding: 20px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 0 0 4px 4px;
+}
+
+.file-upload-area {
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 40px;
+  text-align: center;
+  transition: all 0.3s;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.file-upload-area.dragover {
+  border-color: #0066cc;
+  background: #f0f8ff;
+}
+
+.upload-prompt svg {
+  color: #999;
+  margin-bottom: 16px;
+}
+
+.upload-prompt p {
+  color: #666;
+  margin: 16px 0;
+  font-size: 16px;
+}
+
+#file-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  margin-top: 16px;
+}
+
+#file-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.small {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+.severity-summary {
+  padding: 16px;
+  background: #f0f8ff;
+  border: 1px solid #0066cc;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.info-box {
+  padding: 12px;
+}
+
+.info-box ul {
+  margin: 8px 0 0 20px;
+  padding: 0;
+}
+
+.redline-items {
+  max-height: 600px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.redline-item {
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.redline-item:hover {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.redline-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.redline-checkbox input[type="checkbox"] {
+  margin-top: 4px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.redline-content {
+  flex: 1;
+}
+
+.redline-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.redline-title {
+  font-weight: 600;
+  flex: 1;
+}
+
+.severity-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+.severity-badge.sev-10,
+.severity-badge.sev-9,
+.severity-badge.sev-8 {
+  background: #d73502;
+}
+
+.severity-badge.sev-7,
+.severity-badge.sev-6,
+.severity-badge.sev-5 {
+  background: #f39c12;
+}
+
+.severity-badge.sev-4,
+.severity-badge.sev-3,
+.severity-badge.sev-2,
+.severity-badge.sev-1 {
+  background: #27ae60;
+}
+
+.compliance-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  background: #27ae60;
+  color: white;
+}
+
+.redline-evidence {
+  font-size: 13px;
+  color: #666;
+  margin: 8px 0;
+  padding: 8px;
+  background: #f8f9fa;
+  border-left: 3px solid #0066cc;
+  font-style: italic;
+}
+
+.redline-recommendation {
+  font-size: 14px;
+  color: #333;
+  margin-top: 8px;
+}
+
+.redline-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.center {
+  text-align: center;
+}
+
+.evidence {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#interactive-redlines {
+  margin: 24px 0;
+  padding: 20px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+#interactive-redlines h2 {
+  margin-top: 0;
+  color: #333;
+  border-bottom: 2px solid #0066cc;
+  padding-bottom: 8px;
+}
+
+.risk-high {
+  background: #d73502;
+  color: white;
+}
+
+.risk-medium {
+  background: #f39c12;
+  color: white;
+}
+
+.risk-low {
+  background: #27ae60;
+  color: white;
+}
+.redlines-list .item {
+  padding: 12px;
+  margin-bottom: 12px;
+  border-left: 3px solid var(--warn, #f39c12);
+  background: #fafbff;
+}
+
+.redlines-list .item.status-fail {
+  border-color: #d73502;
+}
+
+.redlines-list .item.status-review {
+  border-color: #f39c12;
+}
+
+.redlines-list .item.status-pass {
+  border-color: #27ae60;
+}
+
+.redlines-list .item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.redlines-list .item-evidence,
+.redlines-list .item-recommendation {
+  font-size: 13px;
+  color: #555;
+  margin-top: 4px;
+}
+
+.redlines-list .item-evidence em,
+.redlines-list .item-recommendation em {
+  font-style: normal;
+  font-weight: 600;
+  margin-right: 4px;
+}

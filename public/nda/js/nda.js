@@ -1,15 +1,29 @@
 import { compilePlaybook, evaluate, riskLabel } from "./rules-engine.js";
-import { buildRedlinesDoc } from "./docx-redline.js";
+import { buildRedlinesDoc, buildInteractiveRedlinesDoc } from "./docx-redline.js";
+import { extractTextFromDocx } from "./docx-parser.js";
+import { calculateContextScore } from "./context-scorer.js";
 
 const els = {
   textInput: document.getElementById("nda-text-input"),
+  fileInput: document.getElementById("file-input"),
+  dropZone: document.getElementById("drop-zone"),
+  fileInfo: document.getElementById("file-info"),
+  fileName: document.getElementById("file-name"),
+  clearFile: document.getElementById("clear-file"),
   analyze: document.getElementById("analyze-btn"),
+  contextAwareMode: document.getElementById("context-aware-mode"),
   progress: document.getElementById("progress"),
   bar: document.getElementById("progress-bar"),
   text: document.getElementById("progress-text"),
   stats: document.getElementById("text-stats"),
   original: document.getElementById("original"),
   redlinesList: document.getElementById("redlines-list"),
+  severitySummary: document.getElementById("severity-summary"),
+  interactiveSection: document.getElementById("interactive-redlines"),
+  redlineItems: document.getElementById("redline-items"),
+  selectAll: document.getElementById("select-all-redlines"),
+  deselectAll: document.getElementById("deselect-all-redlines"),
+  applySelected: document.getElementById("apply-selected-redlines"),
   exportRedlines: document.getElementById("export-redlines"),
   exportCsv: document.getElementById("export-csv"),
   exportJson: document.getElementById("export-json"),
@@ -29,13 +43,158 @@ const els = {
 
 let state = {
   text: "",
+  sourceFile: null,
+  sourceFormat: null, // 'text' | 'docx' | 'pdf'
   evaluation: null,
   playbook: null,
   compiled: null,
   meta: null,
+  selectedRedlines: new Set(),
+  contextScores: new Map(),
 };
 
 const errorState = { persistentMessages: [], activeTransient: false };
+
+let pdfjsLibPromise = null;
+const pdfWorkerSrc = new URL('./vendor/pdf.worker.mjs', import.meta.url).toString();
+
+async function loadPdfJs() {
+  if (!pdfjsLibPromise) {
+    pdfjsLibPromise = import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.mjs')
+      .then((module) => {
+        const pdfjsLib = module?.default ?? module;
+        if (pdfjsLib?.GlobalWorkerOptions) {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
+        }
+        return pdfjsLib;
+      })
+      .catch((err) => {
+        pdfjsLibPromise = null;
+        throw err;
+      });
+  }
+  return pdfjsLibPromise;
+}
+
+// Tab switching
+document.querySelectorAll('.tab-button').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const tab = e.target.dataset.tab;
+    document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.hidden = true);
+    e.target.classList.add('active');
+    document.getElementById(`${tab}-tab`).hidden = false;
+  });
+});
+
+// File upload handling
+els.dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  els.dropZone.classList.add('dragover');
+});
+
+els.dropZone.addEventListener('dragleave', () => {
+  els.dropZone.classList.remove('dragover');
+});
+
+els.dropZone.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  els.dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) await handleFileUpload(file);
+});
+
+els.fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (file) await handleFileUpload(file);
+});
+
+els.clearFile?.addEventListener('click', () => {
+  state.sourceFile = null;
+  state.sourceFormat = null;
+  els.fileInput.value = '';
+  els.fileInfo.hidden = true;
+  els.dropZone.querySelector('.upload-prompt').hidden = false;
+});
+
+async function handleFileUpload(file) {
+  try {
+    showProgress(10, "Reading file...");
+    
+    if (!file.name.match(/\.(docx|pdf|txt)$/i)) {
+      showAppError("Please upload a .docx, .pdf, or .txt file", { level: "warning" });
+      hideProgress();
+      return;
+    }
+    
+    state.sourceFile = file;
+    els.fileName.textContent = file.name;
+    els.fileInfo.hidden = false;
+    els.dropZone.querySelector('.upload-prompt').hidden = true;
+    
+    let extractedText = "";
+    
+    if (file.name.endsWith('.docx')) {
+      showProgress(30, "Extracting Word document content...");
+      state.sourceFormat = 'docx';
+      extractedText = await extractTextFromDocx(file);
+    } else if (file.name.endsWith('.pdf')) {
+      showProgress(30, "Extracting PDF content...");
+      state.sourceFormat = 'pdf';
+      // Use existing PDF extraction if available
+      extractedText = await extractTextFromPdf(file);
+    } else if (file.name.endsWith('.txt')) {
+      state.sourceFormat = 'text';
+      extractedText = await file.text();
+    }
+    
+    state.text = sanitizeText(extractedText);
+    els.textInput.value = state.text;
+    updateTextStats();
+    
+    showProgress(100, "File loaded successfully");
+    setTimeout(hideProgress, 1000);
+  } catch (err) {
+    console.error("File upload error:", err);
+    showAppError(`Failed to process file: ${err.message}`, { level: "error" });
+    hideProgress();
+  }
+}
+
+async function extractTextFromPdf(file) {
+  try {
+    const MAX_FILE_SIZE = 15 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      throw new Error('File too large. Maximum size is 15MB.');
+    }
+
+    const pdfjsLib = await loadPdfJs();
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+    let text = '';
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+      const page = await pdf.getPage(pageNum);
+      const content = await page.getTextContent();
+      const pageText = content.items
+        .map(item => ('str' in item ? item.str : ''))
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (pageText) {
+        text += pageText + '\n\n';
+      }
+    }
+
+    pdf.cleanup?.();
+    pdf.destroy?.();
+
+    return text.replace(/\n{3,}/g, '\n\n').trim();
+  } catch (error) {
+    console.error('PDF extraction error:', error);
+    throw new Error(`Failed to extract text from PDF: ${error.message}`);
+  }
+}
 
 function sanitizeText(text) {
   return String(text)
@@ -55,12 +214,16 @@ function updateTextStats() {
   els.stats.style.color = len > 45000 ? "#d73502" : "#666";
 }
 
-function setBusy(b) { document.getElementById("app").setAttribute("aria-busy", String(b)); }
+function setBusy(b) { 
+  document.getElementById("app").setAttribute("aria-busy", String(b)); 
+}
+
 function showProgress(pct, msg) {
   els.progress.setAttribute("aria-hidden", "false");
   els.bar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
   els.text.textContent = msg || "";
 }
+
 function hideProgress() {
   els.progress.setAttribute("aria-hidden", "true");
   els.bar.style.width = "0%";
@@ -108,10 +271,22 @@ function applyAlertLevel(level) {
   else if (level === "info") els.errorBox.classList.add("info");
 }
 
-function formatError(err) { return err?.message || String(err || "Unknown error"); }
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m])); }
-function csvEscape(s){ s = String(s); return /[",\n]/.test(s)? `"${s.replace(/"/g,'""')}"` : s; }
-function statusClass(s) { return s === "pass" ? "status-pass" : s === "fail" ? "status-fail" : "status-review"; }
+function formatError(err) { 
+  return err?.message || String(err || "Unknown error"); 
+}
+
+function escapeHtml(s) { 
+  return String(s).replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[m])); 
+}
+
+function csvEscape(s) { 
+  s = String(s); 
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; 
+}
+
+function statusClass(s) { 
+  return s === "pass" ? "status-pass" : s === "fail" ? "status-fail" : "status-review"; 
+}
 
 const PLAYBOOK_CACHE_KEY = "esp_playbook_cache_v2";
 
@@ -122,6 +297,7 @@ async function loadDefaultPlaybook() {
       state.playbook = cached.source;
       state.compiled = compilePlaybook(cached.source);
       els.playbookMeta.textContent = `Playbook: ${cached.source?.name || "Edgewater"} v${cached.source?.version || "—"} (cached)`;
+      if (els.playbookSelect) els.playbookSelect.value = 'edgewater';
       return cached.source;
     }
   } catch (err) {
@@ -140,6 +316,7 @@ async function loadDefaultPlaybook() {
       console.warn("Playbook cache write skipped", err);
     }
     els.playbookMeta.textContent = `Playbook: ${pb.name} v${pb.version}`;
+    if (els.playbookSelect) els.playbookSelect.value = 'edgewater';
     return pb;
   } catch (err) {
     console.error("Failed to load default playbook", err);
@@ -148,107 +325,473 @@ async function loadDefaultPlaybook() {
   }
 }
 
-function renderFilters(categories) {
-  const values = [...categories].filter(Boolean);
-  els.filterCategory.innerHTML = '<option value="">All</option>' + values.sort().map(c => `<option>${escapeHtml(c)}</option>`).join("");
+async function runAnalysis() {
+  const inputText = state.sourceFile ? state.text : els.textInput.value;
+  if (!inputText?.trim()) {
+    showAppError("Please provide NDA text to analyze", { level: "warning" });
+    return;
+  }
+  if (!state.compiled) {
+    showAppError("Playbook not loaded yet; please try again in a moment.", { level: "warning" });
+    return;
+  }
+
+  clearAppError();
+  setBusy(true);
+  showProgress(20, "Preparing analysis...");
+
+  const startTime = typeof performance !== 'undefined' && typeof performance.now === 'function' ? performance.now() : Date.now();
+  state.contextScores.clear();
+
+  try {
+    if (!state.sourceFile) {
+      state.sourceFormat = 'text';
+    }
+    state.text = sanitizeText(inputText);
+    if (!state.sourceFile && els.textInput) {
+      els.textInput.value = state.text;
+    }
+    els.original.textContent = state.text.slice(0, 4096) + (state.text.length > 4096 ? "\n\n[... truncated for display ...]" : "");
+    
+    showProgress(40, "Evaluating against playbook...");
+    const ev = evaluate(state.text, state.compiled);
+    
+    if (els.contextAwareMode.checked) {
+      showProgress(60, "Calculating context-aware severity scores...");
+      // Calculate context scores for each result
+      for (const result of ev.results) {
+        const contextScore = calculateContextScore(result, state.text, state.playbook);
+        state.contextScores.set(result.id, contextScore);
+        
+        // Adjust severity based on context
+        if (contextScore.substantialCompliance) {
+          result.adjustedSeverity = Math.max(1, result.severity - 3);
+        } else {
+          result.adjustedSeverity = result.severity;
+        }
+      }
+    }
+    
+    const endTime = typeof performance !== 'undefined' && typeof performance.now === 'function' ? performance.now() : Date.now();
+
+    state.evaluation = ev;
+    state.meta = {
+      filename: state.sourceFile?.name || "Pasted text",
+      source: state.sourceFile ? 'file_upload' : 'text_input',
+      sourceFormat: state.sourceFormat || 'text',
+      filesize: state.sourceFile ? formatBytes(state.sourceFile.size) : `${state.text.length} chars`,
+      charactersAnalyzed: state.text.length,
+      processedAt: new Date().toISOString(),
+      processingMs: Math.max(0, Math.round(endTime - startTime)),
+      contextAware: !!els.contextAwareMode.checked
+    };
+    
+    showProgress(80, "Rendering results...");
+    await renderResults();
+    await renderInteractiveRedlines();
+    
+    showProgress(100, "Analysis complete");
+    setTimeout(hideProgress, 1500);
+    
+    // Show severity summary if context-aware mode
+    if (els.contextAwareMode.checked) {
+      renderSeveritySummary();
+    } else if (els.severitySummary) {
+      els.severitySummary.hidden = true;
+    }
+    
+  } catch (err) {
+    console.error("Analysis error:", err);
+    showAppError(`Analysis failed: ${formatError(err)}`, { level: "error" });
+    hideProgress();
+  } finally {
+    setBusy(false);
+  }
 }
 
-function renderTable(rows) {
-  const q = (els.filterText.value || "").toLowerCase();
-  const cat = els.filterCategory.value || "";
-  const minS = Number(els.filterSeverity.value || 1);
-  const blockersOnly = els.filterBlockers.checked;
-  const show = rows.filter(r => {
-    if (cat && r.category !== cat) return false;
-    if (r.severity < minS) return false;
-    if (blockersOnly && r.level !== "BLOCKER") return false;
-    if (!q) return true;
-    return [r.title, r.evidence?.text, r.recommendation, r.category, r.clause].some(v => String(v||"").toLowerCase().includes(q));
+function renderSeveritySummary() {
+  const summary = els.severitySummary;
+  if (!summary) return;
+  
+  const contextAdjustments = Array.from(state.contextScores.values())
+    .filter(cs => cs.substantialCompliance);
+  
+  if (contextAdjustments.length > 0) {
+    summary.innerHTML = `
+      <div class="info-box">
+        <strong>Context-Aware Analysis:</strong>
+        <ul>
+          <li>${contextAdjustments.length} provisions show substantial compliance</li>
+          <li>Severity scores adjusted to avoid redundant redlining</li>
+        </ul>
+      </div>
+    `;
+    summary.hidden = false;
+  } else {
+    summary.hidden = true;
+  }
+}
+
+async function renderInteractiveRedlines() {
+  const items = els.redlineItems;
+  if (!items) return;
+  
+  items.innerHTML = '';
+  state.selectedRedlines.clear();
+  
+  const failures = state.evaluation.results.filter(r => r.status !== 'pass');
+  
+  if (failures.length === 0) {
+    els.interactiveSection.hidden = true;
+    return;
+  }
+  
+  els.interactiveSection.hidden = false;
+  
+  failures.forEach((result, idx) => {
+    const contextScore = state.contextScores.get(result.id);
+    const adjustedSev = result.adjustedSeverity || result.severity;
+    
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'redline-item';
+    itemDiv.dataset.resultId = result.id;
+    
+    itemDiv.innerHTML = `
+      <label class="redline-checkbox">
+        <input type="checkbox" data-result-id="${result.id}" ${adjustedSev >= 5 ? 'checked' : ''} />
+        <div class="redline-content">
+          <div class="redline-header">
+            <span class="redline-title">${escapeHtml(result.title || '')}</span>
+            <span class="severity-badge sev-${adjustedSev}">${adjustedSev}</span>
+            ${contextScore?.substantialCompliance ? '<span class="compliance-badge">Substantial Compliance</span>' : ''}
+          </div>
+          <div class="redline-evidence">${escapeHtml(result.evidence?.text || '')}</div>
+          <div class="redline-recommendation">${escapeHtml(result.recommendation || '')}</div>
+        </div>
+      </label>
+    `;
+    
+    items.appendChild(itemDiv);
+    
+    // Auto-select high severity items
+    if (adjustedSev >= 5) {
+      state.selectedRedlines.add(result.id);
+    }
   });
-  els.tableBody.innerHTML = show.map(r => `
-    <tr>
-      <td><span class="status-badge ${statusClass(r.status)}">${r.status}</span></td>
-      <td>${escapeHtml(r.category)}</td>
-      <td>${escapeHtml(r.clause || "")}</td>
-      <td>${escapeHtml(r.title || "")}</td>
-      <td>${r.severity}</td>
-      <td>${escapeHtml(r.evidence?.text || "")}</td>
-      <td>${escapeHtml(r.recommendation || "")}</td>
-    </tr>`).join("");
+  
+  // Wire up checkboxes
+  items.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      const id = e.target.dataset.resultId;
+      if (e.target.checked) {
+        state.selectedRedlines.add(id);
+      } else {
+        state.selectedRedlines.delete(id);
+      }
+    });
+  });
 }
 
-function renderRedlines(rows) {
-  els.redlinesList.innerHTML = rows.filter(r => r.status !== "pass").map(r => {
-    return `<div class="item ${r.status}">
-      <div><span class="status-badge ${statusClass(r.status)}">${r.status}</span> <strong>[${escapeHtml(r.category)}] ${escapeHtml(r.title)}</strong></div>
-      ${r.evidence?.text ? `<div><em>Evidence:</em> ${escapeHtml(r.evidence.text)}</div>` : ""}
-      ${r.recommendation ? `<div><em>Recommendation:</em> ${escapeHtml(r.recommendation)}</div>` : ""}
-    </div>`;
-  }).join("");
+els.selectAll?.addEventListener('click', () => {
+  els.redlineItems.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.checked = true;
+    state.selectedRedlines.add(cb.dataset.resultId);
+  });
+});
+
+els.deselectAll?.addEventListener('click', () => {
+  els.redlineItems.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.checked = false;
+  });
+  state.selectedRedlines.clear();
+});
+
+els.applySelected?.addEventListener('click', async () => {
+  if (state.selectedRedlines.size === 0) {
+    showAppError("Please select at least one redline to apply", { level: "warning" });
+    return;
+  }
+  
+  try {
+    const selectedResults = state.evaluation.results.filter(r => 
+      state.selectedRedlines.has(r.id)
+    );
+    
+    const blob = await buildInteractiveRedlinesDoc({
+      fullText: state.text,
+      results: selectedResults,
+      meta: state.meta,
+      sourceFormat: state.sourceFormat,
+      contextScores: state.contextScores
+    });
+    
+    downloadBlob(blob, `NDA_Redlines_Selected_${new Date().toISOString().slice(0, 10)}.docx`);
+    
+    showAppError(`Exported ${selectedResults.length} selected redlines`, { level: "info" });
+  } catch (err) {
+    console.error("Export error:", err);
+    showAppError(`Export failed: ${formatError(err)}`, { level: "error" });
+  }
+});
+
+async function renderResults() {
+  if (!state.evaluation) return;
+  
+  const tbody = els.tableBody;
+  tbody.innerHTML = "";
+  
+  for (const r of state.evaluation.results) {
+    const contextScore = state.contextScores.get(r.id);
+    const adjustedSev = r.adjustedSeverity || r.severity;
+    
+    const row = document.createElement("tr");
+    row.className = statusClass(r.status);
+    row.dataset.level = r.level || '';
+    
+    row.innerHTML = `
+      <td><span class="status-badge ${statusClass(r.status)}">${r.status.toUpperCase()}</span></td>
+      <td>${escapeHtml(r.category || '')}</td>
+      <td>${escapeHtml(r.clause || '')}</td>
+      <td>${escapeHtml(r.title || '')}</td>
+      <td class="center">${r.severity}</td>
+      <td class="center">${contextScore ? contextScore.score.toFixed(1) : '—'}</td>
+      <td class="evidence">${r.evidence?.text ? escapeHtml(r.evidence.text) : '—'}</td>
+      <td>${escapeHtml(r.recommendation || '')}</td>
+    `;
+    
+    tbody.appendChild(row);
+  }
+  
+  // Update risk score
+  els.riskScore.textContent = `${state.evaluation.risk.score} (${state.evaluation.risk.blockers} blockers, ${state.evaluation.risk.warns} warnings)`;
+  els.riskPill.textContent = riskLabel(state.evaluation.risk.level);
+  els.riskPill.className = `pill risk-${state.evaluation.risk.level.toLowerCase()}`;
+  
+  renderRedlinesList(state.evaluation.results);
+  updateFilters();
 }
 
-function exportCsv(rows, meta) {
-  const header = ["source","charactersAnalyzed","processedAt","processingMs","status","category","clause","title","severity","evidence","recommendation"];
-  const body = rows.map(r => ["text_input", meta.charactersAnalyzed, meta.processedAt, meta.processingMs, r.status, r.category, r.clause||"", r.title||"", r.severity, r.evidence?.text||"", r.recommendation||""]);
-  const csv = [header, ...body].map(line => line.map(csvEscape).join(",")).join("\n");
-  downloadBlob(new Blob([csv], { type: "text/csv" }), "nda-checklist.csv");
+function renderRedlinesList(results) {
+  if (!els.redlinesList) return;
+  if (!Array.isArray(results)) {
+    els.redlinesList.innerHTML = '';
+    return;
+  }
+
+  const issues = results.filter(r => r.status !== 'pass');
+  if (issues.length === 0) {
+    els.redlinesList.innerHTML = '<div class="muted">All checklist items passed.</div>';
+    return;
+  }
+
+  const html = issues.map(result => {
+    const contextScore = state.contextScores.get(result.id);
+    const adjustedSev = result.adjustedSeverity || result.severity;
+    const statusLabel = result.status ? result.status.toUpperCase() : 'REVIEW';
+    const compliance = contextScore?.substantialCompliance ? '<span class="compliance-badge">Substantial Compliance</span>' : '';
+    return `
+      <div class="item ${statusClass(result.status)}">
+        <div class="item-header">
+          <span class="status-badge ${statusClass(result.status)}">${statusLabel}</span>
+          <strong>[${escapeHtml(result.category || '')}] ${escapeHtml(result.title || '')}</strong>
+          <span class="severity-badge sev-${adjustedSev}">${adjustedSev}</span>
+          ${compliance}
+        </div>
+        ${result.evidence?.text ? `<div class="item-evidence"><em>Evidence:</em> ${escapeHtml(result.evidence.text)}</div>` : ''}
+        ${result.recommendation ? `<div class="item-recommendation"><em>Recommendation:</em> ${escapeHtml(result.recommendation)}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  els.redlinesList.innerHTML = html;
 }
 
-function exportJson(rows, meta) {
-  downloadBlob(new Blob([JSON.stringify({ meta, items: rows }, null, 2)], { type: "application/json" }), "nda-checklist.json");
+function updateFilters() {
+  const categories = new Set();
+  state.evaluation.results.forEach(r => categories.add(r.category));
+  
+  els.filterCategory.innerHTML = '<option value="">All Categories</option>';
+  Array.from(categories).sort().forEach(cat => {
+    const option = document.createElement('option');
+    option.value = cat;
+    option.textContent = cat;
+    els.filterCategory.appendChild(option);
+  });
 }
 
-function downloadBlob(blob, name){
+function applyFilters() {
+  const filterText = els.filterText.value.toLowerCase();
+  const filterCategory = els.filterCategory.value;
+  const filterSeverity = parseInt(els.filterSeverity.value) || 1;
+  const filterBlockers = els.filterBlockers.checked;
+  
+  const rows = els.tableBody.querySelectorAll('tr');
+  rows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    const category = cells[1].textContent;
+    const severity = parseInt(cells[4].textContent) || 0;
+    const level = row.dataset.level || '';
+    const text = row.textContent.toLowerCase();
+    
+    let show = true;
+    if (filterCategory && category !== filterCategory) show = false;
+    if (severity < filterSeverity) show = false;
+    if (filterBlockers && level !== 'BLOCKER') show = false;
+    if (filterText && !text.includes(filterText)) show = false;
+    
+    row.style.display = show ? '' : 'none';
+  });
+}
+
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+function downloadBlob(blob, filename) {
   try {
     const url = URL.createObjectURL(blob);
-    const a = Object.assign(document.createElement("a"), { href:url, download:name });
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
     URL.revokeObjectURL(url);
   } catch (err) {
+    console.error('Download failed', err);
     showAppError(`Download failed: ${formatError(err)}`);
   }
 }
 
-function updateRisk(evaluation) {
-  els.riskScore.textContent = `${evaluation.risk.score} (${riskLabel(evaluation.risk.level)})`;
-  els.riskPill.className = "pill " + (evaluation.risk.level === "HIGH" ? "bad" : evaluation.risk.level === "MEDIUM" ? "warn" : "good");
-  els.riskPill.textContent = riskLabel(evaluation.risk.level);
+// Export handlers
+els.exportRedlines?.addEventListener('click', async () => {
+  if (!state.evaluation) {
+    showAppError("No analysis results to export", { level: "warning" });
+    return;
+  }
+  
+  try {
+    const blob = await buildRedlinesDoc({
+      fullText: state.text,
+      results: state.evaluation.results,
+      meta: state.meta,
+      sourceFormat: state.sourceFormat
+    });
+    
+    downloadBlob(blob, `NDA_Redlines_${new Date().toISOString().slice(0, 10)}.docx`);
+  } catch (err) {
+    console.error("Export error:", err);
+    showAppError(`Export failed: ${formatError(err)}`, { level: "error" });
+  }
+});
+
+els.exportCsv?.addEventListener('click', () => {
+  if (!state.evaluation) return;
+  
+  let csv = "Status,Category,Clause,Title,Severity,Evidence,Recommendation\n";
+  for (const r of state.evaluation.results) {
+    csv += [
+      csvEscape(r.status),
+      csvEscape(r.category || ''),
+      csvEscape(r.clause || ''),
+      csvEscape(r.title || ''),
+      r.severity,
+      csvEscape(r.evidence?.text || ''),
+      csvEscape(r.recommendation || '')
+    ].join(',') + '\n';
+  }
+  
+  const blob = new Blob([csv], { type: 'text/csv' });
+  downloadBlob(blob, `NDA_Checklist_${new Date().toISOString().slice(0, 10)}.csv`);
+});
+
+els.exportJson?.addEventListener('click', () => {
+  if (!state.evaluation) return;
+  
+  const data = {
+    meta: state.meta,
+    risk: state.evaluation.risk,
+    results: state.evaluation.results,
+    contextScores: els.contextAwareMode.checked ? 
+      Object.fromEntries(state.contextScores) : null
+  };
+  
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  downloadBlob(blob, `NDA_Analysis_${new Date().toISOString().slice(0, 10)}.json`);
+});
+
+async function handlePlaybookSelect(event) {
+  if (!event?.target) return;
+  if (event.target.value === 'custom') {
+    event.target.value = 'custom';
+    els.customPlaybook?.click();
+    return;
+  }
+
+  try {
+    await loadDefaultPlaybook();
+    if (state.text) {
+      await runAnalysis();
+    }
+  } catch (err) {
+    console.error('Failed to reload default playbook', err);
+    showAppError(`Unable to reload default playbook: ${formatError(err)}`);
+  }
 }
 
-function evaluateAndRender() {
-  if (!state.compiled) {
-    showAppError("No playbook loaded; unable to evaluate document.");
+async function handleCustomPlaybook(event) {
+  const file = event?.target?.files?.[0];
+  if (!file) {
+    if (els.playbookSelect) els.playbookSelect.value = 'edgewater';
     return;
   }
-  clearAppError();
-  els.original.textContent = state.text || "(no text provided)";
-  let evaluation;
+
   try {
-    evaluation = evaluate(state.text, state.compiled);
+    const text = await file.text();
+    let playbook;
+    if (/\.(ya?ml)$/i.test(file.name)) {
+      playbook = yamlToJson(text);
+    } else {
+      playbook = JSON.parse(text);
+    }
+
+    if (!playbook || !playbook.rules) {
+      throw new Error('Invalid playbook format');
+    }
+
+    state.playbook = playbook;
+    state.compiled = compilePlaybook(playbook);
+    els.playbookMeta.textContent = `Playbook: ${playbook.name || 'Custom'} v${playbook.version || '1.0'} (custom)`;
+    els.playbookSelect.value = 'custom';
+
+    if (state.text) {
+      await runAnalysis();
+    }
   } catch (err) {
-    console.error("Evaluation failed", err);
-    showAppError(`Checklist evaluation failed: ${formatError(err)}`);
+    console.error('Custom playbook import failed', err);
+    showAppError(`Unable to import playbook: ${formatError(err)}`);
+  } finally {
+    event.target.value = '';
+  }
+}
+
+function exportCurrentPlaybook() {
+  if (!state.playbook) {
+    showAppError('No playbook loaded to export.', { level: 'warning' });
     return;
   }
-  state.evaluation = evaluation;
-  renderFilters(new Set(evaluation.results.map(r => r.category)));
-  renderTable(evaluation.results);
-  renderRedlines(evaluation.results);
-  updateRisk(evaluation);
-  els.exportCsv.onclick = () => exportCsv(evaluation.results, state.meta);
-  els.exportJson.onclick = () => exportJson(evaluation.results, state.meta);
-  els.exportRedlines.onclick = async () => {
-    try {
-      setBusy(true); showProgress(0, "Building .docx…");
-      const blob = await buildRedlinesDoc({ fullText: state.text, results: evaluation.results, meta: state.meta });
-      downloadBlob(blob, "nda-redlines.docx");
-    } catch (err) {
-      console.error("DOCX export failed", err);
-      showAppError(`Unable to export redlines: ${formatError(err)}`);
-    } finally { setBusy(false); hideProgress(); }
-  };
+  try {
+    const blob = new Blob([JSON.stringify(state.playbook, null, 2)], { type: 'application/json' });
+    const name = `playbook-${(state.playbook.name || 'custom').replace(/\s+/g, '_')}.json`;
+    downloadBlob(blob, name);
+  } catch (err) {
+    console.error('Playbook export failed', err);
+    showAppError(`Unable to export playbook: ${formatError(err)}`);
+  }
 }
 
 function yamlToJson(y) {
@@ -482,93 +1025,23 @@ function yamlToJson(y) {
   return { ...meta, rules: rules.filter(Boolean) };
 }
 
-async function run() {
+// Event listeners
+els.textInput?.addEventListener('input', updateTextStats);
+els.analyze?.addEventListener('click', runAnalysis);
+els.filterText?.addEventListener('input', applyFilters);
+els.filterCategory?.addEventListener('change', applyFilters);
+els.playbookSelect?.addEventListener('change', handlePlaybookSelect);
+els.customPlaybook?.addEventListener('change', handleCustomPlaybook);
+els.exportPlaybook?.addEventListener('click', exportCurrentPlaybook);
+els.filterSeverity?.addEventListener('input', applyFilters);
+els.filterBlockers?.addEventListener('change', applyFilters);
+
+// Initialize
+(async () => {
   try {
     await loadDefaultPlaybook();
-  } catch {}
-
-  els.textInput.addEventListener("input", updateTextStats);
-  updateTextStats();
-
-  const onFilter = () => state.evaluation && renderTable(state.evaluation.results);
-  [els.filterText, els.filterCategory, els.filterSeverity, els.filterBlockers].forEach(el => el.addEventListener("input", onFilter));
-
-  els.playbookSelect.addEventListener("change", async (e) => {
-    if (e.target.value === "custom") {
-      els.customPlaybook.click();
-      return;
-    }
-    try {
-      await loadDefaultPlaybook();
-      if (state.evaluation) {
-        renderFilters(new Set(state.evaluation.results.map(r => r.category)));
-        renderTable(state.evaluation.results);
-      }
-    } catch {}
-  });
-
-  els.customPlaybook.addEventListener("change", async (e) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    try {
-      const txt = await file.text();
-      let pb;
-      if (/\.(ya?ml)$/i.test(file.name)) pb = yamlToJson(txt);
-      else pb = JSON.parse(txt);
-      state.playbook = pb; state.compiled = compilePlaybook(pb);
-      els.playbookMeta.textContent = `Playbook: ${pb.name || "Custom"} v${pb.version || "1.0"} (custom)`;
-      if (state.text) evaluateAndRender();
-    } catch (err) {
-      console.error("Custom playbook import failed", err);
-      showAppError(`Unable to import playbook: ${formatError(err)}`);
-    } finally {
-      e.target.value = "";
-    }
-  });
-
-  els.exportPlaybook.addEventListener("click", () => {
-    if (!state.playbook) {
-      showAppError("No playbook loaded to export.", { level: "warning" });
-      return;
-    }
-    try {
-      downloadBlob(new Blob([JSON.stringify(state.playbook, null, 2)], {type:"application/json"}), "playbook.json");
-    } catch (err) {
-      showAppError(`Unable to export playbook: ${formatError(err)}`);
-    }
-  });
-
-  els.analyze.addEventListener("click", async () => {
-    const rawText = els.textInput.value.trim();
-    if (!rawText) {
-      showAppError("Please paste NDA text to analyze.", { level: "warning" });
-      return;
-    }
-    if (!state.compiled) {
-      showAppError("Playbook not loaded yet; please retry after the page finishes loading.");
-      return;
-    }
-    try {
-      clearAppError();
-      setBusy(true); 
-      showProgress(50, "Analyzing text...");
-      const t0 = performance.now();
-      state.text = sanitizeText(rawText);
-      state.meta = {
-        source: "text_input",
-        charactersAnalyzed: state.text.length,
-        processedAt: new Date().toISOString(),
-        processingMs: Math.round(performance.now() - t0)
-      };
-      evaluateAndRender();
-      showProgress(100, "Complete");
-      setTimeout(hideProgress, 500);
-    } catch (err) {
-      console.error("Analysis failed", err);
-      showAppError(`Failed to analyze text: ${formatError(err)}`);
-    } finally { 
-      setBusy(false); 
-    }
-  });
-}
-
-run();
+    updateTextStats();
+  } catch (err) {
+    console.error("Initialization error:", err);
+  }
+})();

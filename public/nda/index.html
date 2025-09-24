@@ -2,10 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>NDA Reviewer 1.0 — EdgeScraperPro</title>
+  <title>NDA Reviewer 2.0 — EdgeScraperPro</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- CSP tailored for pinned CDNs + ESM workers + WASM -->
+  
   <meta http-equiv="Content-Security-Policy" content="
 default-src 'self';
 img-src 'self' data:;
@@ -21,7 +20,6 @@ frame-ancestors 'none';
   ">
 
   <link rel="stylesheet" href="./nda.css" />
-
 </head>
 <body>
   <header class="site-header">
@@ -33,23 +31,53 @@ frame-ancestors 'none';
   </header>
 
   <main class="container" id="app" aria-busy="false">
-    <h1>NDA Reviewer 1.0</h1>
+    <h1>NDA Reviewer 2.0</h1>
     <div id="app-error" class="alert" role="status" aria-live="polite" hidden></div>
     <p class="disclaimer">
-      Reviews inbound NDAs against a configurable playbook. All processing happens locally in your browser.
+      Reviews inbound NDAs against configurable playbook with context-aware severity scoring.
       <strong>Not legal advice.</strong>
     </p>
 
-    <section class="uploader" aria-label="NDA Text Input">
-      <label for="nda-text-input">Paste NDA text here:</label>
-      <textarea id="nda-text-input" 
-                placeholder="Paste your NDA text here (max 50,000 characters)" 
-                maxlength="50000"
-                style="width: 100%; min-height: 300px; font-family: monospace; padding: 12px; border: 2px solid #ccc; border-radius: 4px;"></textarea>
-      <div class="controls">
-        <button id="analyze-btn" class="primary">Analyze</button>
+    <section class="uploader" aria-label="NDA Input">
+      <div class="input-tabs">
+        <button class="tab-button active" data-tab="text">Text Input</button>
+        <button class="tab-button" data-tab="file">File Upload</button>
+      </div>
+      
+      <div id="text-tab" class="tab-content active">
+        <label for="nda-text-input">Paste NDA text:</label>
+        <textarea id="nda-text-input" 
+                  placeholder="Paste your NDA text here (max 50,000 characters)" 
+                  maxlength="50000"
+                  style="width: 100%; min-height: 300px; font-family: monospace; padding: 12px; border: 2px solid #ccc; border-radius: 4px;"></textarea>
         <span id="text-stats" class="muted"></span>
       </div>
+      
+      <div id="file-tab" class="tab-content" hidden>
+        <div class="file-upload-area" id="drop-zone">
+          <input type="file" id="file-input" accept=".docx,.pdf,.txt" hidden />
+          <div class="upload-prompt">
+            <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M24 14v20m-10-10l10-10 10 10M8 40h32" />
+            </svg>
+            <p>Drop .docx, .pdf, or .txt file here</p>
+            <button class="secondary" onclick="document.getElementById('file-input').click()">Browse Files</button>
+          </div>
+          <div id="file-info" hidden>
+            <span id="file-name"></span>
+            <button id="clear-file" class="small">Clear</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="controls">
+        <button id="analyze-btn" class="primary">Analyze</button>
+        <label>
+          <input type="checkbox" id="context-aware-mode" checked />
+          Enable Context-Aware Severity Scoring
+        </label>
+      </div>
+      
       <div id="progress" class="progress" aria-hidden="true">
         <div id="progress-bar" class="progress-bar" style="width:0%"></div>
         <div id="progress-text" class="progress-text">Idle</div>
@@ -67,7 +95,7 @@ frame-ancestors 'none';
           <input id="filter-severity" type="number" min="1" max="10" value="1" />
         </label>
         <label><input id="filter-blockers" type="checkbox" /> Blockers only</label>
-        <input id="filter-text" class="flex" type="search" placeholder="Filter text (title/evidence/recommendation)"/>
+        <input id="filter-text" class="flex" type="search" placeholder="Filter text"/>
       </div>
       <div class="row">
         <label>Playbook
@@ -82,21 +110,32 @@ frame-ancestors 'none';
       </div>
     </section>
 
+    <section id="interactive-redlines" class="panel" hidden>
+      <h2>Interactive Redline Selection</h2>
+      <div class="redline-controls">
+        <button id="select-all-redlines" class="secondary small">Select All</button>
+        <button id="deselect-all-redlines" class="secondary small">Deselect All</button>
+        <button id="apply-selected-redlines" class="primary">Apply Selected & Export</button>
+      </div>
+      <div id="redline-items" class="redline-items"></div>
+    </section>
+
     <section class="panes">
       <div class="pane">
         <h2>Original</h2>
         <pre id="original" class="mono"></pre>
       </div>
       <div class="pane">
-        <h2>Redlines</h2>
+        <h2>Analysis Results</h2>
+        <div id="severity-summary" class="severity-summary" hidden></div>
         <div id="redlines-list" class="redlines-list" aria-live="polite"></div>
-        <button id="export-redlines" class="secondary">Export Redlines (.docx)</button>
+        <button id="export-redlines" class="secondary">Export All Redlines (.docx)</button>
       </div>
       <div class="pane">
         <h2>Checklist Compliance</h2>
         <div class="table-actions">
-          <button id="export-csv">Export Checklist (CSV)</button>
-          <button id="export-json">Export Checklist (JSON)</button>
+          <button id="export-csv">Export CSV</button>
+          <button id="export-json">Export JSON</button>
         </div>
         <table id="results" class="results">
           <thead>
@@ -106,6 +145,7 @@ frame-ancestors 'none';
               <th>Clause</th>
               <th>Title</th>
               <th>Severity</th>
+              <th>Context Score</th>
               <th>Evidence</th>
               <th>Recommendation</th>
             </tr>
@@ -118,13 +158,8 @@ frame-ancestors 'none';
         </div>
       </div>
     </section>
-
-    <p class="scope">
-      Scope: NDA review only. Configurable via playbook (JSON/YAML). Deterministic and explainable checks.
-    </p>
   </main>
 
-  <!-- App entry -->
   <script type="module" src="./js/nda.js"></script>
 </body>
 </html>
