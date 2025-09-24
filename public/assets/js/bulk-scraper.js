@@ -14,6 +14,62 @@
   const defaultMode = dataset.mode || 'general';
   const forceSports = dataset.forceSports === 'true';
 
+  const SPORTS_EXTRACTOR_SRC = '/sports-extractor.js';
+  let sportsExtractorPromise = null;
+
+  function hasEdgeScraper() {
+    return Boolean(window.EdgeScraper && typeof window.EdgeScraper.scrapeOne === 'function');
+  }
+
+  function loadSportsExtractorScript() {
+    if (window.SportsExtractor) {
+      return Promise.resolve();
+    }
+
+    if (sportsExtractorPromise) {
+      return sportsExtractorPromise;
+    }
+
+    sportsExtractorPromise = new Promise((resolve, reject) => {
+      let script = Array.from(document.scripts).find(s => s.src && s.src.includes(SPORTS_EXTRACTOR_SRC));
+      let shouldAppend = false;
+
+      if (!script) {
+        script = document.createElement('script');
+        script.src = SPORTS_EXTRACTOR_SRC;
+        script.async = true;
+        script.dataset.dynamic = 'sports-extractor';
+        shouldAppend = true;
+      } else if (script.dataset.loaded === 'true') {
+        resolve();
+        return;
+      }
+
+      script.addEventListener('load', () => {
+        script.dataset.loaded = 'true';
+        resolve();
+      }, { once: true });
+
+      script.addEventListener('error', () => {
+        reject(new Error('Failed to load sports extractor'));
+      }, { once: true });
+
+      if (shouldAppend) {
+        document.head.appendChild(script);
+      }
+    });
+
+    return sportsExtractorPromise;
+  }
+
+  async function ensureSportsExtractor() {
+    if (window.SportsExtractor) {
+      return;
+    }
+
+    await loadSportsExtractorScript();
+  }
+
   const elements = {
     dropzone,
     fileInput,
@@ -56,7 +112,22 @@
     if (forceSports) {
       elements.sportsMode.checked = true;
       elements.sportsMode.setAttribute('disabled', 'disabled');
+      ensureSportsExtractor().catch(error => {
+        console.error('Sports extractor failed to preload', error);
+      });
     }
+
+    elements.sportsMode.addEventListener('change', event => {
+      if (!event.target.checked) {
+        return;
+      }
+
+      ensureSportsExtractor().catch(error => {
+        console.error('Sports extractor failed to load', error);
+        alert('Sports extractor failed to load. Sports mode has been disabled.');
+        event.target.checked = false;
+      });
+    });
   }
 
   ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -224,6 +295,10 @@
     const startTime = Date.now();
 
     try {
+      if (!hasEdgeScraper()) {
+        throw new Error('EdgeScraper client is not available');
+      }
+
       const needRaw = (extractImages || extractMeta || sportsMode) ? 1 : 0;
       const parseMode = 'article';
       const result = await window.EdgeScraper.scrapeOne(url, { raw: needRaw, parse: parseMode });
@@ -258,11 +333,19 @@
             }, {});
           }
 
-          if (sportsMode && window.SportsExtractor) {
-            const extractor = new SportsExtractor();
-            const output = extractor.extractContent(result.html, url);
-            if (output?.content) content = output.content;
-            structuredData = output?.structuredData || null;
+          if (sportsMode) {
+            try {
+              await ensureSportsExtractor();
+            } catch (loadError) {
+              console.error('Sports extractor unavailable for URL', url, loadError);
+            }
+
+            if (window.SportsExtractor) {
+              const extractor = new SportsExtractor();
+              const output = extractor.extractContent(result.html, url);
+              if (output?.content) content = output.content;
+              structuredData = output?.structuredData || null;
+            }
           }
         }
 
@@ -422,6 +505,23 @@
       return;
     }
 
+    if (!hasEdgeScraper()) {
+      alert('The EdgeScraper client failed to load. Please refresh the page and try again.');
+      return;
+    }
+
+    const wantsSportsExtractor = forceSports || (elements.sportsMode && elements.sportsMode.checked);
+
+    if (wantsSportsExtractor) {
+      try {
+        await ensureSportsExtractor();
+      } catch (error) {
+        console.error('Sports extractor failed to initialize', error);
+        alert('Sports extractor failed to load. Disable sports mode or refresh the page.');
+        return;
+      }
+    }
+
     state.isProcessing = true;
     state.startTime = Date.now();
 
@@ -443,7 +543,13 @@
     }
 
     updateProgress();
-    await processUrls();
+
+    try {
+      await processUrls();
+    } catch (error) {
+      console.error('Unexpected error during processing', error);
+      alert('Unexpected error during processing: ' + error.message);
+    }
 
     state.isProcessing = false;
     startButton.disabled = false;

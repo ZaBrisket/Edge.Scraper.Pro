@@ -199,7 +199,6 @@
     <script src="/http-client.js"></script>
     <script src="/enhanced-url-validator.js"></script>
     <script src="/batch-processor.js"></script>
-    <script src="/sports-extractor.js"></script>
     <script src="/assets/js/bulk-scraper.js"></script>
     <script>
     (function() {
@@ -314,11 +313,15 @@
                 html += '<div class="ma-deals">';
                 deals.forEach(deal => {
                     const d = deal.data;
-                    const confidenceClass = d.confidence >= 75
+                    const confidenceValue = typeof d.confidence === 'number' ? d.confidence : 0;
+                    const confidenceClass = confidenceValue >= 75
                         ? 'ma-confidence-high'
-                        : d.confidence >= 50
+                        : confidenceValue >= 50
                             ? 'ma-confidence-medium'
                             : 'ma-confidence-low';
+                    const severityLabel = confidenceValue >= 75 ? 'High' : confidenceValue >= 50 ? 'Medium' : 'Low';
+                    const confidenceLabel = `${severityLabel} • ${confidenceValue}%`;
+                    const confidenceAria = `${severityLabel} confidence (${confidenceValue}% confidence score)`;
 
                     html += `
                         <div class="ma-deal">
@@ -327,7 +330,11 @@
                                     <div class="ma-deal-title">${d.title || 'Untitled'}</div>
                                     <a href="${deal.url}" target="_blank" class="ma-deal-url">${deal.url}</a>
                                 </div>
-                                <span class="ma-confidence ${confidenceClass}">${d.confidence}% Confidence</span>
+                                <span
+                                    class="ma-confidence ${confidenceClass}"
+                                    data-severity="${severityLabel.toLowerCase()}"
+                                    aria-label="${confidenceAria}"
+                                >${confidenceLabel}</span>
                             </div>
                             <div class="ma-deal-details">
                                 ${d.dealValue ? `
