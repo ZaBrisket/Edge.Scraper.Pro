@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>EdgeScraperPro — Company Scraper</title>
+  <link rel="stylesheet" href="/css/brutalist.css"/>
+</head>
+<body data-mode="pending">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="container header-inner">
+    <a class="brand" href="/">EdgeScraperPro</a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/" data-nav="home">Home</a>
+      <a href="/scrape/" data-nav="scrape">Scrape</a>
+      <a href="/sports/" data-nav="sports">Sports</a>
+      <a href="/companies/" data-nav="companies">Companies</a>
+      <a href="/targets/" data-nav="targets">Target Lists</a>
+      <a href="/nda/" data-nav="nda">NDA</a>
+      <a href="https://github.com/ZaBrisket/Edge.Scraper.Pro" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </div></header>
+
+  <main id="main" class="container">
+    <h1>Company Scraper</h1>
+    <p class="banner">Company‑centric extraction presets & structure.</p>
+    <iframe id="app" class="app-frame" title="Scraper App (Companies)" src="/scrape/app.html" loading="eager"></iframe>
+  </main>
+
+  <footer class="site-footer"><div class="container"><small>Wrapper attempts to auto‑select the “Companies” preset.</small></div></footer>
+
+  <script>
+    (function(){
+      const iframe = document.getElementById('app');
+      function clickByText(root, selector, text){
+        const t=text.toLowerCase();
+        return Array.from(root.querySelectorAll(selector)).some(n=>{
+          if((n.textContent||"").toLowerCase().includes(t)){ n.click(); return true; }
+          return false;
+        });
+      }
+      function trySelectCompanies(doc){
+        if (clickByText(doc, 'button, a, [role="tab"]', 'Companies')) return true;
+        for(const l of doc.querySelectorAll('label')){
+          const t=(l.textContent||'').toLowerCase();
+          if(t.includes('company')){ (l.control||l).click(); return true; }
+        }
+        for(const i of doc.querySelectorAll('input[type="radio"],input[type="checkbox"]')){
+          const s=(i.id+i.name+i.value).toLowerCase();
+          if(s.includes('company')){ i.click(); return true; }
+        }
+        return false;
+      }
+      iframe.addEventListener('load', ()=>{
+        try{
+          const win=iframe.contentWindow, doc=win.document;
+          const ok=trySelectCompanies(doc);
+          if(ok){ try{ win.localStorage.setItem('esp.preferredMode','companies'); }catch(e){} document.body.dataset.mode='companies'; }
+          else{ document.body.dataset.mode='fallback'; }
+        }catch{ document.body.dataset.mode='error'; }
+      });
+    })();
+  </script>
+  <script src="/js/nav.js" defer></script>
+</body>
+</html>
