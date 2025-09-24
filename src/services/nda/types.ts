@@ -19,6 +19,10 @@ paragraphs: string[];
 suggestions: Suggestion[];
 checklistCoverage?: Record<string, { ok: boolean; note: string }>;
 }
+export interface ApplyResult {
+text: string;
+htmlDiff: string;
+}
 export interface DocxParseResult {
 paragraphs: string[];
 meta?: { pages?: number };

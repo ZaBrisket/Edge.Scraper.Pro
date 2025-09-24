@@ -4,9 +4,11 @@
   "description": "Professional web scraper with sports data extraction",
   "main": "public/index.html",
   "scripts": {
-    "test": "npm run test:nda",
+    "test": "npm run test:unit && npm run test:nda",
     "test:nda": "jest --config jest.nda.config.js --runInBand",
-    "build": "npm run build:functions",
+    "test:unit": "jest --config jest.config.js --runInBand",
+    "build": "npm run build:nda && npm run build:functions",
+    "build:nda": "node tools/build-nda-policy.js",
     "build:functions": "cd netlify/functions && npm run build || echo 'No function build needed'",
     "serve": "npx http-server public -p 8080",
     "dev": "netlify dev",
@@ -45,6 +47,7 @@
     "http-server": "^14.1.1",
     "jest": "^30.1.3",
     "netlify-cli": "^17.0.0",
+    "esbuild": "^0.24.0",
     "ts-jest": "^29.4.4",
     "typescript": "^5.9.2"
   }

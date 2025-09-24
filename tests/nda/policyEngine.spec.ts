@@ -21,4 +21,14 @@ it("suggests scoping overbroad affiliates per checklist", () => {
   expect(aff).toBeTruthy();
   expect(aff?.rationale.toLowerCase()).toContain("carve-out");
 });
+
+it("applies selected suggestions and emits html diff", () => {
+  const text = "The term shall be thirty (30) months.";
+  const analysis = Engine.analyze(text);
+  const termSuggestion = analysis.suggestions.find(s => s.clauseType === "Term");
+  expect(termSuggestion).toBeTruthy();
+  const applied = Engine.apply(analysis.normalizedText, termSuggestion ? [termSuggestion] : []);
+  expect(applied.text).toMatch(/twenty-four \(24\) months/);
+  expect(applied.htmlDiff).toContain("<ins>");
+});
 });

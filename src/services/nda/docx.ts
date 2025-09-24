@@ -11,8 +11,8 @@ if (appXml) {
   try {
     const parser = new XMLParser({ ignoreAttributes: false });
     const j = parser.parse(appXml);
-    const sheets = j.Properties && j.Properties.Properties && j.Properties.Properties.Pages;
-    pages = typeof sheets === "number" ? sheets : undefined;
+    const pageCount = j && j.Properties && j.Properties.Pages;
+    pages = typeof pageCount === "number" ? pageCount : undefined;
   } catch (_) {}
 }
 const docXml = await safeText(zip, "word/document.xml");

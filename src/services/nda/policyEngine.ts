@@ -1,4 +1,4 @@
-import { AnalyzeResult, Suggestion } from "./types";
+import { AnalyzeResult, Suggestion, ApplyResult } from "./types";
 import checklist from "./data/edgewaterChecklist.json";
 
 function normalize(s: string): string {
@@ -217,9 +217,66 @@ const coverage = {
 return { normalizedText: norm, paragraphs: paras, suggestions, checklistCoverage: coverage };
 }
 
+interface DiffChange { type: "del" | "ins"; text: string; }
+
+function apply(originalText: string, selected: Suggestion[]): ApplyResult {
+const paras = segment(originalText);
+const out = paras.slice();
+const byPara = new Map<number, Suggestion[]>();
+selected.forEach(s => {
+  if (!byPara.has(s.paragraphIndex)) byPara.set(s.paragraphIndex, []);
+  byPara.get(s.paragraphIndex)!.push(s);
+});
+const changes: DiffChange[] = [];
+byPara.forEach((suggestions, idx) => {
+  let paragraph = out[idx] || "";
+  suggestions.forEach(s => {
+    const target = s.proposal.target || "";
+    const replacement = s.proposal.replacement || "";
+    if (s.proposal.operation === "delete") {
+      if (target) {
+        paragraph = paragraph.replace(target, "");
+        changes.push({ type: "del", text: target });
+      }
+    } else if (s.proposal.operation === "insert") {
+      paragraph = replacement ? `${normalize(replacement)}${paragraph ? `\n${paragraph}` : ""}` : paragraph;
+      if (replacement) changes.push({ type: "ins", text: replacement });
+    } else {
+      paragraph = paragraph.replace(target, replacement);
+      if (target) changes.push({ type: "del", text: target });
+      if (replacement) changes.push({ type: "ins", text: replacement });
+    }
+  });
+  out[idx] = normalize(paragraph);
+});
+const newText = out.join("\n\n");
+const htmlDiff = renderHtmlDiff(paras.join("\n\n"), newText, changes);
+return { text: newText, htmlDiff };
+}
+
+function renderHtmlDiff(before: string, _after: string, changes: DiffChange[]): string {
+let html = escapeHtml(before);
+changes.filter(c => c.type === "del").forEach(ch => {
+  if (!ch.text) return;
+  const pattern = new RegExp(escapeRegex(ch.text), "g");
+  html = html.replace(pattern, match => `<del>${escapeHtml(match)}</del>`);
+});
+const insertions = changes.filter(c => c.type === "ins" && c.text).map(ch => `<ins>${escapeHtml(ch.text)}</ins>`).join("\n");
+return insertions ? `${html}\n\n${insertions}` : html;
+}
+
+function escapeHtml(s: string): string {
+return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c] as string));
+}
+
+function escapeRegex(s: string): string {
+return s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+}
+
 function hash(str: string): number {
 let h=0, i=0; for (i=0;i<str.length;i++) h = (h<<5) - h + str.charCodeAt(i) | 0;
 return h;
 }
 
-export default { analyze };
+export { analyze, apply };
+export default { analyze, apply };
