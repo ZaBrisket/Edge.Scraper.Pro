@@ -9,6 +9,7 @@ const {
   readBodyWithLimit,
   buildUA,
   hash32,
+  followRedirectsSafely,
 } = require('./_lib/http.js');
 
 const DEFAULT_HTTP_DEADLINE_MS = envInt('HTTP_DEADLINE_MS', 15000, { min: 1000, max: 30000 });
@@ -16,6 +17,8 @@ const MAX_BYTES = envInt('FETCH_URL_MAX_BYTES', 2 * 1024 * 1024, { min: 64 * 102
 const CDN_MAX_AGE = envInt('NETLIFY_CDN_MAX_AGE', 120, { min: 0, max: 86400 });
 const CDN_SWR = envInt('NETLIFY_CDN_SWR', 600, { min: 0, max: 604800 });
 const HEAD_TIMEOUT_MS = Math.min(5000, DEFAULT_HTTP_DEADLINE_MS);
+const MAX_REDIRECTS = envInt('FETCH_URL_MAX_REDIRECTS', 5, { min: 0, max: 10 });
+const BLOCK_DOWNGRADE = envBool('FETCH_URL_BLOCK_DOWNGRADE', false);
 const PUBLIC_API_KEY = (process.env.PUBLIC_API_KEY ?? '').trim();
 const BYPASS_AUTH = envBool('BYPASS_AUTH', false);
 
@@ -26,11 +29,28 @@ const COMMON_HEADERS = {
   'Accept-Encoding': 'gzip, deflate, br',
 };
 
-function errorJson(status, code, message, extra = {}) {
+function buildServerTiming({ head, get, redirects }) {
+  const parts = [];
+  if (Number.isFinite(head)) {
+    parts.push(`t_head;dur=${Math.max(0, Math.round(head))}`);
+  }
+  if (Number.isFinite(get)) {
+    parts.push(`t_get;dur=${Math.max(0, Math.round(get))}`);
+  }
+  if (typeof redirects === 'number' && redirects > 0) {
+    parts.push(`redirects;desc="${redirects}"`);
+  }
+  return parts.length > 0 ? parts.join(', ') : undefined;
+}
+
+function errorJson(status, code, message, extra = {}, headers = {}) {
   return json(
     { error: { code, message }, ...extra },
     status,
-    { 'Netlify-CDN-Cache-Control': 'private, max-age=0, no-store' },
+    {
+      'Netlify-CDN-Cache-Control': 'private, max-age=0, no-store',
+      ...headers,
+    },
   );
 }
 
@@ -59,6 +79,9 @@ function buildRequestFromEvent(event) {
 
 async function handleRequest(request) {
   const start = Date.now();
+  let headDuration;
+  let getDuration;
+  let redirectCount = 0;
 
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders() });
@@ -90,15 +113,15 @@ async function handleRequest(request) {
 
   const urlHash = hash32(target.href);
 
+  const headStart = Date.now();
   try {
-    const headStart = Date.now();
     const headResponse = await fetchWithTimeout(target.href, {
       method: 'HEAD',
       redirect: 'manual',
       timeout: HEAD_TIMEOUT_MS,
       headers: COMMON_HEADERS,
     });
-    const headDuration = Date.now() - headStart;
+    headDuration = Date.now() - headStart;
     console.info(
       'metric=fetch_url_head outcome=success status=%d duration_ms=%d url_hash=%s',
       headResponse.status,
@@ -108,14 +131,17 @@ async function handleRequest(request) {
     const clHeader = headResponse.headers.get('content-length');
     const contentLength = clHeader ? Number(clHeader) : NaN;
     if (Number.isFinite(contentLength) && contentLength > MAX_BYTES) {
+      const serverTiming = buildServerTiming({ head: headDuration });
       return errorJson(
         413,
         'CONTENT_TOO_LARGE',
         `Content-Length ${contentLength}B exceeds cap ${MAX_BYTES}B`,
         { url: target.href, contentLength, maxBytes: MAX_BYTES },
+        serverTiming ? { 'Server-Timing': serverTiming } : {},
       );
     }
   } catch (error) {
+    headDuration = Date.now() - headStart;
     console.info(
       'metric=fetch_url_head outcome=error reason=%s url_hash=%s',
       error?.message || 'unknown',
@@ -124,31 +150,89 @@ async function handleRequest(request) {
   }
 
   let upstreamResponse;
+  let finalUrl = target;
+  const getStart = Date.now();
   try {
-    const getStart = Date.now();
-    upstreamResponse = await fetchWithTimeout(target.href, {
-      method: 'GET',
-      redirect: 'follow',
-      timeout: DEFAULT_HTTP_DEADLINE_MS,
-      headers: COMMON_HEADERS,
-    });
-    const getDuration = Date.now() - getStart;
+    const result = await followRedirectsSafely(
+      target,
+      {
+        method: 'GET',
+        timeout: DEFAULT_HTTP_DEADLINE_MS,
+        headers: COMMON_HEADERS,
+      },
+      {
+        maxRedirects: MAX_REDIRECTS,
+        blockDowngrade: BLOCK_DOWNGRADE,
+        isBlockedHostname,
+      },
+    );
+    upstreamResponse = result.response;
+    finalUrl = result.finalUrl || target;
+    redirectCount = Array.isArray(result.redirects) ? result.redirects.length : 0;
+    getDuration = Date.now() - getStart;
     console.info(
-      'metric=fetch_url outcome=fetch status=%d duration_ms=%d url_hash=%s',
+      'metric=fetch_url outcome=fetch status=%d duration_ms=%d redirects=%d url_hash=%s',
       upstreamResponse.status,
       getDuration,
+      redirectCount,
       urlHash,
     );
   } catch (error) {
+    getDuration = Date.now() - getStart;
+    if (Array.isArray(error?.redirects)) {
+      redirectCount = error.redirects.length;
+    }
+    const serverTiming = buildServerTiming({ head: headDuration, get: getDuration, redirects: redirectCount });
+    const headers = serverTiming ? { 'Server-Timing': serverTiming } : {};
     const reason = (error?.message || '').toLowerCase();
     const timeout = error?.name === 'AbortError' || reason.includes('timeout');
+
+    if (error?.code === 'BLOCKED_HOST_REDIRECT') {
+      console.error(
+        'metric=fetch_url outcome=fail kind=blocked_redirect url_hash=%s location="%s"',
+        urlHash,
+        error?.location || 'unknown',
+      );
+      return errorJson(
+        403,
+        'BLOCKED_HOST_REDIRECT',
+        'Redirect target host is not allowed',
+        { location: error?.location },
+        headers,
+      );
+    }
+
+    if (error?.code === 'REDIRECT_NO_LOCATION') {
+      console.error('metric=fetch_url outcome=fail kind=redirect_no_location url_hash=%s', urlHash);
+      return errorJson(502, 'REDIRECT_NO_LOCATION', 'Redirect response missing Location header', {}, headers);
+    }
+
+    if (error?.code === 'TOO_MANY_REDIRECTS') {
+      console.error(
+        'metric=fetch_url outcome=fail kind=too_many_redirects redirects=%d url_hash=%s',
+        redirectCount,
+        urlHash,
+      );
+      return errorJson(502, 'TOO_MANY_REDIRECTS', 'Exceeded redirect limit', {}, headers);
+    }
+
+    if (error?.code === 'DOWNGRADE_BLOCKED') {
+      console.error('metric=fetch_url outcome=fail kind=downgrade_blocked url_hash=%s', urlHash);
+      return errorJson(502, 'DOWNGRADE_BLOCKED', 'HTTPS to HTTP redirect blocked', { location: error?.location }, headers);
+    }
+
+    if (error?.code === 'INVALID_SCHEME' || error?.code === 'INVALID_URL') {
+      console.error('metric=fetch_url outcome=fail kind=redirect_invalid url_hash=%s', urlHash);
+      return errorJson(502, error.code, 'Redirect target URL is invalid', {}, headers);
+    }
+
     console.error(
       'metric=fetch_url outcome=fail kind=%s url_hash=%s message="%s"',
       timeout ? 'timeout' : 'network',
       urlHash,
       error?.message || 'unknown',
     );
-    return errorJson(timeout ? 504 : 502, timeout ? 'UPSTREAM_TIMEOUT' : 'UPSTREAM_ERROR', error?.message || 'Fetch failed');
+    return errorJson(timeout ? 504 : 502, timeout ? 'UPSTREAM_TIMEOUT' : 'UPSTREAM_ERROR', error?.message || 'Fetch failed', {}, headers);
   }
 
   const contentType = upstreamResponse.headers.get('content-type') || 'application/octet-stream';
@@ -160,16 +244,19 @@ async function handleRequest(request) {
     bodyBuffer = body;
     bytesRead = read;
   } catch (error) {
+    const serverTiming = buildServerTiming({ head: headDuration, get: getDuration, redirects: redirectCount });
+    const headers = serverTiming ? { 'Server-Timing': serverTiming } : {};
     if (error?.code === 'SIZE_LIMIT') {
       return errorJson(
         413,
         'CONTENT_TOO_LARGE',
         `Response exceeded ${MAX_BYTES}B limit`,
-        { url: target.href, maxBytes: MAX_BYTES },
+        { url: finalUrl.href || finalUrl.toString(), maxBytes: MAX_BYTES },
+        headers,
       );
     }
     console.error('metric=fetch_url outcome=fail kind=read_error url_hash=%s', urlHash);
-    return errorJson(502, 'READ_ERROR', 'Failed to read upstream response');
+    return errorJson(502, 'READ_ERROR', 'Failed to read upstream response', {}, headers);
   }
 
   const responseHeaders = corsHeaders({
@@ -188,13 +275,19 @@ async function handleRequest(request) {
   responseHeaders.delete('transfer-encoding');
   responseHeaders.delete('connection');
 
+  const serverTiming = buildServerTiming({ head: headDuration, get: getDuration, redirects: redirectCount });
+  if (serverTiming) {
+    responseHeaders.set('Server-Timing', serverTiming);
+  }
+
   const status = upstreamResponse.status;
   const totalDuration = Date.now() - start;
   console.info(
-    'metric=fetch_url outcome=success status=%d bytes=%d duration_ms=%d url_hash=%s',
+    'metric=fetch_url outcome=success status=%d bytes=%d duration_ms=%d redirects=%d url_hash=%s',
     status,
     bytesRead,
     totalDuration,
+    redirectCount,
     urlHash,
   );
 
