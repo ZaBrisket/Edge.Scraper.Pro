@@ -79,3 +79,43 @@
   from = "/targets/"
   to   = "/targets/index.html"
   status = 200
+
+[[redirects]]
+  from = "/scrape"
+  to   = "/scrape/"
+  status = 301
+
+[[redirects]]
+  from = "/scrape/"
+  to   = "/scrape/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/sports"
+  to   = "/sports/"
+  status = 301
+
+[[redirects]]
+  from = "/sports/"
+  to   = "/sports/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/companies"
+  to   = "/companies/"
+  status = 301
+
+[[redirects]]
+  from = "/companies/"
+  to   = "/companies/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/nda"
+  to   = "/nda/"
+  status = 301
+
+[[redirects]]
+  from = "/nda/"
+  to   = "/nda/index.html"
+  status = 200

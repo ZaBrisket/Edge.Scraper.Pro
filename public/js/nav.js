@@ -1,6 +1,15 @@
 (function(){
+  function normalizePath(path){
+    var normalized = (path || "/");
+    if (normalized.length > 1) {
+      normalized = normalized.replace(/\/+$/, '/');
+    }
+    if (!normalized) normalized = '/';
+    return normalized.toLowerCase();
+  }
+
   function activeKey(path){
-    path = (path || "/").toLowerCase();
+    path = normalizePath(path);
     if (path === "/") return "home";
     if (path.startsWith("/scrape")) return "scrape";
     if (path.startsWith("/sports")) return "sports";
@@ -10,7 +19,7 @@
     return "";
   }
   function setActive(){
-    var key = activeKey(location.pathname);
+    var key = activeKey(location.pathname || '/');
     var nav = document.querySelector('.site-nav');
     if(!nav) return;
     nav.querySelectorAll('a[data-nav]').forEach(function(a){

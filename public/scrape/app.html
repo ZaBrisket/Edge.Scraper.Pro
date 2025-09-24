@@ -966,16 +966,40 @@
             tabs: document.querySelectorAll('.tab')
         };
 
+        function activateMode(mode) {
+            if (!mode) return false;
+            const normalized = mode.toLowerCase();
+            const target = Array.from(elements.tabs).find(tab => (tab.dataset.tab || '').toLowerCase() === normalized);
+            if (!target) return false;
+            const currentActive = document.querySelector('.tab.active');
+            if (currentActive && currentActive !== target) {
+                currentActive.classList.remove('active');
+            }
+            if (!target.classList.contains('active')) {
+                target.classList.add('active');
+            }
+            state.currentMode = target.dataset.tab;
+            const sportsToggle = document.getElementById('sportsMode');
+            if (sportsToggle) {
+                sportsToggle.checked = (state.currentMode === 'sports');
+            }
+            return true;
+        }
+
         // Tab switching
         elements.tabs.forEach(tab => {
             tab.addEventListener('click', function() {
-                document.querySelector('.tab.active').classList.remove('active');
-                this.classList.add('active');
-                state.currentMode = this.dataset.tab;
-                // Update sports mode checkbox based on tab
-                document.getElementById('sportsMode').checked = (state.currentMode === 'sports');
+                activateMode(this.dataset.tab);
             });
         });
+
+        activateMode(state.currentMode);
+        try {
+            const storedMode = (localStorage.getItem('esp.preferredMode') || '').toLowerCase();
+            if (storedMode && storedMode !== state.currentMode) {
+                activateMode(storedMode);
+            }
+        } catch (err) {}
 
         // Drag and drop handlers
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {

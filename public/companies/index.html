@@ -31,32 +31,58 @@
   <script>
     (function(){
       const iframe = document.getElementById('app');
+      const lower = (s) => String(s || '').toLowerCase();
+
       function clickByText(root, selector, text){
-        const t=text.toLowerCase();
-        return Array.from(root.querySelectorAll(selector)).some(n=>{
-          if((n.textContent||"").toLowerCase().includes(t)){ n.click(); return true; }
+        const target = lower(text);
+        return Array.from(root.querySelectorAll(selector)).some(node => {
+          if (lower(node.textContent).includes(target)) {
+            node.click();
+            return true;
+          }
           return false;
         });
       }
-      function trySelectCompanies(doc){
-        if (clickByText(doc, 'button, a, [role="tab"]', 'Companies')) return true;
-        for(const l of doc.querySelectorAll('label')){
-          const t=(l.textContent||'').toLowerCase();
-          if(t.includes('company')){ (l.control||l).click(); return true; }
+
+      function trySelect(doc, label){
+        const labelLower = lower(label);
+        for (const el of doc.querySelectorAll('.tab')) {
+          if (lower(el.textContent).includes(labelLower)) {
+            el.click();
+            return true;
+          }
         }
-        for(const i of doc.querySelectorAll('input[type="radio"],input[type="checkbox"]')){
-          const s=(i.id+i.name+i.value).toLowerCase();
-          if(s.includes('company')){ i.click(); return true; }
+        if (clickByText(doc, 'button, a, [role="tab"]', label)) return true;
+        for (const l of doc.querySelectorAll('label')) {
+          if (lower(l.textContent).includes(labelLower)) {
+            (l.control || l).click();
+            return true;
+          }
+        }
+        for (const input of doc.querySelectorAll('input[type="radio"],input[type="checkbox"]')) {
+          const source = lower(input.id + input.name + input.value);
+          if (source.includes(labelLower)) {
+            input.click();
+            return true;
+          }
         }
         return false;
       }
-      iframe.addEventListener('load', ()=>{
-        try{
-          const win=iframe.contentWindow, doc=win.document;
-          const ok=trySelectCompanies(doc);
-          if(ok){ try{ win.localStorage.setItem('esp.preferredMode','companies'); }catch(e){} document.body.dataset.mode='companies'; }
-          else{ document.body.dataset.mode='fallback'; }
-        }catch{ document.body.dataset.mode='error'; }
+
+      iframe.addEventListener('load', () => {
+        try {
+          const win = iframe.contentWindow;
+          const doc = win.document;
+          const ok = trySelect(doc, 'Companies');
+          if (ok) {
+            try { win.localStorage.setItem('esp.preferredMode', 'companies'); } catch (e) {}
+            document.body.dataset.mode = 'companies';
+          } else {
+            document.body.dataset.mode = 'fallback';
+          }
+        } catch (err) {
+          document.body.dataset.mode = 'error';
+        }
       });
     })();
   </script>
