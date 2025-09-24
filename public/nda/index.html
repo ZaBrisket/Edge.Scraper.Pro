@@ -6,45 +6,57 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; font-src 'self' data:; img-src 'self' data:;">
 <link rel="icon" href="/favicon.ico">
+<link rel="stylesheet" href="/assets/css/brutalist.css">
 <style>
-  :root { --fg:#0c1323; --muted:#6b7280; --ok:#0ea5e9; --good:#16a34a; --warn:#f59e0b; --bad:#ef4444; --bg:#f8fafc; --card:#ffffff; --border:#e5e7eb; }
-  html, body { margin:0; padding:0; background:var(--bg); color:var(--fg); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
-  header { display:flex; gap:16px; align-items:center; padding:16px; background:var(--card); border-bottom:1px solid var(--border);} 
-  header a { text-decoration:none; color:var(--fg); padding:6px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg);} 
-  main { max-width:1100px; margin:24px auto; padding:0 16px 64px; }
-  h1 { margin:0 0 8px 0; font-size:24px; }
-  .muted { color:var(--muted); font-size:14px; }
-  .panel { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin:16px 0; }
-  .row { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
+  body { margin:0; }
+  main { padding-bottom:64px; }
+  h1 { margin:0 0 8px 0; font-size:28px; }
+  .muted { font-size:14px; font-style:italic; }
+  .panel { margin:24px 0; }
+  .row { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
   .col { flex:1 1 320px; min-width:320px; }
-  textarea { width:100%; min-height:180px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono"; font-size:13px; }
+  textarea { width:100%; min-height:200px; font-family:'Courier New', Courier, monospace; font-size:14px; }
   input[type="file"] { display:block; margin:8px 0 4px 0; }
-  .btn { display:inline-flex; gap:8px; align-items:center; border:1px solid var(--border); background:var(--fg); color:#fff; padding:8px 12px; border-radius:8px; cursor:pointer; }
-  .btn.secondary { background:#fff; color:var(--fg); }
+  .btn { display:inline-flex; gap:8px; align-items:center; }
+  .btn.secondary { background:var(--bg); color:var(--fg); }
+  .btn.small { padding:8px 16px; font-size:14px; }
   .btn:disabled { opacity:0.6; cursor:not-allowed; }
-  .status { padding:6px 10px; border-radius:999px; font-size:12px; display:inline-flex; align-items:center; gap:6px; }
-  .status.idle { background:#eef2ff; color:#3730a3; } .status.ok { background:#ecfeff; color:#065f46; }
-  .status.bad { background:#fff7ed; color:#9a3412; }
-  .issues { max-height:420px; overflow:auto; border:1px solid var(--border); border-radius:8px;}
-  .issue { display:grid; grid-template-columns: 28px 1fr 90px 70px; gap:8px; padding:10px 12px; border-bottom:1px solid var(--border); }
+  .status { padding:6px 12px; border:1px solid var(--border); font-size:12px; text-transform:uppercase; letter-spacing:1px; display:inline-flex; gap:8px; align-items:center; }
+  .status.idle { border-style:dashed; }
+  .status.ok { border-style:solid; }
+  .status.bad { border-style:double; }
+  .issues { max-height:420px; overflow:auto; border:1px solid var(--border); }
+  .issue { display:grid; grid-template-columns: 28px 1fr 120px 90px; gap:8px; padding:12px; border-bottom:1px solid var(--border); }
   .issue:last-child { border-bottom:none; }
-  .pill { padding:2px 8px; border-radius:999px; font-size:12px; display:inline-block; }
-  .sev-low { background:#ecfeff; color:#155e75;} .sev-med { background:#fef9c3; color:#854d0e;} .sev-high { background:#fee2e2; color:#7f1d1d;}
-  .diff { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono"; white-space:pre-wrap; }
-  del { color:var(--bad); text-decoration:line-through; }
-  ins { color:var(--good); text-decoration:none; background: #ecfdf5; }
+  .pill { padding:2px 8px; border:1px solid var(--border); font-size:12px; text-transform:uppercase; letter-spacing:1px; display:inline-block; }
+  .sev-low { border-style:dotted; }
+  .sev-med { border-style:dashed; }
+  .sev-high { border-style:solid; font-weight:700; }
+  .diff { font-family:'Courier New', Courier, monospace; white-space:pre-wrap; border:1px solid var(--border); padding:16px; }
+  del { text-decoration:line-through; }
+  ins { text-decoration:underline; }
   .searchbar { display:flex; gap:8px; align-items:center; margin:8px 0;}
-  .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px;}
+  .searchbar input, .searchbar select { padding:8px; border:1px solid var(--border); font:inherit; background:var(--bg); }
+  .searchbar input { flex:1; }
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px;}
   .small { font-size:12px; }
 </style>
 </head>
 <body>
-<header>
-  <a href="/">Scrape</a>
-  <a href="/targets">Target Lists</a>
-  <strong>NDA Reviewer</strong>
-</header>
-<main>
+  <div class="container">
+    <header class="header">
+      <div class="brand">EdgeScraperPro</div>
+      <nav class="nav">
+        <a href="/">Tools</a>
+        <a href="/news/">News</a>
+        <a href="/sports/">Sports</a>
+        <a href="/companies/">Companies</a>
+        <a href="/targets/">Targets</a>
+        <a href="/nda/" class="active">NDA</a>
+      </nav>
+    </header>
+
+    <main>
   <h1>NDA Reviewer 2.0</h1>
   <p class="muted">Upload a <strong>.docx</strong> NDA or paste its text. All analysis runs locally; DOCX parsing and Word export are processed by Netlify Functions. Not legal advice.</p>
 
@@ -66,8 +78,8 @@
       <div class="col">
         <label><strong>Review Panel</strong></label>
         <div class="searchbar">
-          <input id="searchInput" placeholder="Filter by clause type or text..." style="flex:1; padding:6px 8px; border:1px solid var(--border); border-radius:8px;" />
-          <select id="severityFilter" style="padding:6px 8px; border:1px solid var(--border); border-radius:8px;">
+          <input id="searchInput" placeholder="Filter by clause type or text..." />
+          <select id="severityFilter">
             <option value="all">Severity ≥ All</option>
             <option value="60">Severity ≥ 60</option>
             <option value="80">Severity ≥ 80</option>
@@ -103,6 +115,7 @@
     <div id="checklistView" class="small muted">Run an analysis to see checklist coverage.</div>
   </div>
 </main>
+  </div>
 
 <script src="/nda/policyEngine.browser.js"></script>
 <script src="/nda/nda-reviewer.js"></script>

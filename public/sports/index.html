@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdgeScraperPro — Sports Scraper</title>
+    <link rel="stylesheet" href="/assets/css/brutalist.css">
+</head>
+<body data-mode="sports" data-force-sports="true">
+    <div class="container">
+        <header class="header">
+            <div class="brand">EdgeScraperPro</div>
+            <nav class="nav">
+                <a href="/">Tools</a>
+                <a href="/news/">News</a>
+                <a href="/sports/" class="active">Sports</a>
+                <a href="/companies/">Companies</a>
+                <a href="/targets/">Targets</a>
+                <a href="/nda/">NDA</a>
+            </nav>
+        </header>
+
+        <main>
+            <h1>Sports Statistics Scraper</h1>
+            <p class="lede">Bulk process game recaps and stat pages to normalize box scores and structured player data.</p>
+
+            <section class="section">
+                <h2>URL Intake</h2>
+                <div class="dropzone" id="dropzone">
+                    <div class="dropzone-text">Drop files here</div>
+                    <div class="dropzone-subtext">TXT (one URL per line) or JSON • Maximum 1,500 URLs</div>
+                    <button id="selectFilesBtn" type="button">Select Files</button>
+                    <input type="file" id="fileInput" accept=".txt,.json" multiple>
+                </div>
+
+                <div class="field">
+                    <label for="urlInput">URLs</label>
+                    <textarea id="urlInput" rows="10" placeholder="Paste stat URLs here, one per line."></textarea>
+                    <div class="help">Lines starting with # are ignored. Sports parsing is always enabled on this page.</div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2>Extraction Settings</h2>
+                <div class="grid">
+                    <div class="field">
+                        <label>Extraction Mode</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" id="extractContent" checked> Extract full content</label>
+                            <label><input type="checkbox" id="extractImages"> Extract images</label>
+                            <label><input type="checkbox" id="extractMeta"> Extract metadata</label>
+                            <label><input type="checkbox" id="sportsMode" checked> Sports statistics mode (locked)</label>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label>Export Format</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="format" value="jsonl" checked> JSON Lines</label>
+                            <label><input type="radio" name="format" value="csv"> CSV</label>
+                            <label><input type="radio" name="format" value="txt"> Plain Text</label>
+                            <label><input type="radio" name="format" value="structured"> Structured JSON</label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2>Performance Controls</h2>
+                <div class="grid">
+                    <div class="field">
+                        <label for="concurrency">Concurrent Requests</label>
+                        <input type="number" id="concurrency" value="3" min="1" max="20">
+                        <div class="help">Keep 2–4 to avoid WAF/rate limiting.</div>
+                    </div>
+                    <div class="field">
+                        <label for="timeout">Timeout (seconds)</label>
+                        <input type="number" id="timeout" value="15" min="5" max="60">
+                        <div class="help">Extend for deeper stat pages.</div>
+                    </div>
+                    <div class="field">
+                        <label for="retries">Max Retries</label>
+                        <input type="number" id="retries" value="2" min="0" max="10">
+                        <div class="help">Number of retry attempts for failed requests.</div>
+                    </div>
+                    <div class="field">
+                        <label for="delay">Delay Between Requests (ms)</label>
+                        <input type="number" id="delay" value="400" min="0" max="5000">
+                        <div class="help">Use delays to respect score providers.</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <button id="startButton">Start Extraction</button>
+            </section>
+
+            <div class="progress" id="progress">
+                <div class="progress-text">
+                    Processing: <span id="progressCount">0</span> / <span id="progressTotal">0</span>
+                </div>
+                <div>
+                    Elapsed: <span id="elapsed">0s</span> • Remaining: <span id="remaining">calculating...</span>
+                </div>
+            </div>
+
+            <div class="spinner" id="spinner"></div>
+
+            <div class="results" id="results">
+                <div class="results-header">
+                    <div>
+                        <div class="stat-value" id="statSuccess">0</div>
+                        <div class="stat-label">Success</div>
+                    </div>
+                    <div>
+                        <div class="stat-value" id="statFailed">0</div>
+                        <div class="stat-label">Failed</div>
+                    </div>
+                    <div>
+                        <div class="stat-value" id="statTime">0s</div>
+                        <div class="stat-label">Total Time</div>
+                    </div>
+                </div>
+
+                <button id="exportButton">Export Results</button>
+
+                <table class="results-table" id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th>URL</th>
+                            <th>Status</th>
+                            <th>Size</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody"></tbody>
+                </table>
+
+                <div class="results-output" id="resultsOutput"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/http-client.js"></script>
+    <script src="/enhanced-url-validator.js"></script>
+    <script src="/batch-processor.js"></script>
+    <script src="/sports-extractor.js"></script>
+    <script src="/assets/js/bulk-scraper.js"></script>
+</body>
+</html>
