@@ -1,0 +1,46 @@
+{
+  "version": "1.0.0",
+  "provisions": [
+    {
+      "id": "employee-non-solicit",
+      "title": "Employee Non-Solicitation",
+      "required": true,
+      "baseline": "During the Term and for twelve (12) months thereafter, neither party will, directly or indirectly, solicit for employment any executive-level employee of the other party with whom it had contact in connection with this Agreement. General solicitations not specifically targeted do not violate this section.",
+      "acceptIfIncludes": [
+        "executive-level",
+        "general solicitation",
+        "not specifically targeted"
+      ],
+      "mustContain": ["solicit", "employee", "12", "months"],
+      "mustNotContain": [],
+      "weights": { "missing-core": 1.0, "overbroad-scope": 0.7, "duration-high": 0.3 }
+    },
+    {
+      "id": "confidential-carveouts",
+      "title": "Confidential Information Carve-Outs",
+      "required": true,
+      "baseline": "Confidential Information does not include information that is (a) publicly available without breach, (b) already known without restriction, (c) independently developed without use of the discloser’s Confidential Information, or (d) rightfully received from a third party without duty of confidentiality.",
+      "acceptIfIncludes": ["publicly available", "already known", "independently developed", "rightfully received"],
+      "mustContain": ["public", "known", "independently", "third"],
+      "weights": { "missing-carveout": 0.8 }
+    },
+    {
+      "id": "affiliate-scope",
+      "title": "Affiliate Language",
+      "required": false,
+      "baseline": "References to a party include its Affiliates solely as necessary for performance; obligations shall not be unreasonably broadened by Affiliate definitions.",
+      "acceptIfIncludes": ["solely as necessary", "not unreasonably broadened"],
+      "mustContain": ["affiliate"],
+      "weights": { "overbroad-scope": 0.8 }
+    },
+    {
+      "id": "efforts-modifier",
+      "title": "Efforts Modifier",
+      "required": false,
+      "baseline": "Replace 'best efforts' with 'commercially reasonable efforts'.",
+      "acceptIfIncludes": ["commercially reasonable efforts"],
+      "mustContain": [],
+      "weights": { "modifier-strength": 0.6 }
+    }
+  ]
+}

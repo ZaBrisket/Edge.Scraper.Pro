@@ -13,7 +13,7 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-  included_files = ["src/**"]
+  included_files = ["src/**", "schemas/**"]
   external_node_modules = [
     "natural", "compromise", "jsdom", "cheerio", "axios", "xml2js",
     "undici", "set-cookie-parser", "@mozilla/readability"
@@ -71,3 +71,13 @@
   from = "/targets/"
   to   = "/targets/index.html"
   status = 200
+
+[[redirects]]
+  from = "/nda"
+  to = "/nda.html"
+  status = 200
+
+[[headers]]
+  for = "/.netlify/functions/nda-export"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"

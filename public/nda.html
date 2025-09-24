@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>EdgeScraperPro – NDA Reviewer</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 2rem; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+    .issues { width: 100%; border-collapse: collapse; }
+    .issues th, .issues td { border-bottom: 1px solid #efefef; padding: 8px; text-align: left; }
+    .sev { font-weight: 600; }
+    .sev.low { color: #2b7a0b; } .sev.med { color: #b58900; } .sev.high { color: #b00020; }
+    .row { display:flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+    .muted { color: #666; }
+    .hidden { display: none; }
+    .btn { background: #111; color: #fff; border: 0; padding: .6rem .9rem; border-radius: 6px; cursor: pointer; }
+    .btn[disabled] { opacity: .5; cursor: not-allowed; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>EdgeScraperPro – NDA Reviewer</h1>
+  <p class="muted">Upload your NDA (.docx/.pdf/.txt) and optionally a checklist override (JSON). Review suggested edits, select which to apply, and export a Word file with tracked changes.</p>
+
+  <div class="card">
+    <div class="row">
+      <input id="file" type="file" accept=".docx,.pdf,.txt"/>
+      <label>Checklist (JSON, optional): <input id="checklist" type="file" accept=".json"/></label>
+      <button id="analyze" class="btn">Analyze</button>
+      <span id="status" class="muted"></span>
+    </div>
+  </div>
+
+  <div class="card hidden" id="analysisCard">
+    <h2>Issues</h2>
+    <table class="issues" id="issuesTable">
+      <thead><tr><th>Apply</th><th>Provision</th><th>Reason</th><th>Severity</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <details>
+      <summary>Text Preview</summary>
+      <pre class="mono" id="preview"></pre>
+    </details>
+    <div class="row" style="margin-top:1rem;">
+      <button id="export" class="btn" disabled>Export Redline (.docx)</button>
+      <a id="download" class="hidden">Download</a>
+    </div>
+  </div>
+
+  <script type="module" src="./nda.js"></script>
+</body>
+</html>
