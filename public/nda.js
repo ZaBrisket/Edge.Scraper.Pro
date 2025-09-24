@@ -9,16 +9,23 @@ const previewEl = $("#preview");
 const analysisCard = $("#analysisCard");
 const downloadA = $("#download");
 
+const MAX_BYTES = 25 * 1024 * 1024;
+
 let lastAnalysis = null;
 let originalDocBase64 = null;
 let lastUploadWasDocx = false;
 
 analyzeBtn.addEventListener("click", async () => {
-  status("Uploading...");
   const file = fileEl.files?.[0];
   if (!file) return status("Please choose a file.");
-  lastUploadWasDocx = /\.docx$/i.test(file.name || "") ||
-    (file.type || "").includes("officedocument.wordprocessingml.document");
+  if (file.size > MAX_BYTES) {
+    return status("File too large. Maximum size is 25MB.");
+  }
+  status("Uploading...");
+  lastUploadWasDocx =
+    /\.docx$/i.test(file.name || "") ||
+    (file.type || "").includes("wordprocessingml.document");
+  resetDownloadLink();
   const fd = new FormData();
   fd.append("file", file);
   const checklist = checklistEl.files?.[0];
@@ -43,7 +50,9 @@ analyzeBtn.addEventListener("click", async () => {
   exportBtn.disabled = !lastUploadWasDocx || issueCount === 0;
   if (!lastUploadWasDocx) {
     exportBtn.title = "Upload a .docx file to export tracked changes.";
-    status(`Found ${issueCount} issue(s). Redline export requires a .docx upload.`);
+    status(
+      `Found ${issueCount} issue(s). Redline export requires .docx format. Convert your document first.`
+    );
   } else {
     exportBtn.removeAttribute("title");
     status(`Found ${issueCount} issue(s).`);
@@ -51,7 +60,8 @@ analyzeBtn.addEventListener("click", async () => {
 });
 
 exportBtn.addEventListener("click", async () => {
-  if (!lastUploadWasDocx) return status("Redline export requires the original .docx upload.");
+  if (!lastUploadWasDocx)
+    return status("Redline export requires .docx format. Convert your document first.");
   if (!originalDocBase64) return status("Missing original document payload.");
   const checks = [...document.querySelectorAll("[data-apply]")].filter((c) => c.checked);
   if (checks.length === 0) return status("Select at least one edit.");

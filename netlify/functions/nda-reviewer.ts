@@ -41,7 +41,7 @@ export default async (req: Request): Promise<Response> => {
       return json({ error: "Unsupported file type" }, 415);
 
     let text = "";
-    if (ext === ".docx" || mime.includes("officedocument"))
+    if (ext === ".docx" || mime.includes("wordprocessingml.document"))
       text = await extractTextFromDocx(file);
     else if (ext === ".pdf" || mime.includes("pdf"))
       text = await extractTextFromPdf(file);

@@ -25,6 +25,7 @@ describe("redline export", () => {
     const settingsXml = await zip.file("word/settings.xml")!.async("text");
     expect(docXml).toMatch(/<w:del[^>]*>/);
     expect(docXml).toMatch(/<w:ins[^>]*>/);
+    expect(docXml).not.toMatch(/<w:t[^>]*>[^<]*<w:ins/);
     expect(settingsXml).toMatch(/trackRevisions/);
   });
 
@@ -35,6 +36,6 @@ describe("redline export", () => {
     ]);
     const zip = await JSZip.loadAsync(out);
     const docXml = await zip.file("word/document.xml")!.async("text");
-    expect(docXml).toMatch(/<w:p>\s*<w:ins[^>]*>[\s\S]*New clause/);
+    expect(docXml).toMatch(/<w:p><w:pPr\/>\s*<w:ins[^>]*>[\s\S]*New clause/);
   });
 });

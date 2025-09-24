@@ -55,7 +55,7 @@ function applyTrackedChanges(xml: string, edits: Redline[], author: string): str
   for (const [i, e] of edits.entries()) {
     if (!e.originalText || e.originalText.trim().length === 0) {
       const insXml = insRunXml(e.suggestedText, author, e.dateISO, i + 1);
-      const insParagraph = `<w:p>${insXml}</w:p>`;
+      const insParagraph = `<w:p><w:pPr/>${insXml}</w:p>`;
       if (/<\/w:body>/i.test(out)) {
         out = out.replace(/<\/w:body>/i, `${insParagraph}</w:body>`);
       } else {
@@ -69,12 +69,31 @@ function applyTrackedChanges(xml: string, edits: Redline[], author: string): str
     const pattern = new RegExp(`(<w:t[^>]*>)(${escapedOriginal})(</w:t>)`, "i");
     if (pattern.test(out)) {
       out = out.replace(pattern, `${delXml}${insXml}`);
-    } else {
-      out = out.replace(
-        e.originalText,
-        `${unwrapTextRuns(delXml)}${unwrapTextRuns(insXml)}`
-      );
+      continue;
     }
+
+    const runPattern = new RegExp(
+      `(<w:r[^>]*>\\s*<w:t[^>]*>)([^<]*)(${escapedOriginal})([^<]*)(</w:t>\\s*</w:r>)`,
+      "i",
+    );
+    if (runPattern.test(out)) {
+      out = out.replace(
+        runPattern,
+        (_match, open, before, _orig, after, close) => {
+          const segments: string[] = [];
+          if (before) segments.push(`${open}${before}${close}`);
+          segments.push(delXml, insXml);
+          if (after) segments.push(`${open}${after}${close}`);
+          return segments.join("");
+        },
+      );
+      continue;
+    }
+
+    out = out.replace(
+      e.originalText,
+      `${unwrapTextRuns(delXml)}${unwrapTextRuns(insXml)}`,
+    );
   }
   return out;
 }
