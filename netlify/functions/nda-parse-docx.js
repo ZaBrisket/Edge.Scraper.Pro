@@ -12,6 +12,19 @@ try {
   const { correlationId, filename, mime, base64 } = JSON.parse(event.body || '{}');
   const ctx = { correlationId: safeId(correlationId), t: Date.now() };
 
+  // Validate inputs
+  if (!base64 || typeof base64 !== 'string') {
+    return json(400, { error: 'Invalid base64 data', correlationId: ctx.correlationId });
+  }
+  if (correlationId && correlationId.length > 24) {
+    return json(400, { error: 'Invalid correlation ID', correlationId: ctx.correlationId });
+  }
+  try {
+    Buffer.from(base64, 'base64');
+  } catch {
+    return json(400, { error: 'Malformed base64 encoding', correlationId: ctx.correlationId });
+  }
+
   const rate = checkRateLimit(event, { limit: 30, windowMs: 60_000 });
   if (!rate.allowed) {
     return json(429, { error: 'Too many requests. Please retry shortly.', correlationId: ctx.correlationId }, { 'Retry-After': String(rate.retryAfter) });
@@ -66,7 +79,13 @@ try {
 function json(statusCode, body, extraHeaders) {
   return {
     statusCode,
-    headers: { 'Content-Type': 'application/json', ...(extraHeaders || {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'X-XSS-Protection': '1; mode=block',
+      ...(extraHeaders || {})
+    },
     body: JSON.stringify(body)
   };
 }
