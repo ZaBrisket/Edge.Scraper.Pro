@@ -21,7 +21,7 @@ NDA Reviewer v2 adds **.docx upload**, **burdensomeness‑aware redlines**, **us
 - **Size**: default 5 MB (configurable via `NDA_MAX_DOCX_MB`).  
 - **Pages**: if trivially obtainable from `docProps/app.xml`, we show an approximate pages count.  
 - **Structure**: when mapping is ambiguous (e.g., complex tables/images), we restrict to **within‑paragraph** spans and **skip** edits we can’t safely map; skipped items are returned in the response and logged via telemetry.
-- **Security**: `.docm` blocked; macro content types rejected; errors include an anonymized correlation ID; no PII is logged.
+- **Security**: `.docm` blocked; macro content types rejected; errors include an anonymized correlation ID; no PII is logged. The `/nda/` page now ships with a strict `Content-Security-Policy` (`default-src 'self'`) and no external CDN dependencies.
 
 ## Local dev
 ```bash

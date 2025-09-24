@@ -1,8 +1,14 @@
 // Netlify Function: Anonymized telemetry (console-only)
+const { checkRateLimit } = require('./_lib/rate-limit');
+
 exports.handler = async (event) => {
 try {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method Not Allowed' });
   const { correlationId, event: name, payload } = JSON.parse(event.body || '{}');
+  const rate = checkRateLimit(event, { limit: 120, windowMs: 60_000 });
+  if (!rate.allowed) {
+    return json(429, { error: 'Too many telemetry events.', correlationId }, { 'Retry-After': String(rate.retryAfter) });
+  }
   console.log(JSON.stringify({
     ts: new Date().toISOString(),
     kind: 'nda.telemetry',
@@ -11,8 +17,9 @@ try {
     payload: sanitize(payload)
   }));
   return json(200, { ok: true });
-} catch {
-  return json(200, { ok: true });
+} catch (err) {
+  console.warn('Telemetry function error', err);
+  return json(200, { ok: false });
 }
 };
 function sanitize(x) {
@@ -22,6 +29,6 @@ try {
   return JSON.parse(s);
 } catch { return {}; }
 }
-function json(statusCode, body) {
-return { statusCode, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+function json(statusCode, body, extraHeaders) {
+return { statusCode, headers: { 'Content-Type': 'application/json', ...(extraHeaders || {}) }, body: JSON.stringify(body) };
 }

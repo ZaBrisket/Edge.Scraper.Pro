@@ -102,25 +102,41 @@ async function onAnalyzeText() {
   $('proposedView').textContent = '';
   state.originalText = result.normalizedText;
   status('analysisStatus', 'ok', `Found ${state.suggestions.length} suggestions.`);
-  $('checklistView').innerHTML = renderChecklist(result.checklistCoverage);
+  renderChecklist(result.checklistCoverage);
   await sendTelemetry('analyze_ok', { issues: state.suggestions.length });
 }
 
 function renderChecklist(cov) {
-  if (!cov) return '—';
-  const items = Object.keys(cov).sort().map(k => {
-    const v = cov[k];
-    const s = v.ok ? '✔️' : '⚠️';
-    return `<div>${s} <strong>${k}</strong> — ${v.note}</div>`;
-  }).join('');
-  return items || '—';
+  const container = $('checklistView');
+  while (container.firstChild) container.removeChild(container.firstChild);
+  if (!cov) {
+    container.textContent = '—';
+    return;
+  }
+  const keys = Object.keys(cov).sort();
+  if (keys.length === 0) {
+    container.textContent = '—';
+    return;
+  }
+  keys.forEach(key => {
+    const entry = document.createElement('div');
+    const icon = document.createElement('span');
+    icon.textContent = cov[key].ok ? '✔️' : '⚠️';
+    const strong = document.createElement('strong');
+    strong.textContent = key;
+    entry.appendChild(icon);
+    entry.append(' ');
+    entry.appendChild(strong);
+    entry.append(` — ${cov[key].note}`);
+    container.appendChild(entry);
+  });
 }
 
 function renderIssues() {
   const q = $('searchInput').value.toLowerCase();
   const sev = $('severityFilter').value;
   const list = $('issues');
-  list.innerHTML = '';
+  while (list.firstChild) list.removeChild(list.firstChild);
   const filtered = state.suggestions.filter(s => {
     const hit = s.clauseType.toLowerCase().includes(q) || s.title.toLowerCase().includes(q) || s.rationale.toLowerCase().includes(q);
     const passSev = sev === 'all' ? true : s.severity >= Number(sev);
@@ -128,30 +144,73 @@ function renderIssues() {
   });
   const frag = document.createDocumentFragment();
   filtered.forEach(s => {
-    const div = document.createElement('div');
-    div.className = 'issue';
-    const sevClass = s.severity >= 80 ? 'sev-high' : s.severity >= 60 ? 'sev-med' : 'sev-low';
-    div.innerHTML = `
-      <div><input type="checkbox" ${state.selectedIds.has(s.id) ? 'checked' : ''} data-id="${s.id}" /></div>
-      <div><div><strong>${escapeHtml(s.title)}</strong> <span class="pill ${sevClass}">${s.severity}</span></div>
-           <div class="small muted">${escapeHtml(s.clauseType)} — ${escapeHtml(s.rationale)}</div>
-           <div class="small">Proposed: <code>${escapeHtml(s.proposal.replacement || '')}</code></div>
-      </div>
-      <div class="small">${s.delta && s.delta.summary ? escapeHtml(s.delta.summary) : ''}</div>
-      <div class="small"><button class="btn secondary small" data-preview="${s.id}">Preview</button></div>
-    `;
-    frag.appendChild(div);
+    const row = document.createElement('div');
+    row.className = 'issue';
+
+    const checkboxCell = document.createElement('div');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.dataset.id = s.id;
+    checkbox.checked = state.selectedIds.has(s.id);
+    checkbox.addEventListener('change', (e) => {
+      const id = e.target.dataset.id;
+      if (!id) return;
+      if (e.target.checked) {
+        state.selectedIds.add(id);
+      } else {
+        state.selectedIds.delete(id);
+      }
+    });
+    checkboxCell.appendChild(checkbox);
+    row.appendChild(checkboxCell);
+
+    const detailsCell = document.createElement('div');
+    const titleRow = document.createElement('div');
+    const title = document.createElement('strong');
+    title.textContent = s.title;
+    titleRow.appendChild(title);
+    const pill = document.createElement('span');
+    pill.className = `pill ${s.severity >= 80 ? 'sev-high' : s.severity >= 60 ? 'sev-med' : 'sev-low'}`;
+    pill.textContent = String(s.severity);
+    titleRow.append(' ');
+    titleRow.appendChild(pill);
+    detailsCell.appendChild(titleRow);
+
+    const clause = document.createElement('div');
+    clause.className = 'small muted';
+    clause.textContent = `${s.clauseType} — ${s.rationale}`;
+    detailsCell.appendChild(clause);
+
+    const proposal = document.createElement('div');
+    proposal.className = 'small';
+    const proposalLabel = document.createElement('span');
+    proposalLabel.textContent = 'Proposed: ';
+    const proposalCode = document.createElement('code');
+    proposalCode.textContent = s.proposal.replacement || '';
+    proposal.appendChild(proposalLabel);
+    proposal.appendChild(proposalCode);
+    detailsCell.appendChild(proposal);
+
+    row.appendChild(detailsCell);
+
+    const deltaCell = document.createElement('div');
+    deltaCell.className = 'small';
+    deltaCell.textContent = s.delta && s.delta.summary ? s.delta.summary : '';
+    row.appendChild(deltaCell);
+
+    const previewCell = document.createElement('div');
+    previewCell.className = 'small';
+    const previewBtn = document.createElement('button');
+    previewBtn.className = 'btn secondary small';
+    previewBtn.textContent = 'Preview';
+    previewBtn.dataset.preview = s.id;
+    previewBtn.addEventListener('click', () => previewOne(s.id));
+    previewCell.appendChild(previewBtn);
+    row.appendChild(previewCell);
+
+    frag.appendChild(row);
   });
   list.appendChild(frag);
-  list.querySelectorAll('input[type=checkbox]').forEach(cb => {
-    cb.addEventListener('change', (e) => {
-      const id = e.target.getAttribute('data-id');
-      if (e.target.checked) state.selectedIds.add(id); else state.selectedIds.delete(id);
-    });
-  });
-  list.querySelectorAll('button[data-preview]').forEach(btn => {
-    btn.addEventListener('click', () => previewOne(btn.getAttribute('data-preview')));
-  });
 }
 
 function applySelected() {
@@ -218,12 +277,9 @@ async function sendTelemetry(event, payload) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ correlationId: state.correlationId, event, payload })
     });
-  } catch (_) { /* no-op */ }
-}
-
-function escapeHtml(s) {
-  const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
-  return String(s).replace(/[&<>"']/g, c => map[c]);
+  } catch (err) {
+    console.warn('Telemetry beacon failed', err);
+  }
 }
 function arrayBufferToBase64(buffer) {
   const bytes = new Uint8Array(buffer);

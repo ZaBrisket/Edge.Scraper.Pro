@@ -11,7 +11,7 @@ if (appXml) {
   try {
     const parser = new XMLParser({ ignoreAttributes: false });
     const j = parser.parse(appXml);
-    const pageCount = j && j.Properties && j.Properties.Pages;
+    const pageCount = (j?.Properties?.Pages ?? j?.Properties?.Properties?.Pages);
     pages = typeof pageCount === "number" ? pageCount : undefined;
   } catch (_) {}
 }
