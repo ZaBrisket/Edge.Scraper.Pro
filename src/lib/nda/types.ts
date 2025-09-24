@@ -66,6 +66,7 @@ export interface DocxStructure {
   documentXml?: string;
   xmlDocument?: any;
   originalBuffer?: Buffer;
+  paragraphIdAliasMap?: Record<string, string>;
 }
 
 export interface AnalyzeNdaRequest {

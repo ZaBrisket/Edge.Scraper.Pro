@@ -101,7 +101,16 @@ function createInsertedParagraph(
 
 async function ensureDocxStructure(structure: DocxStructure): Promise<DocxStructure> {
   if (structure.source === 'docx') {
-    return structure;
+    if (structure.paragraphIdAliasMap) {
+      return structure;
+    }
+
+    const aliasMap: Record<string, string> = {};
+    structure.paragraphs.forEach((paragraph) => {
+      aliasMap[paragraph.id] = paragraph.id;
+    });
+
+    return { ...structure, paragraphIdAliasMap: aliasMap };
   }
 
   const doc = new Document({
@@ -119,7 +128,40 @@ async function ensureDocxStructure(structure: DocxStructure): Promise<DocxStruct
   });
 
   const buffer = await Packer.toBuffer(doc);
-  return extractStructuredDocx(Buffer.from(buffer));
+  const rebuilt = await extractStructuredDocx(Buffer.from(buffer));
+
+  const aliasMap: Record<string, string> = {
+    ...(rebuilt.paragraphIdAliasMap ?? {}),
+  };
+
+  const matchedIndices = new Set<number>();
+  const normalize = (value: string | undefined): string =>
+    (value ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+  structure.paragraphs.forEach((paragraph, index) => {
+    let selectedIndex = rebuilt.paragraphs.findIndex((candidate, candidateIndex) => {
+      if (matchedIndices.has(candidateIndex)) {
+        return false;
+      }
+
+      return normalize(candidate.text) === normalize(paragraph.text);
+    });
+
+    if (selectedIndex === -1 && index < rebuilt.paragraphs.length) {
+      selectedIndex = index;
+    }
+
+    if (selectedIndex !== -1) {
+      aliasMap[paragraph.id] = rebuilt.paragraphs[selectedIndex].id;
+      matchedIndices.add(selectedIndex);
+    }
+  });
+
+  return {
+    ...rebuilt,
+    plainText: structure.plainText,
+    paragraphIdAliasMap: aliasMap,
+  };
 }
 
 export async function generateTrackedChangesDoc(
@@ -146,6 +188,15 @@ export async function generateTrackedChangesDoc(
   workingStructure.paragraphs.forEach((paragraph) => {
     paragraphMap.set(paragraph.id, paragraph);
   });
+
+  if (workingStructure.paragraphIdAliasMap) {
+    Object.entries(workingStructure.paragraphIdAliasMap).forEach(([aliasId, canonicalId]) => {
+      const canonicalParagraph = paragraphMap.get(canonicalId);
+      if (canonicalParagraph) {
+        paragraphMap.set(aliasId, canonicalParagraph);
+      }
+    });
+  }
 
   const timestamp = new Date().toISOString();
   let changeId = 1;

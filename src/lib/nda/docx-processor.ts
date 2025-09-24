@@ -118,6 +118,11 @@ export async function extractStructuredDocx(buffer: Buffer): Promise<DocxStructu
     };
   });
 
+  const paragraphIdAliasMap: Record<string, string> = {};
+  paragraphs.forEach((paragraph) => {
+    paragraphIdAliasMap[paragraph.id] = paragraph.id;
+  });
+
   const mammothResult = await mammoth.extractRawText({ buffer });
   const plainText = sanitizePlainText(mammothResult.value || paragraphs.map((p) => p.text).join('\n'));
 
@@ -128,6 +133,7 @@ export async function extractStructuredDocx(buffer: Buffer): Promise<DocxStructu
     documentXml,
     xmlDocument,
     originalBuffer: buffer,
+    paragraphIdAliasMap,
   };
 }
 
@@ -146,10 +152,18 @@ export function buildStructureFromPlainText(text: string): DocxStructure {
       nodeIndex: index,
     }));
 
+  const paragraphIdAliasMap: Record<string, string> = {};
+  paragraphs.forEach((paragraph) => {
+    paragraphIdAliasMap[paragraph.id] = paragraph.id;
+  });
+
+  const plainText = paragraphs.map((paragraph) => paragraph.text).join('\n');
+
   return {
     source: 'text',
-    plainText: paragraphs.map((paragraph) => paragraph.text).join('\n'),
+    plainText,
     paragraphs,
+    paragraphIdAliasMap,
   };
 }
 
