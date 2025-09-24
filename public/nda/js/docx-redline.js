@@ -1,17 +1,34 @@
 // Build a .docx containing original text with comment-anchored redlines near sentence evidence.
-import {
-  Document, Packer, Paragraph, TextRun,
-  CommentRangeStart, CommentRangeEnd, CommentReference, Comment,
-  HeadingLevel
-} from "https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.mjs";
+const DOCX_CDN_URL = "https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.mjs";
+
+let docxModulePromise = null;
+
+async function ensureDocxModule() {
+  if (!docxModulePromise) {
+    docxModulePromise = import(/* webpackIgnore: true */ DOCX_CDN_URL).catch((err) => {
+      console.warn('[NDA Reviewer] docx export library failed to load; export disabled.', err);
+      return null;
+    });
+  }
+  return docxModulePromise;
+}
 
 /**
  * @param {{ fullText:string, results:Array, meta:object }} params
  * @returns {Promise<Blob>}
  */
 export async function buildRedlinesDoc({ fullText, results, meta }) {
-  if (!Document || !Packer) {
+  const mod = await ensureDocxModule();
+  if (!mod) {
     throw new Error("DOCX export unavailable: required libraries did not load.");
+  }
+  const {
+    Document, Packer, Paragraph, TextRun,
+    CommentRangeStart, CommentRangeEnd, CommentReference, Comment,
+    HeadingLevel
+  } = mod;
+  if (!Document || !Packer) {
+    throw new Error("DOCX export unavailable: required libraries are incomplete.");
   }
   const doc = new Document({
     creator: "EdgeScraperPro NDA Reviewer",

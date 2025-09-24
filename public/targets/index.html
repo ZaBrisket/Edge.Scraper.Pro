@@ -31,32 +31,77 @@
     (function(){
       var iframe = document.querySelector('.app-frame');
       if(!iframe) return;
-
-      // Add retry mechanism
+      
       var retryCount = 0;
       var maxRetries = 3;
-
+      var appName = 'M&A Target Lists';
+      var retryTimer = null;
+      var hasFailed = false;
+      
+      function logEvent(event, data) {
+        if (window.console && console.log) {
+          console.log('[IframeLoader]', appName, event, data || '');
+        }
+        // Send telemetry if available
+        if (window.sendTelemetry && typeof window.sendTelemetry === 'function') {
+          window.sendTelemetry('iframe_' + event, { app: appName, ...data });
+        }
+      }
+      
       function loadFrame() {
+        if (hasFailed) {
+          return;
+        }
         var src = iframe.getAttribute('data-src') || iframe.getAttribute('src');
-        if (!src) return;
+        if (!src) {
+          logEvent('error', { reason: 'no_src_attribute' });
+          return;
+        }
+        logEvent('retry', { attempt: retryCount + 1, src: src });
+        iframe.removeAttribute('src');
         iframe.src = src;
       }
 
       iframe.addEventListener('load', function(){
         iframe.removeAttribute('data-loading');
         iframe.removeAttribute('data-error');
+        logEvent('loaded', { attempts: retryCount + 1 });
+        if (retryTimer) {
+          clearTimeout(retryTimer);
+          retryTimer = null;
+        }
+        hasFailed = false;
         retryCount = 0;
       });
 
-      iframe.addEventListener('error', function(){
+      iframe.addEventListener('error', function(e){
+        logEvent('error', { attempt: retryCount + 1, error: e.message || 'load_failed' });
         if(retryCount < maxRetries) {
           retryCount++;
-          setTimeout(loadFrame, 1000 * retryCount);
+          if (retryTimer) {
+            clearTimeout(retryTimer);
+          }
+          retryTimer = setTimeout(loadFrame, 1000 * retryCount);
         } else {
+          if (retryTimer) {
+            clearTimeout(retryTimer);
+            retryTimer = null;
+          }
           iframe.setAttribute('data-error', 'true');
           iframe.removeAttribute('data-loading');
+          logEvent('failed', { totalAttempts: retryCount + 1 });
+          hasFailed = true;
         }
       });
+
+      // Initial load tracking
+      logEvent('init', { src: iframe.getAttribute('src') });
+
+      window.__iframeLoader = {
+        app: appName,
+        forceError: function(){ iframe.dispatchEvent(new Event('error')); },
+        getRetryCount: function(){ return retryCount; }
+      };
     })();
   </script>
   <script src="/js/nav.js" defer></script>

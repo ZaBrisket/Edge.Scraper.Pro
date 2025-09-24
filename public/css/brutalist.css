@@ -50,7 +50,7 @@ main{padding:var(--g4) 0}
 
 /* Iframe wrappers */
 .banner{border:1px solid var(--border);padding:var(--g2);background:#fafafa}
-.app-frame{width:100%;min-height:800px;height:calc(100vh - 200px);border:1px solid var(--border);background:var(--bg);display:block;position:relative}
+.app-frame{width:100%;min-height:800px;height:calc(100vh - 200px);max-height:1200px;border:1px solid var(--border);background:var(--bg);display:block;position:relative}
 .app-frame[data-loading="true"]{background:#f8f8f8}
 .app-frame[data-loading="true"]::before{
   content:"Loading application...";
@@ -66,9 +66,13 @@ main{padding:var(--g4) 0}
   z-index:1;
 }
 .app-frame[data-error="true"]::before{
-  content:"Failed to load application";
+  content:"Failed to load application. Please refresh the page.";
   background:rgba(255,235,230,0.92);
   color:#8a1c1c;
 }
+@media (max-width: 768px) {
+  .app-frame { min-height: 600px; height: calc(100vh - 150px); }
+}
+
 .skip-link{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
 .skip-link:focus{position:static;width:auto;height:auto;display:inline-block;margin:var(--g2) 0}
