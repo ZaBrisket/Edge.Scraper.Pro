@@ -47,10 +47,12 @@ test.describe('EdgeScraperPro tools hub & wrappers', () => {
     await expect(iframe.getByText(/Compan(y|ies)/i).first()).toBeVisible();
   });
 
-  test('Targets & NDA wrappers show unified header', async ({ page }) => {
+  test('Targets & NDA wrappers show unified header and iframe', async ({ page }) => {
     await visit(page, '/targets');
     await expect(page.getByRole('banner').getByText('EdgeScraperPro')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('iframe[title="Target Lists App"]')).toBeVisible();
     await visit(page, '/nda');
     await expect(page.getByRole('banner').getByText('EdgeScraperPro')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('iframe[title="NDA Reviewer App"]')).toBeVisible();
   });
 });

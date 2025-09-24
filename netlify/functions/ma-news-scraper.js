@@ -9,25 +9,24 @@ const {
   buildUA,
   readBodyWithLimit,
 } = require('./_lib/http.js');
-
 const MANewsExtractor = require('../../src/lib/extractors/ma-news-extractor');
 const MAUrlDiscovery = require('../../src/lib/discovery/ma-url-discovery');
 const newsSources = require('../../src/config/ma-news-sources');
 
 const extractor = new MANewsExtractor();
 const discovery = new MAUrlDiscovery();
-const decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
 
-const DEFAULT_TIMEOUT = envInt('HTTP_DEADLINE_MS', 18000, { min: 5000, max: 30000 });
+const DEFAULT_TIMEOUT = envInt('HTTP_DEADLINE_MS', 18_000, { min: 5_000, max: 30_000 });
 const MAX_BYTES = envInt('MA_NEWS_MAX_BYTES', 1_500_000, { min: 100_000, max: 4_000_000 });
 const DEFAULT_CONCURRENCY = 3;
+const decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
 
 function headersToObject(headers) {
-  const obj = {};
+  const out = {};
   headers.forEach((value, key) => {
-    obj[key] = value;
+    out[key] = value;
   });
-  return obj;
+  return out;
 }
 
 function baseHeaders(extra = {}) {
@@ -47,86 +46,33 @@ function jsonResponse(body, status = 200) {
 }
 
 function normalizeSources(rawSources) {
-  if (!Array.isArray(rawSources) || rawSources.length === 0) {
+  const seen = new Set();
+  const normalized = [];
+  if (Array.isArray(rawSources)) {
+    for (const token of rawSources) {
+      const lower = String(token || '').trim().toLowerCase();
+      if (!lower) continue;
+      if (newsSources.getSource(lower)) {
+        if (!seen.has(lower)) {
+          seen.add(lower);
+          normalized.push(lower);
+        }
+        continue;
+      }
+      for (const key of newsSources.getAllSources()) {
+        const cfg = newsSources.getSource(key);
+        if (cfg?.name && cfg.name.toLowerCase() === lower && !seen.has(key)) {
+          seen.add(key);
+          normalized.push(key);
+          break;
+        }
+      }
+    }
+  }
+  if (normalized.length === 0) {
     return newsSources.getAllSources();
   }
-  return rawSources
-    .map((s) => String(s || '').toLowerCase().trim())
-    .filter((token) => newsSources.getSource(token));
-}
-
-async function discoverUrls(options) {
-  try {
-    return await discovery.discover(options);
-  } catch (err) {
-    console.warn('M&A discovery failed', err);
-    return [];
-  }
-}
-
-async function fetchArticle(task) {
-  let parsed;
-  try {
-    parsed = safeParseUrl(task.url);
-  } catch (err) {
-    const error = new Error('INVALID_URL');
-    error.code = 'INVALID_URL';
-    error.detail = err?.message;
-    throw error;
-  }
-
-  if (isBlockedHostname(parsed.hostname)) {
-    const error = new Error('BLOCKED_HOST');
-    error.code = 'BLOCKED_HOST';
-    error.detail = parsed.hostname;
-    throw error;
-  }
-
-  const { response, finalUrl } = await followRedirectsSafely(parsed, {
-    method: 'GET',
-    headers: {
-      'User-Agent': buildUA(),
-      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Accept-Encoding': 'gzip, deflate, br',
-    },
-    timeout: DEFAULT_TIMEOUT,
-  }, {
-    maxRedirects: 4,
-    blockDowngrade: true,
-  });
-
-  const { body, bytesRead } = await readBodyWithLimit(response.body, MAX_BYTES);
-  const html = decoder.decode(body);
-  return { html, status: response.status, finalUrl: finalUrl?.href || parsed.href, bytesRead };
-}
-
-async function scrapeTask(task) {
-  try {
-    const fetched = await fetchArticle(task);
-    const data = extractor.extractFromHTML(fetched.html, fetched.finalUrl || task.url);
-    return {
-      success: true,
-      url: task.url,
-      finalUrl: fetched.finalUrl,
-      source: task.source,
-      discovered: Boolean(task.discovered),
-      status: fetched.status,
-      bytes: fetched.bytesRead,
-      data,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (err) {
-    return {
-      success: false,
-      url: task.url,
-      source: task.source,
-      discovered: Boolean(task.discovered),
-      error: err?.code || err?.message || 'SCRAPE_FAILED',
-      detail: err?.detail || null,
-      timestamp: new Date().toISOString(),
-    };
-  }
+  return normalized;
 }
 
 function normalizeConcurrency(raw) {
@@ -141,7 +87,102 @@ function normalizeMaxUrls(raw) {
   return Math.max(1, Math.min(200, Math.floor(value)));
 }
 
-exports.handler = async (event) => {
+function resolveSourceKey(url, hint) {
+  const normalizedHint = String(hint || '').trim().toLowerCase();
+  if (normalizedHint && newsSources.getSource(normalizedHint)) {
+    return normalizedHint;
+  }
+  if (normalizedHint) {
+    for (const key of newsSources.getAllSources()) {
+      const cfg = newsSources.getSource(key);
+      if (cfg?.name && cfg.name.toLowerCase() === normalizedHint) {
+        return key;
+      }
+    }
+  }
+  if (url) {
+    const sourceInfo = newsSources.getSourceByUrl(url);
+    if (sourceInfo?.key) {
+      return sourceInfo.key;
+    }
+  }
+  return 'custom';
+}
+
+async function processTask(task) {
+  const timestamp = () => new Date().toISOString();
+  let parsed;
+  try {
+    parsed = safeParseUrl(task.url);
+  } catch (err) {
+    return {
+      success: false,
+      url: task.url,
+      source: task.source,
+      discovered: Boolean(task.discovered),
+      error: err?.message || 'INVALID_URL',
+      detail: err?.detail || null,
+      timestamp: timestamp(),
+    };
+  }
+
+  if (isBlockedHostname(parsed.hostname)) {
+    return {
+      success: false,
+      url: task.url,
+      source: task.source,
+      discovered: Boolean(task.discovered),
+      error: 'BLOCKED_HOST',
+      detail: parsed.hostname,
+      timestamp: timestamp(),
+    };
+  }
+
+  try {
+    const { response, finalUrl } = await followRedirectsSafely(parsed, {
+      method: 'GET',
+      headers: {
+        'User-Agent': buildUA(),
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+      },
+      timeout: DEFAULT_TIMEOUT,
+    }, {
+      maxRedirects: 4,
+      blockDowngrade: true,
+    });
+
+    const { body, bytesRead } = await readBodyWithLimit(response.body, MAX_BYTES);
+    const html = decoder.decode(body);
+    const finalHref = finalUrl?.href || parsed.href;
+    const data = extractor.extractFromHTML(html, finalHref);
+
+    return {
+      success: true,
+      url: task.url,
+      finalUrl: finalHref,
+      source: task.source,
+      discovered: Boolean(task.discovered),
+      status: response.status,
+      bytes: bytesRead,
+      data,
+      timestamp: timestamp(),
+    };
+  } catch (err) {
+    return {
+      success: false,
+      url: task.url,
+      source: task.source,
+      discovered: Boolean(task.discovered),
+      error: err?.code || err?.message || 'SCRAPE_FAILED',
+      detail: err?.detail || err?.message || null,
+      timestamp: timestamp(),
+    };
+  }
+}
+
+exports.handler = async (event = {}) => {
   const headers = headersToObject(baseHeaders());
 
   if (event.httpMethod === 'OPTIONS') {
@@ -155,8 +196,10 @@ exports.handler = async (event) => {
   let payload = {};
   if (event.body) {
     try {
-      const raw = event.isBase64Encoded ? Buffer.from(event.body, 'base64').toString('utf8') : event.body;
-      payload = JSON.parse(raw || '{}');
+      const rawBody = event.isBase64Encoded
+        ? Buffer.from(event.body, 'base64').toString('utf8')
+        : event.body;
+      payload = JSON.parse(rawBody || '{}');
     } catch (err) {
       return jsonResponse({ success: false, error: 'INVALID_JSON', detail: err?.message || null }, 400);
     }
@@ -168,19 +211,27 @@ exports.handler = async (event) => {
     sources = [],
     keywords = '',
     dateRange = {},
-    concurrency = DEFAULT_CONCURRENCY,
-    maxUrls = 50,
-    useRSS = true,
+    concurrency,
+    maxUrls,
+    useRSS,
     minConfidence = 0,
     mode = 'ma',
-  } = payload;
+  } = payload || {};
 
   const normalizedSources = normalizeSources(sources);
   const limit = normalizeMaxUrls(maxUrls);
   const queue = new PQueue({ concurrency: normalizeConcurrency(concurrency) });
 
-  const initialResults = [];
-  const tasksMap = new Map();
+  const results = [];
+  const tasks = [];
+  const taskMap = new Map();
+
+  function addTask(meta) {
+    if (!meta?.url) return;
+    if (taskMap.has(meta.url)) return;
+    taskMap.set(meta.url, true);
+    tasks.push(meta);
+  }
 
   if (Array.isArray(urls)) {
     for (const rawUrl of urls) {
@@ -188,82 +239,94 @@ exports.handler = async (event) => {
       if (!original) continue;
       try {
         const parsed = safeParseUrl(original);
-        const sourceInfo = newsSources.getSourceByUrl(parsed.href);
-        tasksMap.set(parsed.href, {
-          url: parsed.href,
-          source: sourceInfo?.key || 'custom',
-          discovered: false,
-        });
+        const href = parsed.href;
+        const sourceKey = resolveSourceKey(href);
+        addTask({ url: href, source: sourceKey, discovered: false });
       } catch (err) {
-        initialResults.push({
+        results.push({
           success: false,
           url: original,
           source: 'custom',
           discovered: false,
-          error: 'INVALID_URL',
-          detail: err?.message || null,
+          error: err?.message || 'INVALID_URL',
+          detail: err?.detail || null,
           timestamp: new Date().toISOString(),
         });
       }
     }
   }
 
-  if (discover || tasksMap.size === 0) {
-    const discovered = await discoverUrls({
-      sources: normalizedSources,
-      keywords,
-      maxUrls: limit,
-      useRSS: useRSS !== false,
-      useSearch: Boolean(keywords),
-      useSitemap: false,
-    });
-    for (const item of discovered) {
-      const link = String(item.url || '').trim();
-      if (!link) continue;
-      if (!tasksMap.has(link)) {
-        tasksMap.set(link, {
-          url: link,
-          source: item.source || (newsSources.getSourceByUrl(link)?.key || 'discovered'),
-          discovered: true,
-          title: item.title || null,
-          date: item.date || item.publishedAt || null,
-        });
+  if (discover === true || tasks.length === 0) {
+    try {
+      const discovered = await discovery.discover({
+        sources: normalizedSources,
+        keywords: String(keywords || ''),
+        maxUrls: limit,
+        useRSS: useRSS !== false,
+        useSearch: Boolean(keywords),
+      });
+      for (const item of discovered || []) {
+        if (tasks.length >= limit) break;
+        const rawUrl = String(item?.url || '').trim();
+        if (!rawUrl) continue;
+        try {
+          const parsed = safeParseUrl(rawUrl);
+          const href = parsed.href;
+          const sourceKey = resolveSourceKey(href, item?.source);
+          addTask({
+            url: href,
+            source: sourceKey,
+            discovered: true,
+            title: item?.title,
+            date: item?.date,
+          });
+        } catch (err) {
+          results.push({
+            success: false,
+            url: rawUrl,
+            source: resolveSourceKey(rawUrl, item?.source),
+            discovered: true,
+            error: err?.message || 'INVALID_URL',
+            detail: err?.detail || null,
+            timestamp: new Date().toISOString(),
+          });
+        }
       }
+    } catch (err) {
+      results.push({
+        success: false,
+        url: null,
+        source: 'discovery',
+        discovered: true,
+        error: err?.code || err?.message || 'DISCOVERY_FAILED',
+        detail: err?.detail || err?.message || null,
+        timestamp: new Date().toISOString(),
+      });
     }
   }
 
-  const tasks = Array.from(tasksMap.values()).slice(0, limit);
+  const queued = await Promise.all(tasks.map((task) => queue.add(() => processTask(task))));
+  results.push(...queued);
 
-  if (tasks.length === 0) {
-    return jsonResponse({
-      success: true,
-      mode,
-      stats: { total: initialResults.length, successful: 0, failed: initialResults.length, ma_detected: 0, deals_with_value: 0 },
-      results: initialResults,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  const queuedResults = await Promise.all(tasks.map((task) => queue.add(() => scrapeTask(task))));
-  const combinedResults = [...initialResults, ...queuedResults];
-
-  const successful = combinedResults.filter((item) => item.success);
-  const detected = successful.filter((item) => (item.data?.confidence || 0) >= Number(minConfidence || 0));
-  const dealsWithValue = successful.filter((item) => item.data?.dealValue);
+  const minConfidenceNumber = Number(minConfidence) || 0;
+  const successes = results.filter((r) => r && r.success);
+  const failures = results.length - successes.length;
+  const maDetected = successes.filter((r) => Number(r?.data?.confidence || 0) >= minConfidenceNumber).length;
+  const dealsWithValue = successes.filter((r) => r?.data?.dealValue).length;
 
   return jsonResponse({
     success: true,
     mode,
     stats: {
-      total: combinedResults.length,
-      successful: successful.length,
-      failed: combinedResults.length - successful.length,
-      ma_detected: detected.length,
-      deals_with_value: dealsWithValue.length,
+      total: results.length,
+      successful: successes.length,
+      failed: failures,
+      ma_detected: maDetected,
+      deals_with_value: dealsWithValue,
     },
-    dateRange,
-    minConfidence: Number(minConfidence || 0),
-    results: combinedResults,
+    dateRange: dateRange && typeof dateRange === 'object' ? dateRange : {},
+    minConfidence: minConfidenceNumber,
+    results,
     timestamp: new Date().toISOString(),
   });
 };
