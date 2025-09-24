@@ -23,6 +23,9 @@ const decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
 
 function headersToObject(headers) {
   const out = {};
+  if (!headers || typeof headers.forEach !== 'function') {
+    return out;
+  }
   headers.forEach((value, key) => {
     out[key] = value;
   });
@@ -110,31 +113,34 @@ function resolveSourceKey(url, hint) {
 }
 
 async function processTask(task) {
-  const timestamp = () => new Date().toISOString();
+  const now = () => new Date().toISOString();
+  const baseMeta = {
+    url: task.url,
+    source: task.source || 'custom',
+    discovered: Boolean(task.discovered),
+    title: task.title ?? null,
+    date: task.date ?? null,
+  };
   let parsed;
   try {
     parsed = safeParseUrl(task.url);
   } catch (err) {
     return {
       success: false,
-      url: task.url,
-      source: task.source,
-      discovered: Boolean(task.discovered),
-      error: err?.message || 'INVALID_URL',
+      ...baseMeta,
+      error: 'INVALID_URL',
       detail: err?.detail || null,
-      timestamp: timestamp(),
+      timestamp: now(),
     };
   }
 
   if (isBlockedHostname(parsed.hostname)) {
     return {
       success: false,
-      url: task.url,
-      source: task.source,
-      discovered: Boolean(task.discovered),
+      ...baseMeta,
       error: 'BLOCKED_HOST',
       detail: parsed.hostname,
-      timestamp: timestamp(),
+      timestamp: now(),
     };
   }
 
@@ -160,24 +166,20 @@ async function processTask(task) {
 
     return {
       success: true,
-      url: task.url,
+      ...baseMeta,
       finalUrl: finalHref,
-      source: task.source,
-      discovered: Boolean(task.discovered),
       status: response.status,
       bytes: bytesRead,
       data,
-      timestamp: timestamp(),
+      timestamp: now(),
     };
   } catch (err) {
     return {
       success: false,
-      url: task.url,
-      source: task.source,
-      discovered: Boolean(task.discovered),
+      ...baseMeta,
       error: err?.code || err?.message || 'SCRAPE_FAILED',
       detail: err?.detail || err?.message || null,
-      timestamp: timestamp(),
+      timestamp: now(),
     };
   }
 }
@@ -248,8 +250,8 @@ exports.handler = async (event = {}) => {
           url: original,
           source: 'custom',
           discovered: false,
-          error: err?.message || 'INVALID_URL',
-          detail: err?.detail || null,
+          error: 'INVALID_URL',
+          detail: err?.detail || err?.message || null,
           timestamp: new Date().toISOString(),
         });
       }
@@ -286,8 +288,8 @@ exports.handler = async (event = {}) => {
             url: rawUrl,
             source: resolveSourceKey(rawUrl, item?.source),
             discovered: true,
-            error: err?.message || 'INVALID_URL',
-            detail: err?.detail || null,
+            error: 'INVALID_URL',
+            detail: err?.detail || err?.message || null,
             timestamp: new Date().toISOString(),
           });
         }
