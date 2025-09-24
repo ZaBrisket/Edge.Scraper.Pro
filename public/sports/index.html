@@ -8,20 +8,17 @@
 </head>
 <body data-mode="sports" data-force-sports="true">
     <div class="container">
-        <header class="header">
-            <div class="brand">EdgeScraperPro</div>
-            <nav class="nav">
-                <a href="/">Tools</a>
-                <a href="/news/">News</a>
-                <a href="/sports/" class="active">Sports</a>
-                <a href="/companies/">Companies</a>
-                <a href="/targets/">Targets</a>
-                <a href="/nda/">NDA</a>
-            </nav>
-        </header>
+        <div data-component="navigation" data-active="sports"></div>
+        <div data-component="error" id="globalError"></div>
 
         <main>
             <h1>Sports Statistics Scraper</h1>
+
+            <noscript>
+                <div class="section">
+                    Sports extraction requires JavaScript for live parsing. Enable JavaScript to proceed.
+                </div>
+            </noscript>
             <p class="lede">Bulk process game recaps and stat pages to normalize box scores and structured player data.</p>
 
             <section class="section">
@@ -142,6 +139,11 @@
     </div>
 
     <script src="/http-client.js"></script>
+    <script src="/config.js"></script>
+    <script src="/components/navigation.js"></script>
+    <script src="/components/error-handler.js"></script>
+    <script src="/components/file-uploader.js"></script>
+    <script src="/components/loader.js"></script>
     <script src="/enhanced-url-validator.js"></script>
     <script src="/batch-processor.js"></script>
     <script src="/assets/js/bulk-scraper.js"></script>

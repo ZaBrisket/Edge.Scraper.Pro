@@ -75,6 +75,33 @@ NODE_ENV=production
 - **URL Validation**: Built-in validation for common patterns
 - **Rate Limiting**: Respectful scraping with configurable limits
 
+## 🧱 Brutalist UI System
+
+The standalone HTML experience now shares a monochrome brutalist design system that is enforced across every tool.
+
+- **Global CSS**: `/public/assets/css/brutalist.css` defines reusable tokens (`--color-ink`, spacing scale, breakpoints) and layout primitives used by all pages.
+- **Configurable Limits**: `/public/config.js` exposes `window.APP_CONFIG` for maximum file size, concurrency caps, and default sports mode behaviour. Client-side scripts reference these values before any processing begins.
+- **Reusable Components**: Navigation, error handling, and the file uploader live under `/public/components/`. Each component registers itself on `window.EdgeComponents`:
+  - `renderNavigation(root, activeId)` injects the shared header and sets the active link.
+  - `mountErrorHandler(el)`, `showError(el, message)`, and `clearError(el)` provide consistent error messaging.
+  - `initializeFileUploader(options)` wires drag-and-drop zones with size/type validation based on `APP_CONFIG`.
+- **Component Loader**: `/public/components/loader.js` auto-mounts navigation and error containers on `DOMContentLoaded`.
+
+Run the lightweight bundler to emit a concatenated component bundle and minified CSS snapshot for deployments that prefer single-file assets:
+
+```bash
+node build.js
+```
+
+The script writes artefacts to `dist/components.bundle.js` and `dist/brutalist.css`.
+
+## ♿ Accessibility & Progressive Enhancement
+
+- Every page renders a consistent header with semantic navigation and `aria-current` markers.
+- `<noscript>` fallbacks explain limitations when JavaScript is disabled.
+- Error banners use live regions so assistive technologies announce failures immediately.
+- Result tables remain accessible and cache their most recent payload in `localStorage` so users can revisit exports without re-running scrapes.
+
 ## 🛠️ API Endpoints
 
 ### Fetch URL

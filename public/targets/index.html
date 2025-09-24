@@ -12,23 +12,20 @@
   </head>
 <body>
   <div class="container">
-    <header class="header">
-      <div class="brand">EdgeScraperPro</div>
-      <nav class="nav">
-        <a href="/">Tools</a>
-        <a href="/news/">News</a>
-        <a href="/sports/">Sports</a>
-        <a href="/companies/">Companies</a>
-        <a href="/targets/" class="active">Targets</a>
-        <a href="/nda/">NDA</a>
-      </nav>
-    </header>
-    
+    <div data-component="navigation" data-active="targets"></div>
+    <div data-component="error" id="globalError"></div>
+
     <main>
       <header class="page-header">
         <h1>M&A Target List Builder — Standardized Summaries</h1>
         <p>Upload a SourceScrub (or similar) CSV/XLSX, map automatically, and export standardized one‑liners.</p>
       </header>
+
+      <noscript>
+        <div class="card">
+          JavaScript is required for mapping and preview. Enable JavaScript to process target lists.
+        </div>
+      </noscript>
 
       <section class="card">
         <h2>1) Upload file</h2>
@@ -64,6 +61,10 @@
       </section>
     </main>
   </div>
+  <script src="/config.js"></script>
+  <script src="/components/navigation.js"></script>
+  <script src="/components/error-handler.js"></script>
+  <script src="/components/loader.js"></script>
   <!-- Vendors -->
   <script src="../vendor/papaparse.min.js"></script>
   <script src="../vendor/xlsx.full.min.js"></script>

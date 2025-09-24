@@ -18,25 +18,25 @@
   textarea { width:100%; min-height:200px; font-family:'Courier New', Courier, monospace; font-size:14px; }
   input[type="file"] { display:block; margin:8px 0 4px 0; }
   .btn { display:inline-flex; gap:8px; align-items:center; }
-  .btn.secondary { background:var(--bg); color:var(--fg); }
+  .btn.secondary { background:var(--color-paper); color:var(--color-ink); }
   .btn.small { padding:8px 16px; font-size:14px; }
   .btn:disabled { opacity:0.6; cursor:not-allowed; }
-  .status { padding:6px 12px; border:1px solid var(--border); font-size:12px; text-transform:uppercase; letter-spacing:1px; display:inline-flex; gap:8px; align-items:center; }
+  .status { padding:6px 12px; border:1px solid var(--color-ink); font-size:12px; text-transform:uppercase; letter-spacing:1px; display:inline-flex; gap:8px; align-items:center; }
   .status.idle { border-style:dashed; }
   .status.ok { border-style:solid; }
   .status.bad { border-style:double; }
-  .issues { max-height:420px; overflow:auto; border:1px solid var(--border); }
-  .issue { display:grid; grid-template-columns: 28px 1fr 120px 90px; gap:8px; padding:12px; border-bottom:1px solid var(--border); }
+  .issues { max-height:420px; overflow:auto; border:1px solid var(--color-ink); }
+  .issue { display:grid; grid-template-columns: 28px 1fr 120px 90px; gap:8px; padding:12px; border-bottom:1px solid var(--color-ink); }
   .issue:last-child { border-bottom:none; }
-  .pill { padding:2px 8px; border:1px solid var(--border); font-size:12px; text-transform:uppercase; letter-spacing:1px; display:inline-block; }
+  .pill { padding:2px 8px; border:1px solid var(--color-ink); font-size:12px; text-transform:uppercase; letter-spacing:1px; display:inline-block; }
   .sev-low { border-style:dotted; }
   .sev-med { border-style:dashed; }
   .sev-high { border-style:solid; font-weight:700; }
-  .diff { font-family:'Courier New', Courier, monospace; white-space:pre-wrap; border:1px solid var(--border); padding:16px; }
+  .diff { font-family:'Courier New', Courier, monospace; white-space:pre-wrap; border:1px solid var(--color-ink); padding:16px; }
   del { text-decoration:line-through; }
   ins { text-decoration:underline; }
   .searchbar { display:flex; gap:8px; align-items:center; margin:8px 0;}
-  .searchbar input, .searchbar select { padding:8px; border:1px solid var(--border); font:inherit; background:var(--bg); }
+  .searchbar input, .searchbar select { padding:8px; border:1px solid var(--color-ink); font:inherit; background:var(--color-paper); }
   .searchbar input { flex:1; }
   .grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px;}
   .small { font-size:12px; }
@@ -44,21 +44,18 @@
 </head>
 <body>
   <div class="container">
-    <header class="header">
-      <div class="brand">EdgeScraperPro</div>
-      <nav class="nav">
-        <a href="/">Tools</a>
-        <a href="/news/">News</a>
-        <a href="/sports/">Sports</a>
-        <a href="/companies/">Companies</a>
-        <a href="/targets/">Targets</a>
-        <a href="/nda/" class="active">NDA</a>
-      </nav>
-    </header>
+    <div data-component="navigation" data-active="nda"></div>
+    <div data-component="error" id="globalError"></div>
 
     <main>
   <h1>NDA Reviewer 2.0</h1>
   <p class="muted">Upload a <strong>.docx</strong> NDA or paste its text. All analysis runs locally; DOCX parsing and Word export are processed by Netlify Functions. Not legal advice.</p>
+
+  <noscript>
+    <div class="panel">
+      NDA review requires JavaScript for parsing and exports. Enable JavaScript to continue.
+    </div>
+  </noscript>
 
   <div class="panel">
     <div class="row">
@@ -117,6 +114,10 @@
 </main>
   </div>
 
+<script src="/config.js"></script>
+<script src="/components/navigation.js"></script>
+<script src="/components/error-handler.js"></script>
+<script src="/components/loader.js"></script>
 <script src="/nda/policyEngine.browser.js"></script>
 <script src="/nda/nda-reviewer.js"></script>
 </body>

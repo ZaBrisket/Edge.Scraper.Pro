@@ -8,23 +8,20 @@
 </head>
 <body>
     <div class="container">
-        <header class="header">
-            <div class="brand">EdgeScraperPro</div>
-            <nav class="nav">
-                <a href="/" class="active">Tools</a>
-                <a href="/news/">News</a>
-                <a href="/sports/">Sports</a>
-                <a href="/companies/">Companies</a>
-                <a href="/targets/">Targets</a>
-                <a href="/nda/">NDA</a>
-            </nav>
-        </header>
-        
+        <div data-component="navigation" data-active="tools"></div>
+        <div data-component="error" id="globalError"></div>
+
         <main>
             <h1>Web Data Extraction Tools</h1>
             <p class="lede">
                 Select a tool to begin extracting structured data from the web
             </p>
+
+            <noscript>
+                <div class="section">
+                    JavaScript is required to use the interactive scrapers. Enable JavaScript or use the upload endpoints directly.
+                </div>
+            </noscript>
             
             <div class="tools-grid">
                 <a href="/news/" class="tool-card">
@@ -54,5 +51,10 @@
             </div>
         </main>
     </div>
+
+    <script src="/config.js"></script>
+    <script src="/components/navigation.js"></script>
+    <script src="/components/error-handler.js"></script>
+    <script src="/components/loader.js"></script>
 </body>
 </html>

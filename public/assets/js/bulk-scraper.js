@@ -1,6 +1,53 @@
 (function() {
   'use strict';
 
+  const APP_CONFIG = window.APP_CONFIG || {
+    MAX_FILE_SIZE: 5 * 1024 * 1024,
+    MAX_URLS: 1000,
+    CONCURRENT_REQUESTS: 3,
+    API_TIMEOUT: 30000,
+    SPORTS_MODE_DEFAULT: false
+  };
+
+  const components = window.EdgeComponents || {};
+  const STORAGE_KEY = 'edge-scraper:lastResults';
+  const errorBanner = document.getElementById('globalError');
+  const dependencyState = { requireSports: false };
+
+  function showError(message) {
+    if (!message) {
+      return;
+    }
+    if (components.showError && errorBanner) {
+      components.showError(errorBanner, message);
+    } else {
+      alert(message);
+    }
+  }
+
+  function clearError() {
+    if (components.clearError && errorBanner) {
+      components.clearError(errorBanner);
+    }
+  }
+
+  function validateDependencies() {
+    const missing = [];
+    if (!window.EdgeScraper) {
+      missing.push('EdgeScraper');
+    }
+    if (dependencyState.requireSports && !window.SportsExtractor) {
+      missing.push('SportsExtractor');
+    }
+    if (missing.length) {
+      showError(`Missing dependencies: ${missing.join(', ')}`);
+      throw new Error(`Missing dependencies: ${missing.join(', ')}`);
+    }
+    clearError();
+  }
+
+  document.addEventListener('DOMContentLoaded', validateDependencies, { once: true });
+
   const dropzone = document.getElementById('dropzone');
   const fileInput = document.getElementById('fileInput');
   const urlInput = document.getElementById('urlInput');
@@ -12,7 +59,13 @@
 
   const dataset = document.body.dataset || {};
   const defaultMode = dataset.mode || 'general';
-  const forceSports = dataset.forceSports === 'true';
+  const forceSports = dataset.forceSports === 'true' || !!APP_CONFIG.SPORTS_MODE_DEFAULT;
+  dependencyState.requireSports = forceSports;
+  try {
+    validateDependencies();
+  } catch (error) {
+    console.error(error);
+  }
 
   const SPORTS_EXTRACTOR_SRC = '/sports-extractor.js';
   let sportsExtractorPromise = null;
@@ -119,61 +172,49 @@
 
     elements.sportsMode.addEventListener('change', event => {
       if (!event.target.checked) {
+        dependencyState.requireSports = forceSports;
         return;
+      }
+
+      dependencyState.requireSports = true;
+      try {
+        validateDependencies();
+      } catch (validationError) {
+        console.error('Sports extractor dependency missing', validationError);
       }
 
       ensureSportsExtractor().catch(error => {
         console.error('Sports extractor failed to load', error);
-        alert('Sports extractor failed to load. Sports mode has been disabled.');
+        showError('Sports extractor failed to load. Sports mode has been disabled.');
         event.target.checked = false;
+        dependencyState.requireSports = forceSports;
       });
     });
   }
 
-  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-    dropzone.addEventListener(eventName, preventDefaults, false);
-    document.body.addEventListener(eventName, preventDefaults, false);
-  });
-
-  function preventDefaults(event) {
-    event.preventDefault();
-    event.stopPropagation();
-  }
-
-  ['dragenter', 'dragover'].forEach(eventName => {
-    dropzone.addEventListener(eventName, () => {
-      dropzone.classList.add('dragover');
+  if (components.initializeFileUploader) {
+    components.initializeFileUploader({
+      dropzone,
+      fileInput,
+      selectButton: elements.selectFilesBtn,
+      errorTarget: errorBanner,
+      config: {
+        maxSize: APP_CONFIG.MAX_FILE_SIZE,
+        accept: ['.txt', '.json']
+      },
+      onFiles(files) {
+        handleFiles(files);
+      }
     });
-  });
-
-  ['dragleave', 'drop'].forEach(eventName => {
-    dropzone.addEventListener(eventName, () => {
-      dropzone.classList.remove('dragover');
-    });
-  });
-
-  dropzone.addEventListener('drop', event => {
-    const files = event.dataTransfer.files;
-    handleFiles(files);
-  });
-
-  fileInput.addEventListener('change', event => {
-    handleFiles(event.target.files);
-  });
-
-  if (elements.selectFilesBtn) {
-    elements.selectFilesBtn.addEventListener('click', event => {
+  } else {
+    dropzone.addEventListener('drop', event => {
       event.preventDefault();
-      event.stopPropagation();
-      fileInput.click();
+      handleFiles(event.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', event => {
+      handleFiles(event.target.files);
     });
   }
-
-  dropzone.addEventListener('click', event => {
-    if (event.target.tagName !== 'BUTTON' && !event.target.closest('button')) {
-      fileInput.click();
-    }
-  });
 
   function handleFiles(files) {
     [...files].forEach(file => {
@@ -182,7 +223,9 @@
       } else if (file.type === 'application/json' || file.name.endsWith('.json')) {
         readJsonFile(file);
       } else {
-        console.warn('Unsupported file type:', file.type, 'for file:', file.name);
+        const message = `Unsupported file type: ${file.type || 'unknown'} (${file.name})`;
+        console.warn(message);
+        showError(message);
       }
     });
   }
@@ -195,9 +238,10 @@
         .filter(line => line.trim() && !line.startsWith('#'))
         .join('\n');
       urlInput.value = urls;
+      clearError();
     };
     reader.onerror = () => {
-      alert('Error reading file: ' + file.name);
+      showError('Error reading file: ' + file.name);
     };
     reader.readAsText(file);
   }
@@ -209,32 +253,72 @@
         const data = JSON.parse(event.target.result);
         const urls = Array.isArray(data) ? data : (data.urls || []);
         urlInput.value = urls.join('\n');
+        clearError();
       } catch (error) {
         console.error('Invalid JSON file:', error);
-        alert('Invalid JSON file format: ' + error.message);
+        showError('Invalid JSON file format: ' + error.message);
       }
     };
     reader.onerror = () => {
-      alert('Error reading file: ' + file.name);
+      showError('Error reading file: ' + file.name);
     };
     reader.readAsText(file);
   }
 
+  function sanitizeUrl(raw) {
+    if (!raw) return null;
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+
+    try {
+      const direct = new URL(trimmed);
+      if (!/^https?:$/.test(direct.protocol)) {
+        return null;
+      }
+      direct.hash = '';
+      return direct.toString();
+    } catch {
+      try {
+        const withProtocol = new URL(`https://${trimmed}`);
+        if (!/^https?:$/.test(withProtocol.protocol)) {
+          return null;
+        }
+        withProtocol.hash = '';
+        return withProtocol.toString();
+      } catch {
+        return null;
+      }
+    }
+  }
+
   function parseUrls() {
     const text = urlInput.value;
-    const urls = text
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line && !line.startsWith('#'))
-      .filter(line => {
-        try {
-          new URL(line);
-          return true;
-        } catch {
-          return false;
-        }
-      });
-    return [...new Set(urls)];
+    const urls = [];
+    const rejected = [];
+
+    text.split('\n').forEach(line => {
+      if (!line || line.startsWith('#')) {
+        return;
+      }
+      const sanitized = sanitizeUrl(line);
+      if (sanitized) {
+        urls.push(sanitized);
+      } else {
+        rejected.push(line.trim());
+      }
+    });
+
+    const unique = Array.from(new Set(urls));
+    if (unique.length > APP_CONFIG.MAX_URLS) {
+      showError(`Trimming URL list to ${APP_CONFIG.MAX_URLS} entries to respect rate limits.`);
+    }
+    const limited = unique.slice(0, APP_CONFIG.MAX_URLS);
+
+    if (rejected.length) {
+      console.warn('Rejected invalid URLs:', rejected);
+    }
+
+    return limited;
   }
 
   function formatBytes(bytes) {
@@ -387,8 +471,14 @@
   }
 
   async function processUrls() {
-    const concurrency = elements.concurrency ? parseInt(elements.concurrency.value, 10) || 1 : 1;
-    const delay = elements.delay ? parseInt(elements.delay.value, 10) || 0 : 0;
+    const requestedConcurrency = elements.concurrency ? parseInt(elements.concurrency.value, 10) || APP_CONFIG.CONCURRENT_REQUESTS : APP_CONFIG.CONCURRENT_REQUESTS;
+    const concurrency = Math.max(1, Math.min(requestedConcurrency, APP_CONFIG.CONCURRENT_REQUESTS));
+    if (elements.concurrency && requestedConcurrency !== concurrency) {
+      showError(`Concurrency capped at ${APP_CONFIG.CONCURRENT_REQUESTS} to respect rate limits.`);
+      elements.concurrency.value = concurrency;
+    }
+
+    const delay = Math.max(0, elements.delay ? parseInt(elements.delay.value, 10) || 0 : 0);
 
     state.processedCount = 0;
     state.results = [];
@@ -492,21 +582,39 @@
     URL.revokeObjectURL(url);
   }
 
+  function restoreCachedResults() {
+    try {
+      const cached = localStorage.getItem(STORAGE_KEY);
+      if (!cached) {
+        return;
+      }
+      const parsed = JSON.parse(cached);
+      if (!Array.isArray(parsed.results) || parsed.results.length === 0) {
+        return;
+      }
+      state.results = parsed.results;
+      if (elements.resultsBody) {
+        elements.resultsBody.innerHTML = '';
+      }
+      updateResults(state.results);
+      if (elements.results) {
+        elements.results.classList.add('active');
+      }
+    } catch (error) {
+      console.warn('Failed to restore cached results', error);
+    }
+  }
+
   async function startScraping() {
     state.urls = parseUrls();
 
     if (state.urls.length === 0) {
-      alert('Please enter at least one valid URL');
-      return;
-    }
-
-    if (state.urls.length > 1500) {
-      alert('Maximum 1,500 URLs allowed');
+      showError('Please enter at least one valid URL.');
       return;
     }
 
     if (!hasEdgeScraper()) {
-      alert('The EdgeScraper client failed to load. Please refresh the page and try again.');
+      showError('The EdgeScraper client failed to load. Please refresh the page and try again.');
       return;
     }
 
@@ -517,7 +625,7 @@
         await ensureSportsExtractor();
       } catch (error) {
         console.error('Sports extractor failed to initialize', error);
-        alert('Sports extractor failed to load. Disable sports mode or refresh the page.');
+        showError('Sports extractor failed to load. Disable sports mode or refresh the page.');
         return;
       }
     }
@@ -525,6 +633,7 @@
     state.isProcessing = true;
     state.startTime = Date.now();
 
+    clearError();
     startButton.disabled = true;
     if (elements.progress) {
       elements.progress.classList.add('active');
@@ -548,7 +657,7 @@
       await processUrls();
     } catch (error) {
       console.error('Unexpected error during processing', error);
-      alert('Unexpected error during processing: ' + error.message);
+      showError('Unexpected error during processing: ' + error.message);
     }
 
     state.isProcessing = false;
@@ -570,6 +679,15 @@
         .map(r => JSON.stringify(r.data, null, 2))
         .join('\n\n');
     }
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        timestamp: Date.now(),
+        results: state.results
+      }));
+    } catch (storageError) {
+      console.warn('Failed to persist results', storageError);
+    }
   }
 
   startButton.addEventListener('click', startScraping);
@@ -577,5 +695,14 @@
     elements.exportButton.addEventListener('click', exportResults);
   }
 
+  restoreCachedResults();
   window.startScraping = startScraping;
+  window.__BulkScraperTestHooks = {
+    exportResults,
+    setResults(results) {
+      if (Array.isArray(results)) {
+        state.results = results;
+      }
+    }
+  };
 })();
