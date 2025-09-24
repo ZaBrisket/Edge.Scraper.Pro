@@ -4,8 +4,11 @@
   "description": "Professional web scraper with sports data extraction",
   "main": "public/index.html",
   "scripts": {
-    "test": "jest",
-    "build": "npm run build:functions",
+    "test": "npm run test:unit && npm run test:nda",
+    "test:nda": "jest --config jest.nda.config.js --runInBand",
+    "test:unit": "jest --config jest.config.js --runInBand",
+    "build": "npm run build:nda && npm run build:functions",
+    "build:nda": "node tools/build-nda-policy.js",
     "build:functions": "cd netlify/functions && npm run build || echo 'No function build needed'",
     "serve": "npx http-server public -p 8080",
     "dev": "netlify dev",
@@ -25,8 +28,10 @@
     "csv-stringify": "^6.6.0",
     "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",
+    "fast-xml-parser": "^4.3.5",
     "jsdom": "^26.1.0",
     "jsonwebtoken": "^9.0.2",
+    "jszip": "^3.10.1",
     "natural": "^8.1.0",
     "p-queue": "^8.1.1",
     "pino": "^8.15.0",
@@ -37,6 +42,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "esbuild": "^0.24.0",
     "@types/jest": "^30.0.0",
     "eslint": "^9.35.0",
     "http-server": "^14.1.1",
