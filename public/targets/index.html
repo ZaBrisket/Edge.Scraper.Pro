@@ -23,7 +23,7 @@
   <main id="main" class="container">
     <h1>M&amp;A Target List Builder</h1>
     <p class="banner">This page preserves the original Target Lists UI.</p>
-    <iframe class="app-frame" data-loading="true" title="Target Lists App" src="/targets/app.html" loading="eager"></iframe>
+    <iframe class="app-frame" data-loading="true" title="Target Lists App" src="/targets/app.html" data-src="/targets/app.html" loading="eager"></iframe>
   </main>
 
   <footer class="site-footer"><div class="container"><small>All processing remains client-side as before.</small></div></footer>
@@ -31,13 +31,31 @@
     (function(){
       var iframe = document.querySelector('.app-frame');
       if(!iframe) return;
+
+      // Add retry mechanism
+      var retryCount = 0;
+      var maxRetries = 3;
+
+      function loadFrame() {
+        var src = iframe.getAttribute('data-src') || iframe.getAttribute('src');
+        if (!src) return;
+        iframe.src = src;
+      }
+
       iframe.addEventListener('load', function(){
         iframe.removeAttribute('data-loading');
         iframe.removeAttribute('data-error');
+        retryCount = 0;
       });
+
       iframe.addEventListener('error', function(){
-        iframe.setAttribute('data-error', 'true');
-        iframe.removeAttribute('data-loading');
+        if(retryCount < maxRetries) {
+          retryCount++;
+          setTimeout(loadFrame, 1000 * retryCount);
+        } else {
+          iframe.setAttribute('data-error', 'true');
+          iframe.removeAttribute('data-loading');
+        }
       });
     })();
   </script>

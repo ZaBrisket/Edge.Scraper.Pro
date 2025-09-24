@@ -50,7 +50,7 @@ main{padding:var(--g4) 0}
 
 /* Iframe wrappers */
 .banner{border:1px solid var(--border);padding:var(--g2);background:#fafafa}
-.app-frame{width:100%;height:calc(100vh - 200px);border:1px solid var(--border);background:var(--bg);position:relative}
+.app-frame{width:100%;min-height:800px;height:calc(100vh - 200px);border:1px solid var(--border);background:var(--bg);display:block;position:relative}
 .app-frame[data-loading="true"]{background:#f8f8f8}
 .app-frame[data-loading="true"]::before{
   content:"Loading application...";

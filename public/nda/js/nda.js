@@ -129,7 +129,7 @@ async function loadDefaultPlaybook() {
   }
 
   try {
-    const res = await fetch("./checklist/edgewater.json", { cache: "no-store" });
+    const res = await fetch("/nda/checklist/edgewater.json", { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const pb = await res.json();
     state.playbook = pb;
