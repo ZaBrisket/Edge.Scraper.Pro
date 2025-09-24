@@ -399,4 +399,21 @@ export function resetMetrics() {
       });
     }
   });
+
+  // Ensure per-host controls do not leak across tests
+  for (const limiter of limiters.values()) {
+    try {
+      limiter.stop({ dropWaitingJobs: true });
+    } catch (err) {
+      // ignore errors during cleanup to preserve reset semantics
+    }
+  }
+  limiters.clear();
+  circuits.clear();
+  limiterTimestamps.clear();
+  circuitTimestamps.clear();
+
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+  }
 }

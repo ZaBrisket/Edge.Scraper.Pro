@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>EdgeScraperPro — Target Lists</title>
+  <title>EdgeScraperPro — Scrape</title>
   <link rel="stylesheet" href="/css/brutalist.css"/>
 </head>
 <body>
@@ -21,15 +21,18 @@
   </div></header>
 
   <main id="main" class="container">
-    <h1>M&amp;A Target List Builder</h1>
-    <p class="banner">This page preserves the original Target Lists UI.</p>
-    <iframe class="app-frame" data-loading="true" title="Target Lists App" src="/targets/app.html" loading="eager"></iframe>
+    <h1>Web Scraper — Bulk URL Extraction</h1>
+    <p class="banner">This page embeds the original scraper UI to preserve all existing functionality.</p>
+    <iframe id="app" class="app-frame" data-loading="true" title="Scraper App" src="/scrape/app.html" loading="eager"></iframe>
   </main>
 
-  <footer class="site-footer"><div class="container"><small>All processing remains client-side as before.</small></div></footer>
+  <footer class="site-footer"><div class="container">
+    <small>Functions: /.netlify/functions/fetch-url, /.netlify/functions/health</small>
+  </div></footer>
+
   <script>
     (function(){
-      var iframe = document.querySelector('.app-frame');
+      var iframe = document.getElementById('app');
       if(!iframe) return;
       iframe.addEventListener('load', function(){
         iframe.removeAttribute('data-loading');

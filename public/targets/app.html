@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>EdgeScraperPro — M&A Target List Builder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./styles.css" />
+  <meta name="robots" content="noindex" />
+  <style>
+  </style>
+  </head>
+<body>
+  <header class="page-header">
+    <h1>M&A Target List Builder — Standardized Summaries</h1>
+    <p>Upload a SourceScrub (or similar) CSV/XLSX, map automatically, and export standardized one‑liners.</p>
+  </header>
+
+  <section class="card">
+    <h2>1) Upload file</h2>
+    <div class="uploader">
+      <input id="fileInput" type="file" accept=".csv,.xlsx,.xls" />
+      <div class="hint">Accepts CSV/XLSX. Large files handled via streaming where possible.</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2) Field mapping (auto)</h2>
+    <div id="mappingSummary" class="mapping-summary">Waiting for file…</div>
+  </section>
+
+  <section class="card">
+    <h2>3) Preview standardized summaries</h2>
+    <div class="actions">
+      <button id="btnExportCsv" disabled>Export CSV</button>
+      <button id="btnExportXlsx" disabled>Export XLSX</button>
+    </div>
+    <div id="resultsContainer" class="table-container">
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th>Company Name</th>
+            <th>Website</th>
+            <th>Summary</th>
+          </tr>
+        </thead>
+        <tbody><!-- populated by JS --></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Vendors -->
+  <script src="../vendor/papaparse.min.js"></script>
+  <script src="../vendor/xlsx.full.min.js"></script>
+
+  <!-- App -->
+  <script src="./summary-engine.js"></script>
+  <script src="./ma-targets.js"></script>
+</body>
+</html>

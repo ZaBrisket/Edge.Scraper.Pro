@@ -1,92 +1,102 @@
-# EdgeScraperPro - Standalone HTML Version
+# EdgeScraperPro — Static Tools Hub
 
-A professional web scraper with sports data extraction capabilities, now running as a pure HTML + Netlify Functions application.
+EdgeScraperPro is a static HTML application backed by Netlify Functions. The production bundle now ships a **Tools Hub** homepage that links out to the individual experiences (Scrape, Sports, Companies, Targets, NDA) rendered inside brutalist wrappers. All Netlify Function contracts remain unchanged.
 
 ## 🚀 Quick Start
 
-### Local Development
-
-1. Install dependencies:
 ```bash
-npm install
+# Install dependencies
+npm ci
+
+# Serve the static UI (http://localhost:8888)
+npx http-server public -p 8888 --silent
+
+# Or run the full stack (functions + UI)
+netlify dev
 ```
 
-2. Run locally:
-```bash
-# Using http-server
-npm run serve
+When using `http-server`, the Playwright configuration automatically boots the server for tests. Use `netlify dev` when you need live serverless functions.
 
-# Using Netlify Dev (recommended)
-npm run dev
-```
+## 🧭 Navigation Map
 
-3. Open http://localhost:8080 (or http://localhost:8888 with Netlify Dev)
+The shared header exposes consistent routes:
 
-### Deployment
+| Path            | Description                                   |
+|-----------------|-----------------------------------------------|
+| `/`             | Tools Hub cards linking to every experience   |
+| `/scrape/`      | General scraper (iframe embedding `app.html`) |
+| `/sports/`      | Scraper wrapper with Sports preset heuristics |
+| `/companies/`   | Scraper wrapper with Companies preset         |
+| `/targets/`     | Targets processor iframe                      |
+| `/nda/`         | NDA Reviewer v2 iframe                        |
 
-This app is configured for Netlify deployment:
-
-```bash
-git push origin main
-```
-
-Netlify will automatically:
-- Serve the `public/` directory as static files
-- Deploy serverless functions from `netlify/functions/`
-- Apply environment variables from netlify.toml
+Each wrapper uses `/css/brutalist.css` and `/js/nav.js` to keep typography, spacing, focus states, and active navigation in sync.
 
 ## 📁 Project Structure
 
 ```
-edge-scraper-pro/
-├── public/                      # Static HTML application
-│   ├── index.html              # Main application
-│   ├── batch-processor.js      # Batch processing logic
-│   ├── enhanced-url-validator.js # URL validation
-│   ├── pfr-validator.js        # Sports-specific validation
-│   └── sports-extractor.js     # Sports content extraction
-├── netlify/
-│   └── functions/              # Serverless functions
-│       ├── fetch-url.js        # Main scraping endpoint
-│       └── health.js           # Health check
-├── src/                        # Shared libraries (for functions)
-├── netlify.toml               # Netlify configuration
-├── package.json               # Minimal dependencies
-└── .env                       # Local environment variables
+Edge.Scraper.Pro/
+├── public/
+│   ├── index.html            # Tools Hub landing page
+│   ├── scrape/
+│   │   ├── index.html        # Wrapper with iframe
+│   │   └── app.html          # Legacy scraper SPA
+│   ├── sports/index.html     # Sports preset wrapper
+│   ├── companies/index.html  # Companies preset wrapper
+│   ├── targets/
+│   │   ├── index.html        # Wrapper shell
+│   │   └── app.html          # Original targets UI
+│   └── nda/
+│       ├── index.html        # Wrapper shell
+│       └── app.html          # NDA Reviewer 2.0
+├── netlify/functions/        # Serverless functions (fetch-url, ma-news-scraper, …)
+├── src/                      # Shared libraries used by functions
+├── tests/                    # Playwright E2E + Jest unit tests
+└── netlify.toml              # Redirects and function config
 ```
 
-## 🔧 Environment Variables
+## 🧪 Testing
 
-Set these in Netlify Dashboard > Site settings > Environment variables:
-
+### Unit tests
 ```bash
-BYPASS_AUTH=true
-HTTP_DEADLINE_MS=15000
-PUBLIC_API_KEY=public-2024
-NODE_ENV=production
+npm test
+```
+This runs Jest against `src/` plus the custom specs under `tests/`, including the new `tests/unit/ma-news-scraper.spec.js` coverage.
+
+### End-to-end tests
+```bash
+# Starts http-server automatically via playwright.config.ts
+npm run e2e
+
+# Or run the interactive UI mode
+npm run e2e:ui
+```
+Playwright stubs critical Netlify endpoints (e.g. `/.netlify/functions/fetch-url`) so the UI flows exercise without making live network calls.
+
+### Function smoke (optional)
+```bash
+netlify dev
+curl -XPOST http://localhost:8888/.netlify/functions/ma-news-scraper -H 'Content-Type: application/json' -d '{"urls":["https://example.com"]}'
 ```
 
-## 🎯 Features
+## 🛠️ Serverless Functions
 
-- **URL Scraping**: Fetch and extract content from any public URL
-- **Sports Mode**: Enhanced extraction for sports statistics sites
-- **Batch Processing**: Process multiple URLs efficiently
-- **Multiple Export Formats**: JSON, CSV, Excel
-- **URL Validation**: Built-in validation for common patterns
-- **Rate Limiting**: Respectful scraping with configurable limits
+The primary endpoints remain:
 
-## 🛠️ API Endpoints
+- `/.netlify/functions/fetch-url`
+- `/.netlify/functions/ma-news-scraper`
+- `/.netlify/functions/nda-parse-docx`
+- `/.netlify/functions/nda-export-docx`
+- `/.netlify/functions/nda-telemetry`
+- `/.netlify/functions/health`
 
-### Fetch URL
-```
-GET /.netlify/functions/fetch-url?url=https://example.com
-Headers: X-API-Key: public-2024
-```
+All responses preserve their historical shapes; recent work tightened HTTP safeguards (timeouts, byte caps, hostname denylist) inside `ma-news-scraper` without changing the request format.
 
-### Health Check
-```
-GET /.netlify/functions/health
-```
+## 🧾 Notes
+
+- Skip links remain the first interactive element on every page to support keyboard navigation.
+- Wrappers persist the preferred scraper mode using `localStorage` and `postMessage` so the embedded app restores the last preset.
+- Tests stub out expensive fetches; when introducing new functions, add equivalent stubs before enabling the flow in E2E suites.
 
 ## 📝 License
 

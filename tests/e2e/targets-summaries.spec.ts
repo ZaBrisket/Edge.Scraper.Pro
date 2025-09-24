@@ -1,29 +1,33 @@
 import { test, expect } from '@playwright/test';
+import { mkdirSync, writeFileSync } from 'fs';
+import * as path from 'path';
 
 test.describe('Targets page', () => {
   test('loads and exports after parsing sample CSV', async ({ page }) => {
     await page.goto('/targets/');
-    await expect(page.locator('h1')).toHaveText(/M&A Target List Builder/i);
-    const fileInput = page.locator('input[type="file"]');
-    await expect(fileInput).toBeVisible();
+    await expect(page.locator('h1')).toHaveText(/Target List Builder/i);
 
-    const content = `Company Name,Website,Description,Industries,End Markets
-Acme Testing,https://acme-testing.com,We provide balancing, testing and commissioning for HVAC systems.,HVAC; Building Services,Commercial; Healthcare
-Edge Widgets,edgewidgets.co,Leading provider of edge analytics hardware with global presence.,Electronics,Industrial`;
-    const path = 'outputs/test_targets_sample.csv';
-    try { const fs = require('fs'); fs.mkdirSync('outputs', { recursive: true }); fs.writeFileSync(path, content); } catch {}
+    const frame = page.frameLocator('iframe[title="Target Lists App"]');
+    await frame.locator('#fileInput').waitFor({ state: 'visible' });
 
-    await fileInput.setInputFiles(path);
-    await expect(page.locator('#mappingSummary')).toContainText(/Auto-mapped columns:/, { timeout: 15000 });
-    await expect(page.locator('#resultsTable tbody tr')).toHaveCount(2, { timeout: 15000 });
+    const content = `Company Name,Website,Description,Industries,End Markets\nAcme Testing,https://acme-testing.com,We provide balancing, testing and commissioning for HVAC systems.,HVAC; Building Services,Commercial; Healthcare\nEdge Widgets,edgewidgets.co,Leading provider of edge analytics hardware with global presence.,Electronics,Industrial`;
+    const outputDir = path.join(process.cwd(), 'outputs');
+    mkdirSync(outputDir, { recursive: true });
+    const filePath = path.join(outputDir, 'test_targets_sample.csv');
+    writeFileSync(filePath, content);
 
-    const btnCsv = page.locator('#btnExportCsv');
-    const [ download ] = await Promise.all([
+    const fileInput = frame.locator('#fileInput');
+    await fileInput.setInputFiles(filePath);
+
+    await expect(frame.locator('#mappingSummary')).toContainText(/Auto-mapped columns:/i, { timeout: 20000 });
+    await expect(frame.locator('#resultsTable tbody tr')).toHaveCount(2, { timeout: 20000 });
+
+    const exportButton = frame.locator('#btnExportCsv');
+    const [download] = await Promise.all([
       page.waitForEvent('download'),
-      btnCsv.click()
+      exportButton.click(),
     ]);
-    const suggested = download.suggestedFilename();
-    expect(suggested).toMatch(/ma_targets_standardized\.csv$/i);
+
+    expect(download.suggestedFilename()).toMatch(/ma_targets_standardized\.csv$/i);
   });
 });
-

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>NDA Reviewer 2.0 — EdgeScraperPro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; font-src 'self' data:; frame-ancestors 'self' *.edgescraperpro.com localhost:*;">
+<link rel="icon" href="/favicon.ico">
+<style>
+  :root { --fg:#0c1323; --muted:#6b7280; --ok:#0ea5e9; --good:#16a34a; --warn:#f59e0b; --bad:#ef4444; --bg:#f8fafc; --card:#ffffff; --border:#e5e7eb; }
+  html, body { margin:0; padding:0; background:var(--bg); color:var(--fg); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+  .skip-link { position:absolute; left:-999px; top:auto; width:1px; height:1px; overflow:hidden; }
+  .skip-link:focus { position:static; width:auto; height:auto; margin:8px; padding:8px 12px; border:1px solid var(--fg); background:#fff; }
+  header { display:flex; gap:16px; align-items:center; padding:16px; background:var(--card); border-bottom:1px solid var(--border);} 
+  header a { text-decoration:none; color:var(--fg); padding:6px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg);} 
+  main { max-width:1100px; margin:24px auto; padding:0 16px 64px; }
+  h1 { margin:0 0 8px 0; font-size:24px; }
+  .muted { color:var(--muted); font-size:14px; }
+  .panel { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin:16px 0; }
+  .row { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
+  .col { flex:1 1 320px; min-width:320px; }
+  textarea { width:100%; min-height:180px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono"; font-size:13px; }
+  input[type="file"] { display:block; margin:8px 0 4px 0; }
+  .btn { display:inline-flex; gap:8px; align-items:center; border:1px solid var(--border); background:var(--fg); color:#fff; padding:8px 12px; border-radius:8px; cursor:pointer; }
+  .btn.secondary { background:#fff; color:var(--fg); }
+  .btn:disabled { opacity:0.6; cursor:not-allowed; }
+  .status { padding:6px 10px; border-radius:999px; font-size:12px; display:inline-flex; align-items:center; gap:6px; }
+  .status.idle { background:#eef2ff; color:#3730a3; } .status.ok { background:#ecfeff; color:#065f46; }
+  .status.bad { background:#fff7ed; color:#9a3412; }
+  .issues { max-height:420px; overflow:auto; border:1px solid var(--border); border-radius:8px;}
+  .issue { display:grid; grid-template-columns: 28px 1fr 90px 70px; gap:8px; padding:10px 12px; border-bottom:1px solid var(--border); }
+  .issue:last-child { border-bottom:none; }
+  .pill { padding:2px 8px; border-radius:999px; font-size:12px; display:inline-block; }
+  .sev-low { background:#ecfeff; color:#155e75;} .sev-med { background:#fef9c3; color:#854d0e;} .sev-high { background:#fee2e2; color:#7f1d1d;}
+  .diff { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono"; white-space:pre-wrap; }
+  del { color:var(--bad); text-decoration:line-through; }
+  ins { color:var(--good); text-decoration:none; background: #ecfdf5; }
+  .searchbar { display:flex; gap:8px; align-items:center; margin:8px 0;}
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px;}
+  .small { font-size:12px; }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header>
+  <a href="/">Scrape</a>
+  <a href="/targets">Target Lists</a>
+  <strong>NDA Reviewer</strong>
+</header>
+<main id="main">
+  <h1>NDA Reviewer 2.0</h1>
+  <p class="muted">Upload a <strong>.docx</strong> NDA or paste its text. All analysis runs locally; DOCX parsing and Word export are processed by Netlify Functions. Not legal advice.</p>
+
+  <div class="panel">
+    <div class="row">
+      <div class="col">
+        <label><strong>Upload .docx</strong> (max <span id="maxMb">5</span> MB)</label>
+        <input id="fileInput" type="file" accept=".docx" />
+        <button class="btn secondary small" id="parseDocxBtn">Parse .docx</button>
+        <div id="uploadStatus" class="muted small">Idle</div>
+        <hr/>
+        <label for="textInput"><strong>Or paste NDA text</strong></label>
+        <textarea id="textInput" placeholder="Paste NDA text here..."></textarea>
+        <div style="margin-top:8px;">
+          <button class="btn" id="analyzeBtn">Analyze</button>
+          <span id="analysisStatus" class="status idle">Idle</span>
+        </div>
+      </div>
+      <div class="col">
+        <label><strong>Review Panel</strong></label>
+        <div class="searchbar">
+          <input id="searchInput" placeholder="Filter by clause type or text..." style="flex:1; padding:6px 8px; border:1px solid var(--border); border-radius:8px;" />
+          <select id="severityFilter" style="padding:6px 8px; border:1px solid var(--border); border-radius:8px;">
+            <option value="all">Severity ≥ All</option>
+            <option value="60">Severity ≥ 60</option>
+            <option value="80">Severity ≥ 80</option>
+          </select>
+          <button class="btn secondary small" id="selectAllBtn">Select all</button>
+          <button class="btn secondary small" id="selectNoneBtn">None</button>
+        </div>
+        <div id="issues" class="issues"></div>
+        <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+          <button class="btn" id="applySelectedBtn">Apply Selected</button>
+          <button class="btn" id="exportDocxBtn" disabled>Export Redlines (.docx)</button>
+          <span id="exportStatus" class="muted small">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="grid">
+      <div>
+        <h3>Original</h3>
+        <pre id="originalView" class="diff"></pre>
+      </div>
+      <div>
+        <h3>Proposed (preview)</h3>
+        <pre id="proposedView" class="diff"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Checklist Compliance</h3>
+    <div id="checklistView" class="small muted">Run an analysis to see checklist coverage.</div>
+  </div>
+</main>
+
+<script src="/nda/policyEngine.browser.js"></script>
+<script type="module" src="/nda/js/nda-reviewer.app.js"></script>
+</body>
+</html>

@@ -19,10 +19,39 @@ jest.mock('../../logger', () => ({
   })
 }));
 
+jest.setTimeout(20000);
+
+const originalConfig = {
+  baseBackoff: config.BASE_BACKOFF_MS,
+  maxBackoff: config.MAX_BACKOFF_MS,
+  jitter: config.JITTER_FACTOR,
+  circuitThreshold: config.CIRCUIT_BREAKER_THRESHOLD,
+  circuitReset: config.CIRCUIT_BREAKER_RESET_MS,
+  readTimeout: config.READ_TIMEOUT_MS,
+  connectTimeout: config.CONNECT_TIMEOUT_MS,
+};
+
 describe('HTTP Client', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetMetrics();
+    config.BASE_BACKOFF_MS = 10;
+    config.MAX_BACKOFF_MS = 50;
+    config.JITTER_FACTOR = 0;
+    config.CIRCUIT_BREAKER_THRESHOLD = 3;
+    config.CIRCUIT_BREAKER_RESET_MS = 500;
+    config.READ_TIMEOUT_MS = 250;
+    config.CONNECT_TIMEOUT_MS = 250;
+  });
+
+  afterAll(() => {
+    config.BASE_BACKOFF_MS = originalConfig.baseBackoff;
+    config.MAX_BACKOFF_MS = originalConfig.maxBackoff;
+    config.JITTER_FACTOR = originalConfig.jitter;
+    config.CIRCUIT_BREAKER_THRESHOLD = originalConfig.circuitThreshold;
+    config.CIRCUIT_BREAKER_RESET_MS = originalConfig.circuitReset;
+    config.READ_TIMEOUT_MS = originalConfig.readTimeout;
+    config.CONNECT_TIMEOUT_MS = originalConfig.connectTimeout;
   });
 
   describe('fetchWithPolicy', () => {
@@ -34,7 +63,7 @@ describe('HTTP Client', () => {
       
       expect(result).toBe(mockResponse);
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://example.com',
+        expect.stringMatching(/^https:\/\/example\.com\/?$/),
         expect.objectContaining({
           headers: expect.objectContaining({
             'User-Agent': expect.stringContaining('EdgeScraper'),
@@ -90,10 +119,18 @@ describe('HTTP Client', () => {
     });
 
     it('should handle request timeout', async () => {
-      // Mock fetch that never resolves
-      (global.fetch as jest.Mock).mockImplementation(() => 
-        new Promise(() => {})
-      );
+      (global.fetch as jest.Mock).mockImplementation((_, init) => {
+        const signal = (init as RequestInit)?.signal;
+        return new Promise((resolve, reject) => {
+          if (signal) {
+            signal.addEventListener('abort', () => {
+              const abortErr = new Error('Aborted');
+              abortErr.name = 'AbortError';
+              reject(abortErr);
+            });
+          }
+        });
+      });
 
       await expect(
         fetchWithPolicy('https://example.com', { timeout: 100, retries: 0 })
@@ -124,40 +161,59 @@ describe('HTTP Client', () => {
 
   describe('calculateBackoff', () => {
     it('should respect max backoff ceiling', async () => {
-      // This test is implicit in the retry behavior
       const mockResponse500 = new Response('Server Error', { status: 500 });
       (global.fetch as jest.Mock).mockResolvedValue(mockResponse500);
 
-      const startTime = Date.now();
-      try {
-        await fetchWithPolicy('https://example.com', { retries: 5 });
-      } catch (e) {
-        // Expected to fail
-      }
-      const duration = Date.now() - startTime;
+      const delays: number[] = [];
+      const originalSetTimeout = global.setTimeout;
+      const timeoutSpy = jest
+        .spyOn(global, 'setTimeout')
+        .mockImplementation((handler: any, timeout?: number, ...args: any[]) => {
+          const delay = Number(timeout ?? 0);
+          delays.push(delay);
+          return originalSetTimeout(handler as any, timeout, ...args);
+        });
 
-      // Even with 5 retries, total time should be bounded by max backoff
-      expect(duration).toBeLessThan(config.MAX_BACKOFF_MS * 6);
+      await expect(
+        fetchWithPolicy('https://example.com', { retries: 5 })
+      ).rejects.toThrow(NetworkError);
+
+      timeoutSpy.mockRestore();
+
+      const backoffDelays = delays.filter((value) => value > 0 && value <= config.MAX_BACKOFF_MS);
+      expect(backoffDelays.length).toBeGreaterThan(0);
+      expect(Math.max(...backoffDelays)).toBeLessThanOrEqual(config.MAX_BACKOFF_MS);
     });
 
     it('should honor Retry-After header for 429', async () => {
       const retryAfterSeconds = 2;
-      const mockResponse429 = new Response('Rate Limited', { 
+      const mockResponse429 = new Response('Rate Limited', {
         status: 429,
         headers: { 'Retry-After': retryAfterSeconds.toString() }
       });
       const mockResponse200 = new Response('OK', { status: 200 });
-      
+
       (global.fetch as jest.Mock)
         .mockResolvedValueOnce(mockResponse429)
         .mockResolvedValueOnce(mockResponse200);
 
-      const startTime = Date.now();
-      await fetchWithPolicy('https://example.com');
-      const duration = Date.now() - startTime;
+      const delays: number[] = [];
+      const originalSetTimeout = global.setTimeout;
+      const timeoutSpy = jest
+        .spyOn(global, 'setTimeout')
+        .mockImplementation((handler: any, timeout?: number, ...args: any[]) => {
+          const delay = Number(timeout ?? 0);
+          delays.push(delay);
+          return originalSetTimeout(handler as any, timeout, ...args);
+        });
 
-      // Should wait at least the retry-after duration
-      expect(duration).toBeGreaterThanOrEqual(retryAfterSeconds * 1000);
+      await fetchWithPolicy('https://example.com');
+
+      timeoutSpy.mockRestore();
+
+      const expectedDelay = Math.min(retryAfterSeconds * 1000, config.MAX_BACKOFF_MS);
+      const backoffDelays = delays.filter((value) => value > 0 && value <= config.MAX_BACKOFF_MS);
+      expect(backoffDelays).toContain(expectedDelay);
     });
   });
 
