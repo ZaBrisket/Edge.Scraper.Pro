@@ -1,255 +1,223 @@
-// netlify/functions/fetch-url.js
-// CommonJS for Netlify Functions
-const { request } = require('undici');
-const setCookie = require('set-cookie-parser');
-const { extractArticle } = require('../../src/article-extractor');
+const {
+  envBool,
+  envInt,
+  corsHeaders,
+  json,
+  safeParseUrl,
+  isBlockedHostname,
+  fetchWithTimeout,
+  readBodyWithLimit,
+  buildUA,
+  hash32,
+} = require('./_lib/http.js');
 
-const MAX_TOTAL_MS = Math.min(
-  parseInt(process.env.HTTP_DEADLINE_MS || '28000', 10),
-  29000
-);
-const DEFAULT_TIMEOUT_MS = Math.max(0, Math.min(12000, MAX_TOTAL_MS - 4000));
-const REFERER = process.env.REQUEST_REFERER || 'https://news.google.com/';
+const DEFAULT_HTTP_DEADLINE_MS = envInt('HTTP_DEADLINE_MS', 15000, { min: 1000, max: 30000 });
+const MAX_BYTES = envInt('FETCH_URL_MAX_BYTES', 2 * 1024 * 1024, { min: 64 * 1024, max: 16 * 1024 * 1024 });
+const CDN_MAX_AGE = envInt('NETLIFY_CDN_MAX_AGE', 120, { min: 0, max: 86400 });
+const CDN_SWR = envInt('NETLIFY_CDN_SWR', 600, { min: 0, max: 604800 });
+const HEAD_TIMEOUT_MS = Math.min(5000, DEFAULT_HTTP_DEADLINE_MS);
+const PUBLIC_API_KEY = (process.env.PUBLIC_API_KEY ?? '').trim();
+const BYPASS_AUTH = envBool('BYPASS_AUTH', false);
 
-const BROWSER_UAS = [
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-];
-
-const BASE_HEADERS = () => ({
-  'User-Agent': BROWSER_UAS[Math.floor(Math.random() * BROWSER_UAS.length)],
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+const COMMON_HEADERS = {
+  'User-Agent': buildUA(),
+  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
   'Accept-Language': 'en-US,en;q=0.9',
   'Accept-Encoding': 'gzip, deflate, br',
-  'Cache-Control': 'no-cache',
-  'Pragma': 'no-cache',
-  'Referer': REFERER,
-  'Connection': 'keep-alive',
-});
+};
 
-function corsHeaders(origin) {
-  return {
-    'Access-Control-Allow-Origin': origin || '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, X-API-Key',
-    'Vary': 'Origin',
-  };
+function errorJson(status, code, message, extra = {}) {
+  return json(
+    { error: { code, message }, ...extra },
+    status,
+    { 'Netlify-CDN-Cache-Control': 'private, max-age=0, no-store' },
+  );
 }
 
-function ok(body, origin, extra = {}) {
-  return {
-    statusCode: 200,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) },
-    body: JSON.stringify({ ok: true, ...body, ...extra }),
-  };
+function headersToObject(headers) {
+  const obj = {};
+  headers.forEach((value, key) => {
+    obj[key] = value;
+  });
+  return obj;
 }
 
-function err(statusCode, message, origin, extra = {}) {
-  return {
-    statusCode,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) },
-    body: JSON.stringify({ ok: false, error: message, ...extra }),
-  };
-}
-
-function normalizeUrl(u) {
-  try {
-    const url = new URL(u);
-    if (!/^https?:$/.test(url.protocol)) throw new Error('Invalid protocol');
-    return url.toString();
-  } catch {
-    if (/^[-a-z0-9.]+\/.+/i.test(u)) return `https://${u}`;
-    throw new Error('Invalid URL');
+function buildRequestFromEvent(event) {
+  const headers = new Headers(event.headers || {});
+  const scheme = headers.get('x-forwarded-proto') || 'https';
+  const host = headers.get('host') || 'localhost';
+  const rawPath = event.rawPath || event.path || '/.netlify/functions/fetch-url';
+  const query = event.rawQueryString ? `?${event.rawQueryString}` : '';
+  const url = event.rawUrl || `${scheme}://${host}${rawPath}${query}`;
+  const init = { method: event.httpMethod || 'GET', headers };
+  if (event.body) {
+    const bodyBuffer = event.isBase64Encoded ? Buffer.from(event.body, 'base64') : Buffer.from(event.body);
+    init.body = bodyBuffer;
   }
+  return new Request(url, init);
 }
 
-function withTimeout(promise, ms, label) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error(`${label || 'timeout'} after ${ms}ms`)), ms)),
-  ]);
-}
+async function handleRequest(request) {
+  const start = Date.now();
 
-async function fetchHttp(url, cookieJar = {}) {
-  const headers = BASE_HEADERS();
-  if (cookieJar.cookie) headers['Cookie'] = cookieJar.cookie;
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders() });
+  }
 
-  const { body, statusCode, headers: respHeaders } = await request(url, {
-    method: 'GET',
-    headers,
-    maxRedirections: 5,
-    bodyTimeout: DEFAULT_TIMEOUT_MS,
-    headersTimeout: DEFAULT_TIMEOUT_MS,
+  if (!BYPASS_AUTH) {
+    const incomingKey = (request.headers.get('x-api-key') || '').trim();
+    if (!PUBLIC_API_KEY || incomingKey !== PUBLIC_API_KEY) {
+      return errorJson(401, 'UNAUTHORIZED', 'Missing or invalid X-API-Key header');
+    }
+  }
+
+  const requestUrl = new URL(request.url);
+  const urlParam = requestUrl.searchParams.get('url');
+  if (!urlParam) {
+    return errorJson(400, 'MISSING_URL', 'Query param "url" is required');
+  }
+
+  let target;
+  try {
+    target = safeParseUrl(urlParam);
+  } catch {
+    return errorJson(400, 'INVALID_URL', 'URL must be absolute and begin with http(s)://');
+  }
+
+  if (isBlockedHostname(target.hostname)) {
+    return errorJson(403, 'BLOCKED_HOST', `Hostname "${target.hostname}" is not allowed`);
+  }
+
+  const urlHash = hash32(target.href);
+
+  try {
+    const headStart = Date.now();
+    const headResponse = await fetchWithTimeout(target.href, {
+      method: 'HEAD',
+      redirect: 'manual',
+      timeout: HEAD_TIMEOUT_MS,
+      headers: COMMON_HEADERS,
+    });
+    const headDuration = Date.now() - headStart;
+    console.info(
+      'metric=fetch_url_head outcome=success status=%d duration_ms=%d url_hash=%s',
+      headResponse.status,
+      headDuration,
+      urlHash,
+    );
+    const clHeader = headResponse.headers.get('content-length');
+    const contentLength = clHeader ? Number(clHeader) : NaN;
+    if (Number.isFinite(contentLength) && contentLength > MAX_BYTES) {
+      return errorJson(
+        413,
+        'CONTENT_TOO_LARGE',
+        `Content-Length ${contentLength}B exceeds cap ${MAX_BYTES}B`,
+        { url: target.href, contentLength, maxBytes: MAX_BYTES },
+      );
+    }
+  } catch (error) {
+    console.info(
+      'metric=fetch_url_head outcome=error reason=%s url_hash=%s',
+      error?.message || 'unknown',
+      urlHash,
+    );
+  }
+
+  let upstreamResponse;
+  try {
+    const getStart = Date.now();
+    upstreamResponse = await fetchWithTimeout(target.href, {
+      method: 'GET',
+      redirect: 'follow',
+      timeout: DEFAULT_HTTP_DEADLINE_MS,
+      headers: COMMON_HEADERS,
+    });
+    const getDuration = Date.now() - getStart;
+    console.info(
+      'metric=fetch_url outcome=fetch status=%d duration_ms=%d url_hash=%s',
+      upstreamResponse.status,
+      getDuration,
+      urlHash,
+    );
+  } catch (error) {
+    const reason = (error?.message || '').toLowerCase();
+    const timeout = error?.name === 'AbortError' || reason.includes('timeout');
+    console.error(
+      'metric=fetch_url outcome=fail kind=%s url_hash=%s message="%s"',
+      timeout ? 'timeout' : 'network',
+      urlHash,
+      error?.message || 'unknown',
+    );
+    return errorJson(timeout ? 504 : 502, timeout ? 'UPSTREAM_TIMEOUT' : 'UPSTREAM_ERROR', error?.message || 'Fetch failed');
+  }
+
+  const contentType = upstreamResponse.headers.get('content-type') || 'application/octet-stream';
+
+  let bodyBuffer;
+  let bytesRead = 0;
+  try {
+    const { body, bytesRead: read } = await readBodyWithLimit(upstreamResponse.body, MAX_BYTES);
+    bodyBuffer = body;
+    bytesRead = read;
+  } catch (error) {
+    if (error?.code === 'SIZE_LIMIT') {
+      return errorJson(
+        413,
+        'CONTENT_TOO_LARGE',
+        `Response exceeded ${MAX_BYTES}B limit`,
+        { url: target.href, maxBytes: MAX_BYTES },
+      );
+    }
+    console.error('metric=fetch_url outcome=fail kind=read_error url_hash=%s', urlHash);
+    return errorJson(502, 'READ_ERROR', 'Failed to read upstream response');
+  }
+
+  const responseHeaders = corsHeaders({
+    'Content-Type': contentType,
+    'Content-Length': String(bodyBuffer.byteLength),
+    'Cache-Control': 'public, max-age=0, must-revalidate',
+    'Netlify-CDN-Cache-Control': `public, max-age=${CDN_MAX_AGE}, stale-while-revalidate=${CDN_SWR}`,
   });
 
-  const buf = await body.arrayBuffer();
-  const text = Buffer.from(buf).toString('utf8');
-
-  // Capture cookies correctly (map mode requires using keys as names)
-  const sc = respHeaders['set-cookie'];
-  if (sc) {
-    const parsed = setCookie.parse(sc, { map: true });
-    const cookie = Object.entries(parsed)
-      .map(([name, c]) => `${name}=${c.value}`)
-      .join('; ');
-    if (cookie) cookieJar.cookie = cookie;
+  for (const key of ['etag', 'last-modified']) {
+    const value = upstreamResponse.headers.get(key);
+    if (value) responseHeaders.set(key, value);
   }
 
-  return { statusCode, headers: respHeaders, text, cookieJar };
+  responseHeaders.delete('set-cookie');
+  responseHeaders.delete('transfer-encoding');
+  responseHeaders.delete('connection');
+
+  const status = upstreamResponse.status;
+  const totalDuration = Date.now() - start;
+  console.info(
+    'metric=fetch_url outcome=success status=%d bytes=%d duration_ms=%d url_hash=%s',
+    status,
+    bytesRead,
+    totalDuration,
+    urlHash,
+  );
+
+  return new Response(bodyBuffer, { status, headers: responseHeaders });
 }
 
-function guessAmpUrls(url) {
-  const u = new URL(url);
-  const candidates = new Set();
-  candidates.add(url + (u.search ? '&' : '?') + 'amp=1');
-  candidates.add(url + (u.search ? '&' : '?') + 'output=amp');
-  if (u.pathname.endsWith('.html') || u.pathname.endsWith('.htm')) {
-    const ampPath = u.pathname.replace(/\.html?$/, '/amp/');
-    candidates.add(`${u.origin}${ampPath}${u.search || ''}`);
-  } else {
-    candidates.add(`${u.origin}${u.pathname.replace(/\/?$/, '/amp/')}${u.search || ''}`);
-  }
-  return [...candidates];
+async function netlifyHandler(event, context) {
+  const request = buildRequestFromEvent(event);
+  const response = await handleRequest(request, context);
+  const headersObj = headersToObject(response.headers);
+  const arrayBuffer = await response.arrayBuffer();
+  const bodyBuffer = Buffer.from(arrayBuffer);
+  return {
+    statusCode: response.status,
+    headers: headersObj,
+    body: bodyBuffer.toString('base64'),
+    isBase64Encoded: true,
+  };
 }
 
-async function tryAmp(url, cookieJar) {
-  for (const candidate of guessAmpUrls(url)) {
-    try {
-      const r = await fetchHttp(candidate, cookieJar);
-      const ct = r.headers['content-type'] || '';
-      if (r.statusCode >= 200 && r.statusCode < 300 && /text\/html/i.test(ct)) {
-        return { ...r, used: candidate };
-      }
-    } catch {/* ignore */}
-  }
-  return null;
-}
+handleRequest.handler = netlifyHandler;
+handleRequest.default = handleRequest;
+handleRequest.isBlockedHostname = isBlockedHostname;
+handleRequest.hash32 = hash32;
 
-async function tryVendor(url) {
-  const zen = process.env.ZENROWS_API_KEY;
-  if (zen) {
-    const zenUrl = `https://api.zenrows.com/v1/?url=${encodeURIComponent(url)}&apikey=${zen}&js_render=true&premium_proxy=true`;
-    const r = await withTimeout(fetchHttp(zenUrl), DEFAULT_TIMEOUT_MS, 'zenrows');
-    if (r.statusCode >= 200 && r.statusCode < 300) return { ...r, used: 'zenrows' };
-  }
-  const bee = process.env.SCRAPINGBEE_API_KEY;
-  if (bee) {
-    const sbUrl = `https://app.scrapingbee.com/api/v1/?url=${encodeURIComponent(url)}&api_key=${bee}&render_js=false&premium_proxy=true`;
-    const r = await withTimeout(fetchHttp(sbUrl), DEFAULT_TIMEOUT_MS, 'scrapingbee');
-    if (r.statusCode >= 200 && r.statusCode < 300) return { ...r, used: 'scrapingbee' };
-  }
-  const bl = process.env.BROWSERLESS_URL; // e.g. https://chrome.browserless.io/content?token=...
-  if (bl) {
-    const blUrl = `${bl}${bl.includes('?') ? '&' : '?'}url=${encodeURIComponent(url)}`;
-    const r = await withTimeout(fetchHttp(blUrl), DEFAULT_TIMEOUT_MS, 'browserless');
-    if (r.statusCode >= 200 && r.statusCode < 300) return { ...r, used: 'browserless' };
-  }
-  return null;
-}
-
-async function getPageWithStrategies(url) {
-  const start = Date.now();
-  const cookieJar = {};
-
-  // 1) Direct fetch
-  try {
-    const r = await withTimeout(fetchHttp(url, cookieJar), DEFAULT_TIMEOUT_MS, 'direct');
-    const ct = r.headers['content-type'] || '';
-    if (r.statusCode >= 200 && r.statusCode < 300 && /text\/html/i.test(ct)) {
-      return { strategy: 'direct', ...r, ms: Date.now() - start };
-    }
-    if ([403, 406, 429, 503].includes(r.statusCode)) {
-      throw Object.assign(new Error('blocked'), { blockStatus: r.statusCode });
-    }
-  } catch {/* fall through */}
-
-  // 2) AMP heuristic fallback
-  try {
-    const amp = await withTimeout(tryAmp(url, cookieJar), Math.min(8000, MAX_TOTAL_MS - (Date.now() - start)), 'amp');
-    if (amp) return { strategy: `amp(${amp.used})`, ...amp, ms: Date.now() - start };
-  } catch {/* ignore */}
-
-  // 3) Vendor fallback (optional)
-  try {
-    const vend = await withTimeout(tryVendor(url), Math.min(10000, MAX_TOTAL_MS - (Date.now() - start)), 'vendor');
-    if (vend) return { strategy: `vendor(${vend.used})`, ...vend, ms: Date.now() - start };
-  } catch {/* ignore */}
-
-  throw new Error('All strategies failed');
-}
-
-function shouldParseArticle(qs) {
-  return (qs.get('parse') || 'article') === 'article';
-}
-
-function getOrigin(event) {
-  return event.headers?.origin || event.headers?.Origin || '*';
-}
-
-exports.handler = async (event) => {
-  // CORS preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: corsHeaders(getOrigin(event)) };
-  }
-
-  const origin = getOrigin(event);
-
-  try {
-    // Optional API key gate
-    const apiKey = event.headers['x-api-key'] || event.headers['X-API-Key'];
-    if (process.env.BYPASS_AUTH !== 'true') {
-      if (!apiKey || apiKey !== process.env.PUBLIC_API_KEY) {
-        return err(401, 'Unauthorized', origin);
-      }
-    }
-
-    const qs = new URLSearchParams(event.queryStringParameters || {});
-    const rawUrl = qs.get('url');
-    if (!rawUrl) return err(400, 'Missing url parameter', origin);
-
-    let url;
-    try {
-      url = normalizeUrl(rawUrl);
-    } catch {
-      return err(400, 'Invalid URL format', origin);
-    }
-
-    const t0 = Date.now();
-    let attempt = 0;
-    let lastError = null;
-
-    while (Date.now() - t0 < MAX_TOTAL_MS && attempt < 3) {
-      attempt++;
-      try {
-        const res = await getPageWithStrategies(url);
-        const finalUrl = url; // undici follows redirects; final URL not exposed
-        const contentType = res.headers['content-type'] || 'text/html';
-
-        let article = null;
-        if (shouldParseArticle(qs)) {
-          try {
-            article = extractArticle(res.text, finalUrl);
-          } catch { article = null; }
-        }
-
-        return ok({
-          url: finalUrl,
-          status: res.statusCode,
-          contentType,
-          strategy: res.strategy,
-          ms: res.ms,
-          article,
-          html: qs.get('raw') === '1' ? res.text : undefined,
-        }, origin);
-      } catch (e) {
-        lastError = e;
-        await new Promise(r => setTimeout(r, 300 * attempt + Math.floor(Math.random() * 200)));
-      }
-    }
-
-    return err(502, `Fetch failed: ${lastError?.message || 'unknown'}`, origin, { attempts: attempt });
-  } catch (e) {
-    return err(500, e.message || 'Internal error', origin);
-  }
-};
+module.exports = handleRequest;
