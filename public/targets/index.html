@@ -1,36 +1,46 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>EdgeScraperPro — Target Lists</title>
   <link rel="stylesheet" href="/css/brutalist.css"/>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
-  <header class="site-header">
-    <div class="container header-inner">
-      <a class="brand" href="/">EdgeScraperPro</a>
-      <nav class="site-nav" aria-label="Primary">
-        <a href="/" data-nav="home">Home</a>
-        <a href="/scrape/" data-nav="scrape">Scrape</a>
-        <a href="/sports/" data-nav="sports">Sports</a>
-        <a href="/companies/" data-nav="companies">Companies</a>
-        <a href="/targets/" data-nav="targets">Target Lists</a>
-        <a href="/nda/" data-nav="nda">NDA</a>
-      </nav>
-    </div>
-  </header>
+  <header class="site-header"><div class="container header-inner">
+    <a class="brand" href="/">EdgeScraperPro</a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+    <nav id="primary-nav" class="site-nav" aria-label="Primary">
+      <a href="/" data-nav="home">Home</a>
+      <a href="/scrape/" data-nav="scrape">Scrape</a>
+      <a href="/sports/" data-nav="sports">Sports</a>
+      <a href="/companies/" data-nav="companies">Companies</a>
+      <a href="/targets/" data-nav="targets">Target Lists</a>
+      <a href="/nda/" data-nav="nda">NDA</a>
+    </nav>
+  </div></header>
 
   <main id="main" class="container">
     <h1>M&amp;A Target List Builder</h1>
-    <p class="banner">Unified chrome over the original Target Lists experience.</p>
-    <iframe class="app-frame" title="Target Lists App" src="/targets/app.html" loading="eager"></iframe>
+    <p class="banner">This page preserves the original Target Lists UI.</p>
+    <iframe class="app-frame" data-loading="true" title="Target Lists App" src="/targets/app.html" loading="eager"></iframe>
   </main>
 
-  <footer class="site-footer">
-    <div class="container"><small>All processing remains client-side, inside the embedded app.</small></div>
-  </footer>
+  <footer class="site-footer"><div class="container"><small>All processing remains client-side as before.</small></div></footer>
+  <script>
+    (function(){
+      var iframe = document.querySelector('.app-frame');
+      if(!iframe) return;
+      iframe.addEventListener('load', function(){
+        iframe.removeAttribute('data-loading');
+        iframe.removeAttribute('data-error');
+      });
+      iframe.addEventListener('error', function(){
+        iframe.setAttribute('data-error', 'true');
+        iframe.removeAttribute('data-loading');
+      });
+    })();
+  </script>
   <script src="/js/nav.js" defer></script>
 </body>
 </html>

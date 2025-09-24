@@ -9,7 +9,8 @@
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header"><div class="container header-inner">
     <a class="brand" href="/">EdgeScraperPro</a>
-    <nav class="site-nav" aria-label="Primary">
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+    <nav id="primary-nav" class="site-nav" aria-label="Primary">
       <a href="/" data-nav="home">Home</a>
       <a href="/scrape/" data-nav="scrape">Scrape</a>
       <a href="/sports/" data-nav="sports">Sports</a>
@@ -21,21 +22,26 @@
 
   <main id="main" class="container">
     <h1>Company Scraper</h1>
-    <p class="banner">Company‑centric extraction presets & structure.</p>
-    <iframe id="app" class="app-frame" title="Scraper App (Companies)" src="/scrape/app.html" loading="eager"></iframe>
+    <p class="banner">Company-centric extraction presets & structure.</p>
+    <iframe id="app" class="app-frame" data-loading="true" title="Scraper App (Companies)" src="/scrape/app.html" loading="eager"></iframe>
   </main>
 
-  <footer class="site-footer"><div class="container"><small>Wrapper attempts to auto‑select the “Companies” preset.</small></div></footer>
+  <footer class="site-footer"><div class="container"><small>Wrapper attempts to auto-select the “Companies” preset.</small></div></footer>
 
+  <script src="/js/frame-bridge.js"></script>
   <script>
     (function(){
-      const iframe = document.getElementById('app');
-      const lower = (s) => String(s || '').toLowerCase();
+      var iframe = document.getElementById('app');
+      if(!iframe) return;
+      var bridge = new FrameBridge(iframe);
+      bridge.listen();
+
+      const lower = function(s){ return String(s || '').toLowerCase(); };
 
       function clickByText(root, selector, text){
         const target = lower(text);
-        return Array.from(root.querySelectorAll(selector)).some(node => {
-          if (lower(node.textContent).includes(target)) {
+        return Array.from(root.querySelectorAll(selector)).some(function(node){
+          if(lower(node.textContent).includes(target)){
             node.click();
             return true;
           }
@@ -45,22 +51,22 @@
 
       function trySelect(doc, label){
         const labelLower = lower(label);
-        for (const el of doc.querySelectorAll('.tab')) {
-          if (lower(el.textContent).includes(labelLower)) {
+        for(const el of doc.querySelectorAll('.tab')){
+          if(lower(el.textContent).includes(labelLower)){
             el.click();
             return true;
           }
         }
-        if (clickByText(doc, 'button, a, [role="tab"]', label)) return true;
-        for (const l of doc.querySelectorAll('label')) {
-          if (lower(l.textContent).includes(labelLower)) {
+        if(clickByText(doc, 'button, a, [role="tab"]', label)) return true;
+        for(const l of doc.querySelectorAll('label')){
+          if(lower(l.textContent).includes(labelLower)){
             (l.control || l).click();
             return true;
           }
         }
-        for (const input of doc.querySelectorAll('input[type="radio"],input[type="checkbox"]')) {
+        for(const input of doc.querySelectorAll('input[type="radio"],input[type="checkbox"]')){
           const source = lower(`${input.id || ''}${input.name || ''}${input.value || ''}`);
-          if (source.includes(labelLower)) {
+          if(source.includes(labelLower)){
             input.click();
             return true;
           }
@@ -68,13 +74,15 @@
         return false;
       }
 
-      iframe.addEventListener('load', () => {
+      iframe.addEventListener('load', function(){
+        iframe.removeAttribute('data-loading');
+        iframe.removeAttribute('data-error');
         try {
           const win = iframe.contentWindow;
           const doc = win.document;
           const ok = trySelect(doc, 'Companies');
-          if (ok) {
-            try { win.localStorage.setItem('esp.preferredMode', 'companies'); } catch (e) {}
+          if(ok){
+            bridge.send('SET_MODE', { mode: 'companies' });
             document.body.dataset.mode = 'companies';
           } else {
             document.body.dataset.mode = 'fallback';
@@ -82,6 +90,12 @@
         } catch (err) {
           document.body.dataset.mode = 'error';
         }
+      });
+
+      iframe.addEventListener('error', function(){
+        iframe.setAttribute('data-error', 'true');
+        iframe.removeAttribute('data-loading');
+        document.body.dataset.mode = 'error';
       });
     })();
   </script>

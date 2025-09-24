@@ -9,7 +9,8 @@
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header"><div class="container header-inner">
     <a class="brand" href="/">EdgeScraperPro</a>
-    <nav class="site-nav" aria-label="Primary">
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+    <nav id="primary-nav" class="site-nav" aria-label="Primary">
       <a href="/" data-nav="home">Home</a>
       <a href="/scrape/" data-nav="scrape">Scrape</a>
       <a href="/sports/" data-nav="sports">Sports</a>
@@ -22,13 +23,27 @@
   <main id="main" class="container">
     <h1>Web Scraper — Bulk URL Extraction</h1>
     <p class="banner">This page embeds the original scraper UI to preserve all existing functionality.</p>
-    <iframe id="app" class="app-frame" title="Scraper App" src="/scrape/app.html" loading="eager"></iframe>
+    <iframe id="app" class="app-frame" data-loading="true" title="Scraper App" src="/scrape/app.html" loading="eager"></iframe>
   </main>
 
   <footer class="site-footer"><div class="container">
     <small>Functions: /.netlify/functions/fetch-url, /.netlify/functions/health</small>
   </div></footer>
 
+  <script>
+    (function(){
+      var iframe = document.getElementById('app');
+      if(!iframe) return;
+      iframe.addEventListener('load', function(){
+        iframe.removeAttribute('data-loading');
+        iframe.removeAttribute('data-error');
+      });
+      iframe.addEventListener('error', function(){
+        iframe.setAttribute('data-error', 'true');
+        iframe.removeAttribute('data-loading');
+      });
+    })();
+  </script>
   <script src="/js/nav.js" defer></script>
 </body>
 </html>

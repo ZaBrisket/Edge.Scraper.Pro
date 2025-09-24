@@ -1627,6 +1627,19 @@
     })();
     </script>
     
+    <script>
+    (function(){
+        window.addEventListener('message', function(event){
+            if (!event || event.origin !== window.location.origin) return;
+            var data = event.data || {};
+            if (data.type === 'SET_MODE' && typeof data.mode === 'string') {
+                try {
+                    localStorage.setItem('esp.preferredMode', String(data.mode));
+                } catch (err) {}
+            }
+        });
+    })();
+    </script>
     <!-- Include necessary standalone JavaScript files -->
     <script src="/sports-extractor.js"></script>
 </body>
