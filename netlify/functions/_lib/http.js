@@ -100,7 +100,22 @@ function safeParseUrl(raw) {
   try {
     parsed = new URL(raw);
   } catch {
-    throw new Error('INVALID_URL');
+    if (typeof raw !== 'string') {
+      throw new Error('INVALID_URL');
+    }
+    const zoneMatch = raw.match(/^(https?:\/\/\[[^\]]*?)(%25[^\]]+)(\].*)$/i);
+    const rawZoneMatch = zoneMatch
+      ? null
+      : raw.match(/^(https?:\/\/\[[^\]]*?)(%[^\]]+)(\].*)$/i);
+    if (!zoneMatch && !rawZoneMatch) {
+      throw new Error('INVALID_URL');
+    }
+    const attempt = zoneMatch ? `${zoneMatch[1]}${zoneMatch[3]}` : `${rawZoneMatch[1]}${rawZoneMatch[3]}`;
+    try {
+      parsed = new URL(attempt);
+    } catch {
+      throw new Error('INVALID_URL');
+    }
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error('INVALID_SCHEME');
@@ -119,14 +134,39 @@ function isBlockedHostname(hostname) {
   if (!normalized) return true;
   normalized = normalized.replace(/^[\[]|[\]]$/g, '');
   if (!normalized) return true;
+  normalized = normalized.replace(/\.+$/, '');
+  if (!normalized) return true;
+  const zoneIdxEncoded = normalized.indexOf('%25');
+  if (zoneIdxEncoded !== -1) {
+    normalized = normalized.slice(0, zoneIdxEncoded);
+  } else {
+    const zoneIdx = normalized.indexOf('%');
+    if (zoneIdx !== -1) {
+      normalized = normalized.slice(0, zoneIdx);
+    }
+  }
+  if (!normalized) return true;
 
   if (normalized === 'localhost' || normalized.endsWith('.localhost')) return true;
   if (normalized === 'ip6-localhost') return true;
-  if (normalized.endsWith('.local') || normalized.endsWith('.internal') || normalized.endsWith('.intranet')) {
+  if (
+    normalized.endsWith('.local')
+    || normalized.endsWith('.internal')
+    || normalized.endsWith('.intranet')
+    || normalized.endsWith('.home.arpa')
+  ) {
     return true;
   }
 
-  if (!normalized.includes('.') && !normalized.includes(':') && /^\d+$/.test(normalized)) {
+  if (
+    !normalized.includes('.')
+    && !normalized.includes(':')
+    && (
+      /^\d+$/.test(normalized)
+      || /^0x[0-9a-f]+$/i.test(normalized)
+      || /^0[0-7]+$/.test(normalized)
+    )
+  ) {
     return true;
   }
 
@@ -163,7 +203,11 @@ function isBlockedHostname(hostname) {
       }
     }
     if (lower === '::1') return true; // loopback
-    if (lower.startsWith('fe80:')) return true; // link-local
+    const firstSegment = lower.split(':', 1)[0];
+    if (Number.isFinite(Number.parseInt(firstSegment, 16))) {
+      const firstValue = Number.parseInt(firstSegment, 16);
+      if (firstValue >= 0xfe80 && firstValue <= 0xfebf) return true; // link-local fe80::/10
+    }
     if (lower.startsWith('fc') || lower.startsWith('fd')) return true; // unique local
     if (lower.startsWith('2001:2') || lower.startsWith('2001:db8')) return true; // doc/test networks
   }
