@@ -1,0 +1,52 @@
+[Appendix A: Edgewater NDA Checklist — Verbatim]
+Customer/Supplier Non-Solicit
+Always exclude this language
+
+Employee Non-Solicit
+Limit the non-solicit to only key executives, not all employees.
+
+Include the following carve-out:
+Nothing herein shall prevent you from hiring such a person(s) who (i) initiates discussions regarding such employment without any direct solicitation by you, (ii) has had employment discussions with you prior to the date of this Agreement, (iii) responds to any public advertisement placed by you or (iv) has been terminated by the Company prior to commencement of employment discussions between you and such person(s).
+
+Term
+Make sure the agreement contains a term, not to exceed two years
+
+Return or Destroy Documents
+Allow for destruction of documents rather than return. Otherwise, this is a difficult administrative task.
+
+Document retention language
+However, you may retain copies of the materials as is necessary for legal, regulatory and archival purposes which copies shall remain subject to all restrictions of this Agreement.
+
+Legal modifiers
+Beware of legal modifiers:
+e.g. replace “best efforts” with “commercially reasonable”, “shall” with “may” and “immediate” with “prompt” where applicable.
+
+Affiliate Language
+Always remove references to our affiliates. Company affiliates are OK.
+
+Affiliate Carve-Out
+Notwithstanding anything contained in this Confidentiality Agreement to the contrary, (a) none of your affiliates (including any investment fund managed by you or your affiliate or any portfolio company of any such investment fund) shall be deemed to be one of your Representatives or have any obligations hereunder unless such person or entity actually receives Evaluation Material and (b) none of your affiliates or portfolio companies will be deemed to be a Representative or have any obligation hereunder solely due to the fact that one of your managers or employees who has received or had access to Evaluation Material serves as an officer or member of the board of directors (or similar governing body) of such affiliate or portfolio company; provided that such employee does not provide any Evaluation Material to the other directors, officers or employees of such affiliate or portfolio company
+
+State of Jurisdiction
+Avoid foreign countries. Attempt to use Illinois, New York or Delaware.
+
+Representative Language
+Include directors, officers, advisors, employees, financing sources, consultants, accountants and attorneys.
+Avoid requirement to make Representatives sign this agreement because we may use a different form
+
+Confidential Information Carve-Out
+Exclude the following information from the definition:
+(i) was publicly available prior to its disclosure to us, (ii) was known to us prior to its disclosure to us and was not received under obligations of confidentiality or from a party so obligated, (iii) was independently developed by us or (iv) is or becomes available to us on a nonconfidential basis from a source other than you, the Company, or their agents or representatives, provided that such other source is not bound by a confidentiality agreement with you or the Company.
+
+Competition Disclaimer
+Notwithstanding anything contained herein to the contrary, we acknowledge that you and your affiliated companies may now and in the future be direct competitors of the Company and that your receipt and possession of the Evaluation Material will not, in and of itself, prevent or restrict you in any way from carrying on your business in the ordinary course, including without limitation, making quotes or bids in direct competition with the Company, provided that in doing so you comply strictly with the obligations of this Agreement.
+
+OTHER ADDITIONS
+Carving out portfolio companies that have not received confidential information from the definition of representatives
+Including financing sources (vs. lender sources) as representatives so that we can show the deal to equity sources
+Eliminating the requirement to return any confidential information and providing flexibility to keep a copy
+Requiring written request from the company for us to confirmation destruction of confidential materials
+Making the requirement to pay for the enforcement of the agreement based on the non-prevailing party obtaining a final decision from a court of competent jurisdiction
+Having a carve-out in the non-solicit for general solicitations and limiting the folks that it pertains to managers that became known to us as part of a transaction
+Trying to limit the time period of the non-solicit and general agreement to 18 months
+[End Appendix A]

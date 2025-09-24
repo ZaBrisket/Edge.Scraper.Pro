@@ -1,0 +1,59 @@
+{
+"version": "2025-09-23",
+"source": "Appendix A: Edgewater NDA Checklist — Verbatim",
+"preferredJurisdictions": ["Illinois", "New York", "Delaware"],
+"synonyms": {
+  "promptly": "prompt",
+  "immediately": "prompt",
+  "best efforts": "commercially reasonable efforts",
+  "shall": "will"
+},
+"burdensomeMarkers": [
+  "best efforts", "shall immediately", "all employees", "any employee", "all affiliates", "portfolio companies", "perpetual", "in perpetuity", "exclusive jurisdiction"
+],
+"clauses": {
+  "Customer/Supplier Non-Solicit": {
+    "policy": "Always exclude this language",
+    "action": "delete"
+  },
+  "Employee Non-Solicit": {
+    "policy": "Limit the non-solicit to only key executives, not all employees. Include carve-outs (i)-(iv).",
+    "carveOuts": [
+      "unsolicited applicants",
+      "prior discussions",
+      "public advertisements",
+      "terminated by the Company prior to discussions"
+    ]
+  },
+  "Term": {
+    "policy": "Agreement contains a term not to exceed two years"
+  },
+  "Return or Destroy Documents": {
+    "policy": "Allow destruction instead of return; add retention for legal/regulatory/archival"
+  },
+  "Document retention language": {
+    "policy": "You may retain copies as necessary for legal, regulatory and archival purposes"
+  },
+  "Legal modifiers": {
+    "policy": "Prefer 'commercially reasonable', 'may'/'will', and 'prompt' over 'best efforts', 'shall', and 'immediate'"
+  },
+  "Affiliate Language": {
+    "policy": "Remove references to your affiliates; company affiliates OK"
+  },
+  "Affiliate Carve-Out": {
+    "policy": "Affiliates/portfolio companies are not Representatives unless they actually receive Evaluation Material; board seat alone is not enough"
+  },
+  "State of Jurisdiction": {
+    "policy": "Avoid foreign; prefer IL, NY or DE"
+  },
+  "Representative Language": {
+    "policy": "Include directors, officers, advisors, employees, financing sources, consultants, accountants, attorneys; avoid requirement for Representatives to sign"
+  },
+  "Confidential Information Carve-Out": {
+    "policy": "Exclude info that is (i) public, (ii) previously known without obligation, (iii) independently developed, (iv) obtained on a nonconfidential basis from a source not bound by confidentiality"
+  },
+  "Competition Disclaimer": {
+    "policy": "Allow ordinary-course competition provided confidentiality obligations are followed"
+  }
+}
+}

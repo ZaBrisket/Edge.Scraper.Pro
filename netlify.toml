@@ -16,7 +16,8 @@
   included_files = ["src/**"]
   external_node_modules = [
     "natural", "compromise", "jsdom", "cheerio", "axios", "xml2js",
-    "undici", "set-cookie-parser", "@mozilla/readability"
+    "undici", "set-cookie-parser", "@mozilla/readability",
+    "jszip", "fast-xml-parser"
   ]
 
 [functions."ma-news-scraper"]
@@ -48,6 +49,13 @@
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type, X-API-Key"
     Access-Control-Max-Age = "86400"
+
+[[headers]]
+  for = "/nda/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "no-referrer"
 
 # Cache static assets
 [[headers]]
