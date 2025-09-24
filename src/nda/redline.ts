@@ -55,7 +55,12 @@ function applyTrackedChanges(xml: string, edits: Redline[], author: string): str
   for (const [i, e] of edits.entries()) {
     if (!e.originalText || e.originalText.trim().length === 0) {
       const insXml = insRunXml(e.suggestedText, author, e.dateISO, i + 1);
-      out = out.replace(/(<w:body[^>]*>)/i, `$1${insXml}`);
+      const insParagraph = `<w:p>${insXml}</w:p>`;
+      if (/<\/w:body>/i.test(out)) {
+        out = out.replace(/<\/w:body>/i, `${insParagraph}</w:body>`);
+      } else {
+        out = out.replace(/(<w:body[^>]*>)/i, `$1${insParagraph}`);
+      }
       continue;
     }
     const escapedOriginal = escapeForRegExp(e.originalText);

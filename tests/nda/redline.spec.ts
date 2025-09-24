@@ -27,4 +27,14 @@ describe("redline export", () => {
     expect(docXml).toMatch(/<w:ins[^>]*>/);
     expect(settingsXml).toMatch(/trackRevisions/);
   });
+
+  it("wraps inserted clauses in paragraphs", async () => {
+    const original = await mkDocx("Agreement text.");
+    const out = await buildTrackedDocx(original, [
+      { originalText: "", suggestedText: "New clause", reason: "missing" }
+    ]);
+    const zip = await JSZip.loadAsync(out);
+    const docXml = await zip.file("word/document.xml")!.async("text");
+    expect(docXml).toMatch(/<w:p>\s*<w:ins[^>]*>[\s\S]*New clause/);
+  });
 });

@@ -11,11 +11,14 @@ const downloadA = $("#download");
 
 let lastAnalysis = null;
 let originalDocBase64 = null;
+let lastUploadWasDocx = false;
 
 analyzeBtn.addEventListener("click", async () => {
   status("Uploading...");
   const file = fileEl.files?.[0];
   if (!file) return status("Please choose a file.");
+  lastUploadWasDocx = /\.docx$/i.test(file.name || "") ||
+    (file.type || "").includes("officedocument.wordprocessingml.document");
   const fd = new FormData();
   fd.append("file", file);
   const checklist = checklistEl.files?.[0];
@@ -30,16 +33,26 @@ analyzeBtn.addEventListener("click", async () => {
     return status("Error: " + (e.error || res.statusText));
   }
   lastAnalysis = await res.json();
-  originalDocBase64 = await fileToBase64(file);
+  originalDocBase64 = lastUploadWasDocx ? await fileToBase64(file) : null;
 
   renderIssues(lastAnalysis.issues || []);
   previewEl.textContent = (lastAnalysis.textPreview || "").slice(0, 5000);
   analysisCard.classList.remove("hidden");
-  exportBtn.disabled = (lastAnalysis.issues || []).length === 0;
-  status(`Found ${lastAnalysis.issues.length} issue(s).`);
+  resetDownloadLink();
+  const issueCount = (lastAnalysis.issues || []).length;
+  exportBtn.disabled = !lastUploadWasDocx || issueCount === 0;
+  if (!lastUploadWasDocx) {
+    exportBtn.title = "Upload a .docx file to export tracked changes.";
+    status(`Found ${issueCount} issue(s). Redline export requires a .docx upload.`);
+  } else {
+    exportBtn.removeAttribute("title");
+    status(`Found ${issueCount} issue(s).`);
+  }
 });
 
 exportBtn.addEventListener("click", async () => {
+  if (!lastUploadWasDocx) return status("Redline export requires the original .docx upload.");
+  if (!originalDocBase64) return status("Missing original document payload.");
   const checks = [...document.querySelectorAll("[data-apply]")].filter((c) => c.checked);
   if (checks.length === 0) return status("Select at least one edit.");
   const selected = checks.map((c) => JSON.parse(c.dataset.payload));
@@ -93,6 +106,12 @@ function escapeHtml(s) {
     '"': "&quot;",
     "'": "&#39;"
   }[c]));
+}
+function resetDownloadLink() {
+  const href = downloadA.getAttribute("href");
+  if (href && href.startsWith("blob:")) URL.revokeObjectURL(href);
+  downloadA.removeAttribute("href");
+  downloadA.classList.add("hidden");
 }
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {

@@ -15,6 +15,12 @@ export default async (req: Request): Promise<Response> => {
       });
     }
     const original = Buffer.from(originalDocBase64, "base64");
+    if (!looksLikeDocx(original)) {
+      return new Response(
+        JSON.stringify({ error: "Export requires the original .docx upload" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
     const mapped = edits.map((e: any) => ({
       originalText: e.originalText || "",
       suggestedText: e.suggestedText || "",
@@ -38,3 +44,9 @@ export default async (req: Request): Promise<Response> => {
     });
   }
 };
+
+function looksLikeDocx(buf: Buffer): boolean {
+  if (!buf || buf.length < 4) return false;
+  const hasPkHeader = buf[0] === 0x50 && buf[1] === 0x4b; // "PK"
+  return hasPkHeader;
+}
