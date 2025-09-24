@@ -1,25 +1,37 @@
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
-import { AnalyzeNdaRequest, AnalyzeNdaResponse, NDASuggestion } from '../../lib/nda/types';
+import {
+  AnalyzeNdaRequest,
+  AnalyzeNdaResponse,
+  NDASuggestion,
+  ChecklistItem,
+} from './types';
 import {
   EDGEWATER_CHECKLIST,
   findProvisionMatches,
   scoreSimilarity,
-} from '../../lib/nda/similarity-scorer';
-import { assessBurden } from '../../lib/nda/burden-assessor';
+} from './similarity-scorer';
+import { assessBurden } from './burden-assessor';
 import {
   buildStructureFromPlainText,
   extractStructuredDocx,
   sanitizePlainText,
   validateDocxInput,
-} from '../../lib/nda/docx-processor';
-import { generateTrackedChangesDoc } from '../../lib/nda/change-tracker';
+} from './docx-processor';
+import { generateTrackedChangesDoc } from './change-tracker';
 
 const PROCESSING_TIMEOUT_MS = 30_000;
 const FEATURE_ENABLED = process.env.NDA_V2_ENABLED !== 'false';
-const activeSessions = new Set<string>();
+const MAX_TEXT_LENGTH = 50_000;
+
+// Track active sessions with automatic cleanup in case a request aborts unexpectedly.
+const activeSessions = new Map<string, NodeJS.Timeout>();
 
 type DecisionAction = 'flag' | 'targeted-edit' | 'replace' | 'add';
+
+type ProvisionMatchWithChecklist = ReturnType<typeof findProvisionMatches>[number];
+
+type AnalyzeHandler = () => Promise<AnalyzeNdaResponse>;
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -39,6 +51,31 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   });
 }
 
+function decodeBase64Document(encoded: string): Buffer {
+  const normalized = encoded.replace(/\s+/g, '');
+  if (!normalized.length) {
+    throw new Error('Empty base64 document payload received.');
+  }
+
+  if (!/^[a-zA-Z0-9+/=]+$/.test(normalized)) {
+    throw new Error('Invalid base64 document payload.');
+  }
+
+  const buffer = Buffer.from(normalized, 'base64');
+  if (!buffer.length) {
+    throw new Error('Unable to decode base64 document payload.');
+  }
+
+  return buffer;
+}
+
+function ensureTextWithinLimit(text: string): string {
+  if (text.length > MAX_TEXT_LENGTH) {
+    throw new Error(`Text input exceeds ${MAX_TEXT_LENGTH.toLocaleString()} character limit.`);
+  }
+  return text;
+}
+
 function buildTargetedEdit(originalText: string, standardText: string): string {
   let edited = originalText;
   edited = edited.replace(/best efforts/gi, 'commercially reasonable efforts');
@@ -55,7 +92,11 @@ function buildTargetedEdit(originalText: string, standardText: string): string {
   return edited;
 }
 
-function deriveAction(similarity: number, burden: 'low' | 'medium' | 'high', missing: boolean): DecisionAction {
+function deriveAction(
+  similarity: number,
+  burden: 'low' | 'medium' | 'high',
+  missing: boolean,
+): DecisionAction {
   if (missing) {
     return 'add';
   }
@@ -76,10 +117,10 @@ function deriveAction(similarity: number, burden: 'low' | 'medium' | 'high', mis
 }
 
 function determineSeverity(
-  checklistSeverity: 'critical' | 'medium' | 'low',
+  checklistSeverity: ChecklistItem['severity'],
   burden: 'low' | 'medium' | 'high',
   missing: boolean,
-): 'critical' | 'medium' | 'low' {
+): ChecklistItem['severity'] {
   if (missing || burden === 'high') {
     return 'critical';
   }
@@ -101,7 +142,11 @@ function summarizeRationale(
     return 'Checklist provision is missing from the inbound agreement.';
   }
 
-  const parts = [`Similarity score: ${(matchSimilarity * 100).toFixed(1)}%.`, burdenExplanation];
+  const parts = [
+    `Similarity score: ${(matchSimilarity * 100).toFixed(1)}%.`,
+    burdenExplanation,
+  ];
+
   switch (action) {
     case 'flag':
       parts.push('Clause aligns closely with the standard. No redline proposed.');
@@ -123,7 +168,7 @@ function summarizeRationale(
 }
 
 function mapSuggestion(
-  match: ReturnType<typeof findProvisionMatches>[number],
+  match: ProvisionMatchWithChecklist,
   burdenExplanation: ReturnType<typeof assessBurden>,
 ): NDASuggestion {
   const action = deriveAction(match.similarity, burdenExplanation.burdenLevel, match.missing);
@@ -157,7 +202,12 @@ function mapSuggestion(
     similarity: Number(match.similarity.toFixed(4)),
     burden: burdenExplanation.burdenLevel,
     action,
-    rationale: summarizeRationale(match.similarity, burdenExplanation.explanation, action, match.missing),
+    rationale: summarizeRationale(
+      match.similarity,
+      burdenExplanation.explanation,
+      action,
+      match.missing,
+    ),
     originalText: match.paragraphText,
     suggestedText,
     burdenDetails: burdenExplanation,
@@ -171,24 +221,33 @@ function mapSuggestion(
   };
 }
 
-async function enforceSingleSession(sessionKey: string, handler: () => Promise<AnalyzeNdaResponse>) {
+async function enforceSingleSession(
+  sessionKey: string,
+  handler: AnalyzeHandler,
+): Promise<AnalyzeNdaResponse> {
   if (activeSessions.has(sessionKey)) {
     throw new Error('Another NDA analysis is already in progress for this session.');
   }
 
-  activeSessions.add(sessionKey);
+  const cleanupTimer = setTimeout(() => {
+    activeSessions.delete(sessionKey);
+  }, PROCESSING_TIMEOUT_MS + 1_000);
+
+  activeSessions.set(sessionKey, cleanupTimer);
+
   try {
     return await handler();
   } finally {
+    clearTimeout(cleanupTimer);
     activeSessions.delete(sessionKey);
   }
 }
 
 export async function analyzeNda(request: AnalyzeNdaRequest): Promise<AnalyzeNdaResponse> {
   const sessionKey = request.sessionId ?? 'global';
+  const sanitizedText = request.text ? ensureTextWithinLimit(sanitizePlainText(request.text)) : '';
 
   if (!FEATURE_ENABLED) {
-    const sanitizedText = sanitizePlainText(request.text ?? '');
     const blocks = sanitizedText ? sanitizedText.split(/\n+/) : [];
     return {
       issues: [],
@@ -202,7 +261,7 @@ export async function analyzeNda(request: AnalyzeNdaRequest): Promise<AnalyzeNda
     };
   }
 
-  if (!request.text && !request.fileBuffer) {
+  if (!sanitizedText && !request.fileBuffer && !request.fileBase64) {
     throw new Error('Either text or a .docx document must be provided for analysis.');
   }
 
@@ -212,15 +271,24 @@ export async function analyzeNda(request: AnalyzeNdaRequest): Promise<AnalyzeNda
 
     const structure = await withTimeout(
       (async () => {
-        const incomingBuffer =
-          request.fileBuffer ?? (request.fileBase64 ? Buffer.from(request.fileBase64, 'base64') : undefined);
+        const incomingBuffer = (() => {
+          if (request.fileBuffer) {
+            return request.fileBuffer;
+          }
+
+          if (request.fileBase64) {
+            return decodeBase64Document(request.fileBase64);
+          }
+
+          return undefined;
+        })();
 
         if (incomingBuffer) {
           validateDocxInput(request.fileName, request.mimeType, incomingBuffer);
           return extractStructuredDocx(incomingBuffer);
         }
 
-        return buildStructureFromPlainText(request.text ?? '');
+        return buildStructureFromPlainText(sanitizedText);
       })(),
       PROCESSING_TIMEOUT_MS,
     );
@@ -267,9 +335,7 @@ export async function analyzeNda(request: AnalyzeNdaRequest): Promise<AnalyzeNda
   });
 }
 
-export default analyzeNda;
-
-function normalizeJsonPayload(body: any): AnalyzeNdaRequest {
+export function buildAnalyzePayloadFromJson(body: any): AnalyzeNdaRequest {
   const includeExportRaw = body?.includeDocxExport;
   const includeDocxExport =
     includeExportRaw === true || includeExportRaw === 'true' || includeExportRaw === 1 || includeExportRaw === '1';
@@ -287,7 +353,7 @@ function normalizeJsonPayload(body: any): AnalyzeNdaRequest {
   };
 
   if (Array.isArray(body?.checklistOverride)) {
-    request.checklistOverride = body.checklistOverride as any;
+    request.checklistOverride = body.checklistOverride as ChecklistItem[];
   } else if (body?.checklistOverride) {
     throw new Error('checklistOverride must be an array of checklist items.');
   }
@@ -295,7 +361,7 @@ function normalizeJsonPayload(body: any): AnalyzeNdaRequest {
   return request;
 }
 
-async function normalizeFormPayload(formData: FormData): Promise<AnalyzeNdaRequest> {
+export async function buildAnalyzePayloadFromForm(formData: any): Promise<AnalyzeNdaRequest> {
   const text = formData.get('text');
   const sessionId = formData.get('sessionId');
   const includeDocxExport = formData.get('includeDocxExport');
@@ -347,35 +413,4 @@ async function normalizeFormPayload(formData: FormData): Promise<AnalyzeNdaReque
   return payload;
 }
 
-export async function POST(req: Request): Promise<Response> {
-  try {
-    const contentType = req.headers.get('content-type') ?? 'application/json';
-    let requestPayload: AnalyzeNdaRequest;
-
-    if (contentType.includes('multipart/form-data')) {
-      const form = await req.formData();
-      requestPayload = await normalizeFormPayload(form);
-    } else {
-      const body = await req.json().catch(() => ({}));
-      requestPayload = normalizeJsonPayload(body);
-    }
-
-    const result = await analyzeNda(requestPayload);
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: { 'content-type': 'application/json' },
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unexpected error during NDA analysis.';
-    const status = message.includes('already in progress')
-      ? 429
-      : message.includes('timed out')
-      ? 504
-      : 400;
-
-    return new Response(JSON.stringify({ error: message }), {
-      status,
-      headers: { 'content-type': 'application/json' },
-    });
-  }
-}
+export { PROCESSING_TIMEOUT_MS };

@@ -2,10 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>NDA Reviewer 1.0 — EdgeScraperPro</title>
+  <title>NDA Reviewer v2 — EdgeScraperPro</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- CSP tailored for pinned CDNs + ESM workers + WASM -->
   <meta http-equiv="Content-Security-Policy" content="
 default-src 'self';
 img-src 'self' data:;
@@ -21,7 +20,6 @@ frame-ancestors 'none';
   ">
 
   <link rel="stylesheet" href="./nda.css" />
-
 </head>
 <body>
   <header class="site-header">
@@ -33,22 +31,27 @@ frame-ancestors 'none';
   </header>
 
   <main class="container" id="app" aria-busy="false">
-    <h1>NDA Reviewer 1.0</h1>
-    <div id="app-error" class="alert" role="status" aria-live="polite" hidden></div>
+    <h1>Intelligent NDA Reviewer v2</h1>
     <p class="disclaimer">
-      Reviews inbound NDAs against a configurable playbook. All processing happens locally in your browser.
+      Upload an NDA or paste the text to compare against the Edgewater checklist. Processing occurs server-side with tracked changes export support.
       <strong>Not legal advice.</strong>
     </p>
 
-    <section class="uploader" aria-label="NDA Text Input">
-      <label for="nda-text-input">Paste NDA text here:</label>
-      <textarea id="nda-text-input" 
-                placeholder="Paste your NDA text here (max 50,000 characters)" 
-                maxlength="50000"
-                style="width: 100%; min-height: 300px; font-family: monospace; padding: 12px; border: 2px solid #ccc; border-radius: 4px;"></textarea>
+    <div id="app-error" class="alert" role="status" aria-live="polite" hidden></div>
+
+    <section class="input-panel" aria-label="Document input">
+      <label for="nda-text-input">Paste NDA text (optional, max 50,000 characters)</label>
+      <textarea id="nda-text-input" maxlength="50000" placeholder="Paste NDA text here"></textarea>
       <div class="controls">
-        <button id="analyze-btn" class="primary">Analyze</button>
-        <span id="text-stats" class="muted"></span>
+        <span id="text-stats" class="muted">0 / 50,000</span>
+      </div>
+      <div class="file-row">
+        <label for="nda-file-input">Or upload a Word document (.docx, up to 5MB)</label>
+        <input type="file" id="nda-file-input" accept=".docx" />
+        <span id="file-meta" class="muted" aria-live="polite"></span>
+      </div>
+      <div class="action-row">
+        <button id="analyze-btn" class="primary">Analyze NDA</button>
       </div>
       <div id="progress" class="progress" aria-hidden="true">
         <div id="progress-bar" class="progress-bar" style="width:0%"></div>
@@ -56,75 +59,62 @@ frame-ancestors 'none';
       </div>
     </section>
 
-    <section class="filters panel" aria-label="Filters">
-      <div class="row">
-        <label>Category
-          <select id="filter-category">
-            <option value="">All</option>
-          </select>
-        </label>
-        <label>Severity ≥
-          <input id="filter-severity" type="number" min="1" max="10" value="1" />
-        </label>
-        <label><input id="filter-blockers" type="checkbox" /> Blockers only</label>
-        <input id="filter-text" class="flex" type="search" placeholder="Filter text (title/evidence/recommendation)"/>
+    <section id="analysis-summary" class="summary" aria-live="polite" hidden>
+      <div class="summary-cards">
+        <div class="summary-card">
+          <span class="label">Total clauses</span>
+          <span id="metric-total" class="value">0</span>
+        </div>
+        <div class="summary-card">
+          <span class="label">Matched clauses</span>
+          <span id="metric-matched" class="value">0</span>
+        </div>
+        <div class="summary-card">
+          <span class="label">Missing clauses</span>
+          <span id="metric-missing" class="value">0</span>
+        </div>
       </div>
-      <div class="row">
-        <label>Playbook
-          <select id="playbook-select">
-            <option value="edgewater">Edgewater (default)</option>
-            <option value="custom">Custom… (import JSON/YAML)</option>
-          </select>
-        </label>
-        <input id="custom-playbook-file" type="file" accept=".json,.yaml,.yml" hidden />
-        <button id="export-playbook" class="secondary">Export Current Playbook</button>
-        <span id="playbook-meta" class="muted"></span>
+      <div id="warnings" class="warnings" hidden></div>
+    </section>
+
+    <section id="issues-panel" class="issues" hidden aria-live="polite">
+      <div class="issues-header">
+        <h2>Checklist Findings</h2>
+        <div class="issue-actions">
+          <button id="select-all" class="secondary" type="button">Select all</button>
+          <button id="clear-all" class="secondary" type="button">Clear all</button>
+        </div>
+      </div>
+      <p class="muted">Toggle the issues to include before exporting tracked changes. Items are grouped by severity.</p>
+      <div class="issue-groups">
+        <div class="issue-group" data-severity="critical">
+          <h3>Critical</h3>
+          <ul id="issues-critical" class="issue-list" aria-label="Critical issues"></ul>
+        </div>
+        <div class="issue-group" data-severity="medium">
+          <h3>Medium</h3>
+          <ul id="issues-medium" class="issue-list" aria-label="Medium issues"></ul>
+        </div>
+        <div class="issue-group" data-severity="low">
+          <h3>Low</h3>
+          <ul id="issues-low" class="issue-list" aria-label="Low issues"></ul>
+        </div>
+      </div>
+      <div class="export-row">
+        <button id="export-redlines" class="primary" type="button" disabled>Export tracked changes (.docx)</button>
       </div>
     </section>
 
-    <section class="panes">
-      <div class="pane">
-        <h2>Original</h2>
-        <pre id="original" class="mono"></pre>
-      </div>
-      <div class="pane">
-        <h2>Redlines</h2>
-        <div id="redlines-list" class="redlines-list" aria-live="polite"></div>
-        <button id="export-redlines" class="secondary">Export Redlines (.docx)</button>
-      </div>
-      <div class="pane">
-        <h2>Checklist Compliance</h2>
-        <div class="table-actions">
-          <button id="export-csv">Export Checklist (CSV)</button>
-          <button id="export-json">Export Checklist (JSON)</button>
-        </div>
-        <table id="results" class="results">
-          <thead>
-            <tr>
-              <th>Status</th>
-              <th>Category</th>
-              <th>Clause</th>
-              <th>Title</th>
-              <th>Severity</th>
-              <th>Evidence</th>
-              <th>Recommendation</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <div class="risk">
-          <strong>Overall Risk:</strong> <span id="risk-score">—</span>
-          <span id="risk-pill" class="pill"></span>
-        </div>
-      </div>
+    <section id="extracted-panel" class="extracted" hidden>
+      <h2>Extracted Text</h2>
+      <pre id="extracted-text" class="mono" aria-live="polite"></pre>
     </section>
 
     <p class="scope">
-      Scope: NDA review only. Configurable via playbook (JSON/YAML). Deterministic and explainable checks.
+      Scope: NDA review only. Checklist items sourced from Edgewater playbook. Suggestions are deterministic and explainable.
     </p>
   </main>
 
-  <!-- App entry -->
   <script type="module" src="./js/nda.js"></script>
 </body>
 </html>

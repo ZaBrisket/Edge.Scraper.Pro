@@ -1,7 +1,7 @@
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import { Buffer } from 'node:buffer';
-import analyzeNda from './route';
-import { EDGEWATER_CHECKLIST } from '../../lib/nda/similarity-scorer';
+import { analyzeNda } from './analyzer';
+import { EDGEWATER_CHECKLIST } from './similarity-scorer';
 
 describe('NDA analyzer integration', () => {
   it('analyzes plain text input and returns checklist coverage', async () => {

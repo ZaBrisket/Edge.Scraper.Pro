@@ -189,14 +189,13 @@ export async function generateTrackedChangesDoc(
     paragraphMap.set(paragraph.id, paragraph);
   });
 
-  if (workingStructure.paragraphIdAliasMap) {
-    Object.entries(workingStructure.paragraphIdAliasMap).forEach(([aliasId, canonicalId]) => {
-      const canonicalParagraph = paragraphMap.get(canonicalId);
-      if (canonicalParagraph) {
-        paragraphMap.set(aliasId, canonicalParagraph);
-      }
-    });
-  }
+  const aliasMap = workingStructure.paragraphIdAliasMap ?? {};
+  Object.entries(aliasMap).forEach(([aliasId, canonicalId]) => {
+    const canonicalParagraph = paragraphMap.get(canonicalId);
+    if (canonicalParagraph) {
+      paragraphMap.set(aliasId, canonicalParagraph);
+    }
+  });
 
   const timestamp = new Date().toISOString();
   let changeId = 1;
@@ -207,7 +206,11 @@ export async function generateTrackedChangesDoc(
     }
 
     if (suggestion.location) {
-      const targetParagraph = paragraphMap.get(suggestion.location.paragraphId);
+      const originalId = suggestion.location.paragraphId;
+      const canonicalId = aliasMap[originalId] ?? originalId;
+      const targetParagraph =
+        paragraphMap.get(originalId) ??
+        paragraphMap.get(canonicalId);
       if (!targetParagraph) {
         return;
       }
