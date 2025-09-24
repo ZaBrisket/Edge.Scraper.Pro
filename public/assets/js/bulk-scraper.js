@@ -12,7 +12,11 @@
   const components = window.EdgeComponents || {};
   const STORAGE_KEY = 'edge-scraper:lastResults';
   const errorBanner = document.getElementById('globalError');
-  const dependencyState = { requireSports: false };
+  const dependencyState = {
+    requireSports: false,
+    pendingSports: false,
+    lastMissing: []
+  };
 
   function showError(message) {
     if (!message) {
@@ -39,14 +43,26 @@
     if (dependencyState.requireSports && !window.SportsExtractor) {
       missing.push('SportsExtractor');
     }
-    if (missing.length) {
-      showError(`Missing dependencies: ${missing.join(', ')}`);
-      throw new Error(`Missing dependencies: ${missing.join(', ')}`);
-    }
-    clearError();
-  }
 
-  document.addEventListener('DOMContentLoaded', validateDependencies, { once: true });
+    dependencyState.lastMissing = missing.slice();
+
+    if (missing.length === 0) {
+      clearError();
+      return;
+    }
+
+    if (
+      missing.length === 1 &&
+      missing[0] === 'SportsExtractor' &&
+      dependencyState.pendingSports
+    ) {
+      return;
+    }
+
+    const message = `Missing dependencies: ${missing.join(', ')}`;
+    showError(message);
+    throw new Error(message);
+  }
 
   const dropzone = document.getElementById('dropzone');
   const fileInput = document.getElementById('fileInput');
@@ -61,10 +77,8 @@
   const defaultMode = dataset.mode || 'general';
   const forceSports = dataset.forceSports === 'true' || !!APP_CONFIG.SPORTS_MODE_DEFAULT;
   dependencyState.requireSports = forceSports;
-  try {
-    validateDependencies();
-  } catch (error) {
-    console.error(error);
+  if (forceSports) {
+    dependencyState.pendingSports = true;
   }
 
   const SPORTS_EXTRACTOR_SRC = '/sports-extractor.js';
@@ -76,6 +90,13 @@
 
   function loadSportsExtractorScript() {
     if (window.SportsExtractor) {
+      dependencyState.pendingSports = false;
+      if (
+        dependencyState.lastMissing.length === 1 &&
+        dependencyState.lastMissing[0] === 'SportsExtractor'
+      ) {
+        clearError();
+      }
       return Promise.resolve();
     }
 
@@ -100,10 +121,18 @@
 
       script.addEventListener('load', () => {
         script.dataset.loaded = 'true';
+        dependencyState.pendingSports = false;
+        if (
+          dependencyState.lastMissing.length === 1 &&
+          dependencyState.lastMissing[0] === 'SportsExtractor'
+        ) {
+          clearError();
+        }
         resolve();
       }, { once: true });
 
       script.addEventListener('error', () => {
+        dependencyState.pendingSports = false;
         reject(new Error('Failed to load sports extractor'));
       }, { once: true });
 
@@ -117,9 +146,17 @@
 
   async function ensureSportsExtractor() {
     if (window.SportsExtractor) {
+      dependencyState.pendingSports = false;
+      if (
+        dependencyState.lastMissing.length === 1 &&
+        dependencyState.lastMissing[0] === 'SportsExtractor'
+      ) {
+        clearError();
+      }
       return;
     }
 
+    dependencyState.pendingSports = true;
     await loadSportsExtractorScript();
   }
 
@@ -152,6 +189,28 @@
     delay: document.getElementById('delay')
   };
 
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      if (forceSports) {
+        await ensureSportsExtractor();
+      }
+    } catch (error) {
+      console.error(error);
+      dependencyState.requireSports = false;
+      dependencyState.pendingSports = false;
+      if (elements.sportsMode) {
+        elements.sportsMode.checked = false;
+        elements.sportsMode.removeAttribute('disabled');
+      }
+      showError('Sports extractor failed to load. Sports mode has been disabled.');
+    }
+    try {
+      validateDependencies();
+    } catch {
+      // swallow; banner already shown via showError
+    }
+  }, { once: true });
+
   const state = {
     urls: [],
     results: [],
@@ -165,9 +224,6 @@
     if (forceSports) {
       elements.sportsMode.checked = true;
       elements.sportsMode.setAttribute('disabled', 'disabled');
-      ensureSportsExtractor().catch(error => {
-        console.error('Sports extractor failed to preload', error);
-      });
     }
 
     elements.sportsMode.addEventListener('change', event => {
@@ -177,6 +233,7 @@
       }
 
       dependencyState.requireSports = true;
+      dependencyState.pendingSports = true;
       try {
         validateDependencies();
       } catch (validationError) {
@@ -188,6 +245,7 @@
         showError('Sports extractor failed to load. Sports mode has been disabled.');
         event.target.checked = false;
         dependencyState.requireSports = forceSports;
+        dependencyState.pendingSports = false;
       });
     });
   }
@@ -336,6 +394,33 @@
     return `${minutes}m ${secs}s`;
   }
 
+  async function scrapeWithRetries(url, attempts, timeoutMs) {
+    let lastErr;
+    const totalAttempts = Math.max(1, Number.isFinite(attempts) ? attempts : 0);
+    for (let i = 0; i < Math.max(1, totalAttempts); i += 1) {
+      try {
+        return await window.EdgeScraper.scrapeOne(url, {
+          raw: needRaw(url),
+          parse: 'article',
+          timeout: timeoutMs
+        });
+      } catch (error) {
+        lastErr = error;
+        await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 400));
+      }
+    }
+    throw lastErr;
+  }
+
+  function needRaw(url) {
+    void url;
+    return (
+      (elements.extractImages && elements.extractImages.checked) ||
+      (elements.extractMeta && elements.extractMeta.checked) ||
+      (elements.sportsMode && elements.sportsMode.checked)
+    ) ? 1 : 0;
+  }
+
   function updateProgress() {
     if (!state.isProcessing) {
       return;
@@ -368,10 +453,6 @@
     }
   }
 
-  const API_BASE = window.location.hostname === 'localhost'
-    ? 'http://localhost:8888/.netlify/functions'
-    : '/.netlify/functions';
-
   async function scrapeUrl(url) {
     const extractImages = elements.extractImages ? elements.extractImages.checked : false;
     const extractMeta = elements.extractMeta ? elements.extractMeta.checked : false;
@@ -383,9 +464,15 @@
         throw new Error('EdgeScraper client is not available');
       }
 
-      const needRaw = (extractImages || extractMeta || sportsMode) ? 1 : 0;
-      const parseMode = 'article';
-      const result = await window.EdgeScraper.scrapeOne(url, { raw: needRaw, parse: parseMode });
+      const timeoutSeconds = elements.timeout ? parseInt(elements.timeout.value, 10) : NaN;
+      const retriesInput = elements.retries ? parseInt(elements.retries.value, 10) : 0;
+      const safeTimeout = Number.isFinite(timeoutSeconds) && timeoutSeconds > 0
+        ? timeoutSeconds
+        : Math.floor(APP_CONFIG.API_TIMEOUT / 1000);
+      const timeoutMs = safeTimeout * 1000;
+      const attempts = Number.isFinite(retriesInput) && retriesInput >= 0 ? retriesInput : 0;
+
+      const result = await scrapeWithRetries(url, attempts, timeoutMs);
       const endTime = Date.now();
       const duration = Math.floor((endTime - startTime) / 1000);
 
@@ -400,7 +487,7 @@
         let meta = {};
         let structuredData = null;
 
-        if (needRaw && result.html) {
+        if (needRaw(url) && result.html) {
           const parser = new DOMParser();
           const doc = parser.parseFromString(result.html, 'text/html');
 
@@ -441,7 +528,7 @@
           images,
           meta,
           structuredData,
-          html: needRaw ? (result.html || null) : null,
+          html: needRaw(url) ? (result.html || null) : null,
           strategy: result.strategy || null,
           ms: result.ms || (endTime - startTime),
           durationSecs: duration
@@ -626,6 +713,12 @@
       } catch (error) {
         console.error('Sports extractor failed to initialize', error);
         showError('Sports extractor failed to load. Disable sports mode or refresh the page.');
+        dependencyState.pendingSports = false;
+        dependencyState.requireSports = forceSports;
+        if (elements.sportsMode && forceSports) {
+          elements.sportsMode.removeAttribute('disabled');
+          elements.sportsMode.checked = false;
+        }
         return;
       }
     }
@@ -703,6 +796,8 @@
       if (Array.isArray(results)) {
         state.results = results;
       }
-    }
+    },
+    scrapeUrl,
+    scrapeWithRetries
   };
 })();

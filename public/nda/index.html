@@ -8,38 +8,36 @@
 <link rel="icon" href="/favicon.ico">
 <link rel="stylesheet" href="/assets/css/brutalist.css">
 <style>
-  body { margin:0; }
-  main { padding-bottom:64px; }
-  h1 { margin:0 0 8px 0; font-size:28px; }
-  .muted { font-size:14px; font-style:italic; }
-  .panel { margin:24px 0; }
-  .row { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
-  .col { flex:1 1 320px; min-width:320px; }
-  textarea { width:100%; min-height:200px; font-family:'Courier New', Courier, monospace; font-size:14px; }
-  input[type="file"] { display:block; margin:8px 0 4px 0; }
-  .btn { display:inline-flex; gap:8px; align-items:center; }
-  .btn.secondary { background:var(--color-paper); color:var(--color-ink); }
-  .btn.small { padding:8px 16px; font-size:14px; }
-  .btn:disabled { opacity:0.6; cursor:not-allowed; }
-  .status { padding:6px 12px; border:1px solid var(--color-ink); font-size:12px; text-transform:uppercase; letter-spacing:1px; display:inline-flex; gap:8px; align-items:center; }
-  .status.idle { border-style:dashed; }
-  .status.ok { border-style:solid; }
-  .status.bad { border-style:double; }
-  .issues { max-height:420px; overflow:auto; border:1px solid var(--color-ink); }
-  .issue { display:grid; grid-template-columns: 28px 1fr 120px 90px; gap:8px; padding:12px; border-bottom:1px solid var(--color-ink); }
-  .issue:last-child { border-bottom:none; }
-  .pill { padding:2px 8px; border:1px solid var(--color-ink); font-size:12px; text-transform:uppercase; letter-spacing:1px; display:inline-block; }
-  .sev-low { border-style:dotted; }
-  .sev-med { border-style:dashed; }
-  .sev-high { border-style:solid; font-weight:700; }
-  .diff { font-family:'Courier New', Courier, monospace; white-space:pre-wrap; border:1px solid var(--color-ink); padding:16px; }
-  del { text-decoration:line-through; }
-  ins { text-decoration:underline; }
-  .searchbar { display:flex; gap:8px; align-items:center; margin:8px 0;}
-  .searchbar input, .searchbar select { padding:8px; border:1px solid var(--color-ink); font:inherit; background:var(--color-paper); }
-  .searchbar input { flex:1; }
-  .grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px;}
-  .small { font-size:12px; }
+  body { margin: 0; }
+  main { padding-bottom: 64px; }
+  h1 { margin: 0 0 8px 0; font-size: 28px; }
+  .muted { font-size: 14px; font-style: italic; }
+  .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .col { flex: 1 1 320px; min-width: 320px; }
+  textarea { width: 100%; min-height: 200px; font-family: 'Courier New', Courier, monospace; font-size: 14px; }
+  input[type="file"] { display: block; margin: 8px 0 4px 0; }
+  .btn.secondary { background: var(--color-paper); color: var(--color-ink); }
+  .btn.small { padding: 8px 16px; font-size: 14px; }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .status { padding: 6px 12px; border: 1px solid var(--color-ink); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; display: inline-flex; gap: 8px; align-items: center; }
+  .status.idle { border-style: dashed; }
+  .status.ok { border-style: solid; }
+  .status.bad { border-style: double; }
+  .issues { max-height: 420px; overflow: auto; border: 1px solid var(--color-ink); }
+  .issue { display: grid; grid-template-columns: 28px 1fr 120px 90px; gap: 8px; padding: 12px; border-bottom: 1px solid var(--color-ink); }
+  .issue:last-child { border-bottom: none; }
+  .pill { padding: 2px 8px; border: 1px solid var(--color-ink); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; display: inline-block; }
+  .sev-low { border-style: dotted; }
+  .sev-med { border-style: dashed; }
+  .sev-high { border-style: solid; font-weight: 700; }
+  .diff { font-family: 'Courier New', Courier, monospace; white-space: pre-wrap; border: 1px solid var(--color-ink); padding: 16px; }
+  del { text-decoration: line-through; }
+  ins { text-decoration: underline; }
+  .searchbar { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+  .searchbar input, .searchbar select { padding: 8px; border: 1px solid var(--color-ink); font: inherit; background: var(--color-paper); }
+  .searchbar input { flex: 1; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .small { font-size: 12px; }
 </style>
 </head>
 <body>
