@@ -22,7 +22,7 @@ test.describe('Targets page', () => {
     await expect(frame.locator('#mappingSummary')).toContainText(/Auto-mapped columns:/i, { timeout: 20000 });
     await expect(frame.locator('#resultsTable tbody tr')).toHaveCount(2, { timeout: 20000 });
 
-    const exportButton = frame.locator('#btnExportCsv');
+    const exportButton = frame.locator('#exportCsvBtn');
     const [download] = await Promise.all([
       page.waitForEvent('download'),
       exportButton.click(),

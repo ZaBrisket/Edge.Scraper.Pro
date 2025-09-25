@@ -39,7 +39,7 @@ function ensurePolicyEngine() {
 
 async function loadPlaybook() {
   try {
-    const res = await fetch('./checklist/edgewater.json', { cache: 'no-store' });
+    const res = await fetch('/nda/checklist/edgewater.json', { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const playbook = await res.json();
     state.compiledPlaybook = compilePlaybook(playbook);

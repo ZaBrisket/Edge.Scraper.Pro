@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: './tests',
+  testMatch: /.*\/(e2e|integration)\/.*\.(spec|test)\.[jt]s$/,
   reporter: 'line',
   use: { baseURL: 'http://localhost:8888', trace: 'on-first-retry' },
   projects: [

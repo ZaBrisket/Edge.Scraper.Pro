@@ -32,6 +32,32 @@ The shared header exposes consistent routes:
 
 Each wrapper uses `/css/brutalist.css` and `/js/nav.js` to keep typography, spacing, focus states, and active navigation in sync.
 
+## 🔐 Content Security Policy
+
+All brutalist wrappers and the NDA app ship with an aligned CSP that blocks inline JavaScript while still permitting the legacy inline styles required by the archived experiences:
+
+```
+default-src 'self' data: blob: https://cdn.jsdelivr.net; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.netlify.app https://*.netlify.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self' https://edgescraperpro.com https://www.edgescraperpro.com http://localhost:3000 http://127.0.0.1:8080;
+```
+
+Scripts are now externalised (`/js/iframe-loader.js`, `/nda/js/frame-guard.js`, `/nda/js/nda-bootstrap.js`) so the CSP no longer relies on `'unsafe-inline'` for execution.
+
+## 🪟 Frame Allowlist Configuration
+
+`public/nda/app.html` enforces its own frame ancestry before booting the reviewer UI. The `<body>` tag exposes the allowlist via `data-allowed-origins`. Update this comma-separated list if you need to embed the reviewer from an additional host. The runtime guard automatically appends the current origin, so same-origin iframes (e.g. local `http-server` on port 8080) continue to function without extra configuration.
+
+When a request comes from a non-approved parent, the guard renders an inline warning, sets `data-frame-blocked="true"` on `<html>`, and dispatches `window.sendTelemetry('iframe_blocked', { origin })` if telemetry is available.
+
+## 🧾 Nonce build tool
+
+The repository includes `tools/build-nonces.js` to future-proof any inline script requirements. Mark inline blocks with `data-nonce` and run:
+
+```bash
+npm run build:nonces
+```
+
+The tool injects a per-file nonce into the CSP `script-src` directive and swaps `data-nonce` with a real `nonce="…"` attribute. CI (GitHub Actions + Husky pre-commit) executes `npm run test:contamination`, so the contamination scan must pass before code is committed.
+
 ## 📁 Project Structure
 
 ```

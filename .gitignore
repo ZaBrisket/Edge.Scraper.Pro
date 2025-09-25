@@ -46,3 +46,8 @@ Thumbs.db
 
 # Build artifacts
 *.tsbuildinfo
+
+# Patch artifacts
+*.patch
+*.diff
+PR_DIFF*

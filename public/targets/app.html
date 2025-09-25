@@ -4,9 +4,10 @@
   <meta charset="utf-8" />
   <title>EdgeScraperPro — M&A Target List Builder</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="/targets/styles.css" />
   <meta name="robots" content="noindex" />
   <style>
+    body { margin: 0; padding: 16px; }
   </style>
   </head>
 <body>
@@ -31,8 +32,8 @@
   <section class="card">
     <h2>3) Preview standardized summaries</h2>
     <div class="actions">
-      <button id="btnExportCsv" disabled>Export CSV</button>
-      <button id="btnExportXlsx" disabled>Export XLSX</button>
+      <button id="exportCsvBtn" disabled>Export CSV</button>
+      <button id="exportExcelBtn" disabled>Export XLSX</button>
     </div>
     <div id="resultsContainer" class="table-container">
       <table id="resultsTable">
@@ -49,11 +50,11 @@
   </section>
 
   <!-- Vendors -->
-  <script src="../vendor/papaparse.min.js"></script>
-  <script src="../vendor/xlsx.full.min.js"></script>
+  <script src="/vendor/papaparse.min.js"></script>
+  <script src="/vendor/xlsx.full.min.js"></script>
 
   <!-- App -->
-  <script src="./summary-engine.js"></script>
-  <script src="./ma-targets.js"></script>
+  <script src="/targets/summary-engine.js"></script>
+  <script src="/targets/ma-targets.js"></script>
 </body>
 </html>

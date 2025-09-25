@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob: https://cdn.jsdelivr.net; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.netlify.app https://*.netlify.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self' https://edgescraperpro.com https://www.edgescraperpro.com http://localhost:3000 http://127.0.0.1:8080;"/>
   <title>EdgeScraperPro — NDA Reviewer</title>
   <link rel="stylesheet" href="/css/brutalist.css"/>
 </head>
@@ -23,26 +24,13 @@
   <main id="main" class="container">
     <h1>NDA Reviewer</h1>
     <p class="banner">This page preserves the original NDA Reviewer UI.</p>
-    <iframe class="app-frame" data-loading="true" title="NDA Reviewer App" src="/nda/app.html" loading="eager"></iframe>
+    <iframe class="app-frame" data-loading="true" title="NDA Reviewer App" src="/nda/app.html" data-src="/nda/app.html" data-app-name="NDA Reviewer" data-max-retries="3" loading="eager"></iframe>
   </main>
 
   <footer class="site-footer"><div class="container">
     <small>DOCX parsing and redlines continue to use existing Netlify Functions.</small>
   </div></footer>
-  <script>
-    (function(){
-      var iframe = document.querySelector('.app-frame');
-      if(!iframe) return;
-      iframe.addEventListener('load', function(){
-        iframe.removeAttribute('data-loading');
-        iframe.removeAttribute('data-error');
-      });
-      iframe.addEventListener('error', function(){
-        iframe.setAttribute('data-error', 'true');
-        iframe.removeAttribute('data-loading');
-      });
-    })();
-  </script>
+  <script src="/js/iframe-loader.js" defer></script>
   <script src="/js/nav.js" defer></script>
 </body>
 </html>

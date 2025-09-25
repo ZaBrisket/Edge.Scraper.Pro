@@ -4,11 +4,14 @@
 <meta charset="utf-8" />
 <title>NDA Reviewer 2.0 — EdgeScraperPro</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; font-src 'self' data:; frame-ancestors 'self' *.edgescraperpro.com localhost:*;">
+<meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob: https://cdn.jsdelivr.net; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://*.netlify.app https://*.netlify.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self' https://edgescraperpro.com https://www.edgescraperpro.com http://localhost:3000 http://127.0.0.1:8080;">
 <link rel="icon" href="/favicon.ico">
 <style>
   :root { --fg:#0c1323; --muted:#6b7280; --ok:#0ea5e9; --good:#16a34a; --warn:#f59e0b; --bad:#ef4444; --bg:#f8fafc; --card:#ffffff; --border:#e5e7eb; }
-  html, body { margin:0; padding:0; background:var(--bg); color:var(--fg); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+  html { margin:0; padding:0; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--fg); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
   .skip-link { position:absolute; left:-999px; top:auto; width:1px; height:1px; overflow:hidden; }
   .skip-link:focus { position:static; width:auto; height:auto; margin:8px; padding:8px 12px; border:1px solid var(--fg); background:#fff; }
   header { display:flex; gap:16px; align-items:center; padding:16px; background:var(--card); border-bottom:1px solid var(--border);} 
@@ -40,7 +43,7 @@
   .small { font-size:12px; }
 </style>
 </head>
-<body>
+<body data-allowed-origins="https://edgescraperpro.com,https://www.edgescraperpro.com,http://localhost:3000,http://127.0.0.1:8080">
 <a class="skip-link" href="#main">Skip to content</a>
 <header>
   <a href="/">Scrape</a>
@@ -54,7 +57,7 @@
   <div class="panel">
     <div class="row">
       <div class="col">
-        <label><strong>Upload .docx</strong> (max <span id="maxMb">5</span> MB)</label>
+        <label><strong>Upload .docx</strong> (max <span id="maxMb">5</span> MB)</label>
         <input id="fileInput" type="file" accept=".docx" />
         <button class="btn secondary small" id="parseDocxBtn">Parse .docx</button>
         <div id="uploadStatus" class="muted small">Idle</div>
@@ -107,7 +110,8 @@
   </div>
 </main>
 
-<script src="/nda/policyEngine.browser.js"></script>
+<script src="/nda/js/frame-guard.js" defer></script>
+<script src="/nda/js/nda-bootstrap.js" defer></script>
 <script type="module" src="/nda/js/nda-reviewer.app.js"></script>
 </body>
 </html>
