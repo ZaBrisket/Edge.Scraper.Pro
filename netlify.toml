@@ -1,6 +1,6 @@
 [build]
   publish = "public"
-  command = "npm ci"
+  command = "npm ci && npm run build"
 
 [build.environment]
   NODE_VERSION = "18"
