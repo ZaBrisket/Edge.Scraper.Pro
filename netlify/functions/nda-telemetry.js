@@ -9,7 +9,7 @@ try {
   if (!rate.allowed) {
     return json(429, { error: 'Too many telemetry events.', correlationId }, { 'Retry-After': String(rate.retryAfter) });
   }
-  console.log(JSON.stringify({
+  console.info(JSON.stringify({
     ts: new Date().toISOString(),
     kind: 'nda.telemetry',
     correlationId: String(correlationId || '').slice(0,24),

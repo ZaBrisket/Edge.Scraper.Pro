@@ -29,13 +29,20 @@ meta?: { pages?: number };
 notes?: string[];
 }
 export interface DocxExportRequest {
-base64: string;
-edits: Suggestion[];
-author?: string;
-tz?: string;
+  base64: string;
+  edits: Suggestion[];
+  author?: string;
+  tz?: string;
+  correlationId?: string;
 }
 export interface DocxExportResponse {
-base64: string;
-filename: string;
-skipped?: string[];
+  base64: string;
+  filename: string;
+  skipped?: string[];
+  meta?: {
+    ms: number;
+    sizeKB: number;
+    edits: number;
+    skipped: number;
+  };
 }
