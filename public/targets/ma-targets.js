@@ -220,6 +220,7 @@
   }
 
   if (global.Papa && typeof global.Papa === 'object') {
+    // Required so Papa Parse can locate its worker script if worker mode is toggled on later.
     global.Papa.SCRIPT_PATH = '/vendor/papaparse.min.js';
   }
 
