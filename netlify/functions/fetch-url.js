@@ -21,6 +21,7 @@ const MAX_REDIRECTS = envInt('FETCH_URL_MAX_REDIRECTS', 5, { min: 0, max: 10 });
 const BLOCK_DOWNGRADE = envBool('FETCH_URL_BLOCK_DOWNGRADE', false);
 const PUBLIC_API_KEY = (process.env.PUBLIC_API_KEY ?? '').trim();
 const BYPASS_AUTH = envBool('BYPASS_AUTH', false);
+const ACCESS_CONTROL_EXPOSE = 'Server-Timing, Content-Length, ETag';
 
 const COMMON_HEADERS = {
   'User-Agent': buildUA(),
@@ -49,6 +50,7 @@ function errorJson(status, code, message, extra = {}, headers = {}, originHeader
     status,
     {
       'Netlify-CDN-Cache-Control': 'private, max-age=0, no-store',
+      'Access-Control-Expose-Headers': ACCESS_CONTROL_EXPOSE,
       ...headers,
     },
     originHeader,
@@ -269,6 +271,7 @@ async function handleRequest(request) {
     'Content-Length': String(bodyBuffer.byteLength),
     'Cache-Control': 'public, max-age=0, must-revalidate',
     'Netlify-CDN-Cache-Control': `public, max-age=${CDN_MAX_AGE}, stale-while-revalidate=${CDN_SWR}`,
+    'Access-Control-Expose-Headers': ACCESS_CONTROL_EXPOSE,
   }, origin);
 
   for (const key of ['etag', 'last-modified']) {
