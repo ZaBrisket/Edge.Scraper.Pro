@@ -44,6 +44,35 @@
 </style>
 </head>
 <body>
+<script>
+  (function(){
+    if (typeof window === 'undefined') return;
+    var ancestors;
+    try {
+      if (window.top === window.self) return;
+      ancestors = document.referrer || '';
+    } catch (err) {
+      console.warn('[NDA Reviewer] Unable to verify frame ancestry', err);
+      return;
+    }
+    if (!ancestors) return;
+    var allowedOrigins = [
+      'https://edgescraperpro.com',
+      'https://www.edgescraperpro.com',
+      'https://app.edgescraperpro.com',
+      'http://localhost:8080',
+      'http://localhost:3000',
+      'http://127.0.0.1:8080'
+    ];
+    var permitted = allowedOrigins.some(function(origin){
+      return ancestors.indexOf(origin) === 0;
+    });
+    if (!permitted) {
+      document.body.innerHTML = '';
+      throw new Error('Embedding blocked: unauthorized frame ancestor "' + ancestors + '"');
+    }
+  })();
+</script>
 <a class="skip-link" href="#main">Skip to content</a>
 <header>
   <a href="/">Scrape</a>

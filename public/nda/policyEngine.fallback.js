@@ -116,13 +116,15 @@
     });
 
     if (replacements.length) {
+      var diffHtml = escapeHtml(text);
       replacements.forEach(function(change){
-        var escaped = escapeRegex(change.before);
-        var pattern = new RegExp(escaped, 'g');
-        html = html.replace(pattern, function(){
+        var escapedOriginal = escapeRegex(escapeHtml(change.before));
+        var pattern = new RegExp(escapedOriginal);
+        diffHtml = diffHtml.replace(pattern, function(){
           return '<del>' + escapeHtml(change.before) + '</del><ins>' + escapeHtml(change.after) + '</ins>';
         });
       });
+      html = diffHtml;
     } else {
       html = escapeHtml(updatedText);
     }
