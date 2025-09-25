@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.0.2] - 2025-09-25
+
+### Added
+- Frame guard UMD module with telemetry reporting and automated allowlist bootstrapping
+- Deterministic NDA bootstrapper that swaps to the fallback engine only when the primary script fails to load
+- Generic iframe loader shared by NDA and Targets wrappers with retry telemetry hooks
+- Unit and integration coverage for frame ancestry enforcement plus updated Playwright selectors
+- Husky pre-commit hook, GitHub Actions CI workflow, and build-time nonce tooling
+
+### Changed
+- Externalised all iframe loader scripts to remove `script-src 'unsafe-inline'` requirements from the CSP
+- Consolidated brutalist `.app-frame` styling and refreshed documentation for CSP/allowlist governance
+- Updated README with CSP guidance and nonce workflow for future inline scripts
+
+### Fixed
+- Frame ancestry enforcement now blocks empty or spoofed referrers with a user-facing message instead of failing open
+- Playwright E2E tests reference the current export button identifiers for the Targets experience
+
 ## [3.0.1] - 2025-09-24
 
 ### Fixed

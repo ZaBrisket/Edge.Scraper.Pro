@@ -25,8 +25,8 @@ test.describe('M&A Targets Scraper E2E', () => {
     const iframe = page.frameLocator('iframe.app-frame');
     
     // Initially disabled
-    await expect(iframe.locator('#btnExportCsv')).toBeDisabled();
-    await expect(iframe.locator('#btnExportXlsx')).toBeDisabled();
+    await expect(iframe.locator('#exportCsvBtn')).toBeDisabled();
+    await expect(iframe.locator('#exportExcelBtn')).toBeDisabled();
     
     // Upload file
     const testCsvPath = path.join(__dirname, '../fixtures/test-companies.csv');
@@ -36,7 +36,7 @@ test.describe('M&A Targets Scraper E2E', () => {
     await page.waitForTimeout(2000);
     
     // Should be enabled after processing
-    await expect(iframe.locator('#btnExportCsv')).toBeEnabled();
-    await expect(iframe.locator('#btnExportXlsx')).toBeEnabled();
+    await expect(iframe.locator('#exportCsvBtn')).toBeEnabled();
+    await expect(iframe.locator('#exportExcelBtn')).toBeEnabled();
   });
 });

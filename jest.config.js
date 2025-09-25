@@ -6,6 +6,7 @@ module.exports = {
     '**/__tests__/**/*.test.ts',
     '<rootDir>/tests/functions/**/*.test.js',
     '<rootDir>/tests/unit/**/*.spec.js',
+    '<rootDir>/tests/unit/**/*.test.js',
   ],
   testPathIgnorePatterns: ['/node_modules/', '<rootDir>/tests/nda/'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],

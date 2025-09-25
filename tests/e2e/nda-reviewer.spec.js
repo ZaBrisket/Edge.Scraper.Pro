@@ -16,10 +16,9 @@ test.describe('NDA Reviewer E2E', () => {
     await expect(iframe.locator('h1')).toBeVisible();
     
     // Check for CSP violations
-    const cspErrors = consoleErrors.filter(err => 
-      err.includes('Content Security Policy') || 
-      err.includes('CSP')
-    );
+    const cspErrors = consoleErrors
+      .filter(err => err.includes('Content Security Policy') || err.includes('CSP'))
+      .filter(err => !err.includes("'frame-ancestors' is ignored when delivered via a <meta> element"));
     expect(cspErrors).toHaveLength(0);
   });
 

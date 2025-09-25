@@ -3,8 +3,8 @@
   const fileInput = $("#fileInput");
   const mapDiv = $("#mappingSummary");
   const tableBody = $("#resultsTable tbody");
-  const btnCsv = $("#btnExportCsv");
-  const btnXlsx = $("#btnExportXlsx");
+  const btnCsv = $("#exportCsvBtn");
+  const btnXlsx = $("#exportExcelBtn");
 
   let latestRows = [];
 
