@@ -1,4 +1,14 @@
-const { exportTrackedChanges } = require('../../build/nda/docx.js');
+let exportTrackedChanges;
+try {
+  ({ exportTrackedChanges } = require('../../build/nda/docx.js'));
+} catch (err) {
+  if (err && (err.code === 'MODULE_NOT_FOUND' || err.message?.includes('Cannot find module'))) {
+    throw new Error(
+      'nda-export-docx: missing compiled NDA docx bundle. Run "npm run build:nda-docx" (postinstall) before deploying.'
+    );
+  }
+  throw err;
+}
 const { checkRateLimit } = require('./_lib/rate-limit');
 
 exports.handler = async (event) => {

@@ -1,6 +1,6 @@
 [build]
   publish = "public"
-  command = "npm ci"
+  command = "npm ci && npm run build:nda-docx"
 
 [build.environment]
   NODE_VERSION = "18"
