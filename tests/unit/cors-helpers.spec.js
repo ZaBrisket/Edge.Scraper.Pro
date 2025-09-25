@@ -43,6 +43,12 @@ describe('CORS helper utilities', () => {
     expect(headers.Vary.split(/,\s*/)).toEqual(expect.arrayContaining(['Accept-Encoding', 'Origin']));
   });
 
+  test('allowed headers include Range for partial requests', () => {
+    const { headersForOrigin } = freshCors();
+    const headers = headersForOrigin('https://edgescraperpro.com');
+    expect(headers['Access-Control-Allow-Headers']).toBe('Content-Type, Authorization, X-API-Key, Range');
+  });
+
   test('preflight adds Access-Control-Max-Age hint', () => {
     const { preflight } = freshCors();
     const response = preflight({

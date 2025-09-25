@@ -42,7 +42,7 @@ describe('CORS Middleware', () => {
     expect(result.statusCode).toBe(200);
     expect(result.headers['Access-Control-Allow-Origin']).toBe('https://edgescraperpro.com');
     expect(result.headers['Access-Control-Allow-Methods']).toBe('GET, POST, OPTIONS');
-    expect(result.headers['Access-Control-Allow-Headers']).toBe('Content-Type, Authorization');
+    expect(result.headers['Access-Control-Allow-Headers']).toBe('Content-Type, Authorization, X-API-Key, Range');
     expect(result.headers['Vary']).toBe('Origin');
     expect(result.body).toBe(JSON.stringify({ data: 'test' }));
   });

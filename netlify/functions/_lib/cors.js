@@ -53,7 +53,7 @@ function headersForOrigin(originHeader = '', extra = {}) {
 
   const base = {
     'Access-Control-Allow-Origin': resolveOrigin(originHeader),
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key, Range',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   };
 

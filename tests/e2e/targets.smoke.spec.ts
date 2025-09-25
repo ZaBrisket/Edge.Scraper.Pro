@@ -24,6 +24,11 @@ test.describe('Targets canonical route', () => {
       timeout: 20_000,
     }).toBeGreaterThan(0);
 
+    const mappingSummary = frame.locator('#mappingSummary');
+    await expect(mappingSummary).toContainText(/companyName:/i);
+    await expect(mappingSummary).not.toContainText(/companyName:\s*not found/i);
+    await expect(mappingSummary).not.toContainText(/website:\s*not found/i);
+
     const csvButton = frame.locator('#exportCsvBtn');
     await expect(csvButton).toBeEnabled({ timeout: 20_000 });
 
@@ -55,5 +60,18 @@ test.describe('Targets canonical route', () => {
       expect(maybeDownload).toBeNull();
       await expect(frame.locator('.toast-banner')).toContainText(/Excel export unavailable/i);
     }
+
+    const syntheticPath = path.join(process.cwd(), 'outputs', 'samples', 'targets_synthetic.csv');
+    await fileInput.setInputFiles(syntheticPath);
+
+    await expect.poll(async () => frame.locator('#resultsTable tbody tr').count(), {
+      message: 'expected parsed target rows from synthetic sample',
+      timeout: 20_000,
+    }).toBeGreaterThan(0);
+
+    await expect(mappingSummary).not.toContainText(/website:\s*not found/i);
+
+    const firstWebsite = (await frame.locator('#resultsTable tbody tr td:nth-child(2)').first().innerText()).trim();
+    expect(firstWebsite).toBe('https://www.syntheticco.com');
   });
 });
