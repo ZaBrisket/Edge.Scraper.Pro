@@ -5,22 +5,36 @@
 const StreamProcessor = require('../../src/lib/stream-processor');
 const { fetchWithEnhancedClient } = require('../../src/lib/http/simple-enhanced-client');
 const ContentExtractor = require('../../src/lib/content-extractor'); // Will create in Fix 3
+const { headersForEvent, preflight } = require('./_lib/cors');
 
 exports.handler = async (event, context) => {
-  // Only accept POST requests
+  const baseHeaders = { 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' };
+  const preflightResponse = preflight(event, baseHeaders);
+  if (preflightResponse) {
+    return preflightResponse;
+  }
+
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: headersForEvent(event, {
+        ...baseHeaders,
+        'Content-Type': 'application/json',
+      }),
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
-  
+
   try {
     const { urls, sessionId, resume } = JSON.parse(event.body);
     
     if (!urls || !Array.isArray(urls)) {
       return {
         statusCode: 400,
+        headers: headersForEvent(event, {
+          ...baseHeaders,
+          'Content-Type': 'application/json',
+        }),
         body: JSON.stringify({ error: 'Invalid URLs array' })
       };
     }
@@ -52,17 +66,22 @@ exports.handler = async (event, context) => {
     
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: headersForEvent(event, {
+        ...baseHeaders,
+        'Content-Type': 'application/json',
+      }),
       body: JSON.stringify(result)
     };
-    
+
   } catch (error) {
     console.error('[bulk-scrape] Error:', error);
-    
+
     return {
       statusCode: 500,
+      headers: headersForEvent(event, {
+        ...baseHeaders,
+        'Content-Type': 'application/json',
+      }),
       body: JSON.stringify({
         error: 'Internal server error',
         message: error.message

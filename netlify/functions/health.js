@@ -1,21 +1,18 @@
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type'
-};
+const { headersForEvent, preflight } = require('./_lib/cors');
 
-exports.handler = async (event, context) => {
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: ''
-    };
+exports.handler = async (event = {}) => {
+  const baseHeaders = {
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Content-Type': 'application/json',
+  };
+  const preflightResponse = preflight(event, baseHeaders);
+  if (preflightResponse) {
+    return preflightResponse;
   }
-  
+
   return {
     statusCode: 200,
-    headers: corsHeaders,
+    headers: headersForEvent(event, baseHeaders),
     body: JSON.stringify({
       status: 'healthy',
       timestamp: new Date().toISOString(),

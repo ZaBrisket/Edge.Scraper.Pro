@@ -1,5 +1,6 @@
 const { TextEncoder } = require('node:util');
 const net = require('node:net');
+const { headersForOrigin } = require('./cors');
 
 const TEXT_ENCODER = new TextEncoder();
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
@@ -64,13 +65,8 @@ function envInt(name, fallback, opts = {}) {
  * @param {Record<string,string>} [extra]
  * @returns {Headers}
  */
-function corsHeaders(extra = {}) {
-  const headers = new Headers({
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, X-API-Key',
-    ...extra,
-  });
+function corsHeaders(extra = {}, originHeader = '') {
+  const headers = new Headers(headersForOrigin(originHeader, extra));
   return headers;
 }
 
@@ -81,8 +77,8 @@ function corsHeaders(extra = {}) {
  * @param {Record<string,string>} [extraHeaders]
  * @returns {Response}
  */
-function json(body, status = 200, extraHeaders = {}) {
-  const headers = corsHeaders({
+function json(body, status = 200, extraHeaders = {}, originHeader = '') {
+  const headers = headersForOrigin(originHeader, {
     'Content-Type': 'application/json; charset=utf-8',
     ...extraHeaders,
   });

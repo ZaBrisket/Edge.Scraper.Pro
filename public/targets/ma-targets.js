@@ -1,10 +1,16 @@
 (function(){
+  if (window.Papa && typeof window.Papa === 'object') {
+    // Ensure worker:true loads the bundled parser from our origin if we re-enable web workers.
+    window.Papa.SCRIPT_PATH = '/vendor/papaparse.min.js';
+  }
+
   const $ = (sel) => document.querySelector(sel);
   const fileInput = $("#fileInput");
   const mapDiv = $("#mappingSummary");
   const tableBody = $("#resultsTable tbody");
   const btnCsv = $("#exportCsvBtn");
   const btnXlsx = $("#exportExcelBtn");
+  let toastTimer = null;
 
   let latestRows = [];
 
@@ -120,6 +126,11 @@
   });
 
   btnXlsx.addEventListener("click", ()=>{
+    if (!hasExcelSupport()) {
+      showToast('Excel export unavailable (ExcelJS not loaded). Downloading CSV instead.', 'error');
+      if (!btnCsv.disabled) btnCsv.click();
+      return;
+    }
     const ws = XLSX.utils.json_to_sheet(latestRows, { header:["Company Name","Website","Summary"] });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Targets");
@@ -148,5 +159,27 @@
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
+  }
+
+  function hasExcelSupport(){
+    return typeof window.XLSX === 'object' && window.XLSX && window.XLSX.utils && typeof window.XLSX.utils.json_to_sheet === 'function';
+  }
+
+  function showToast(message, tone){
+    let toast = document.querySelector('.toast-banner');
+    if (!toast){
+      toast = document.createElement('div');
+      toast.className = 'toast-banner';
+      toast.setAttribute('role','status');
+      toast.setAttribute('aria-live','polite');
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.dataset.tone = tone || 'info';
+    toast.classList.add('is-visible');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>{
+      toast.classList.remove('is-visible');
+    }, 4000);
   }
 })();
