@@ -4,7 +4,8 @@
 
 const StreamProcessor = require('../../src/lib/stream-processor');
 const { fetchWithEnhancedClient } = require('../../src/lib/http/simple-enhanced-client');
-const { headersForEvent, preflight } = require('./_lib/cors');
+const { preflight } = require('./_lib/cors');
+const { jsonForEvent } = require('./_lib/http');
 
 let CachedExtractor;
 
@@ -37,35 +38,21 @@ function loadContentExtractor() {
 }
 
 exports.handler = async (event, context) => {
-  const baseHeaders = { 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' };
+  const baseHeaders = {};
   const preflightResponse = preflight(event, baseHeaders);
   if (preflightResponse) {
     return preflightResponse;
   }
 
   if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers: headersForEvent(event, {
-        ...baseHeaders,
-        'Content-Type': 'application/json',
-      }),
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+    return jsonForEvent(event, { error: 'Method not allowed' }, 405, baseHeaders);
   }
 
   try {
     const { urls, sessionId, resume } = JSON.parse(event.body || '{}');
-    
+
     if (!urls || !Array.isArray(urls)) {
-      return {
-        statusCode: 400,
-        headers: headersForEvent(event, {
-          ...baseHeaders,
-          'Content-Type': 'application/json',
-        }),
-        body: JSON.stringify({ error: 'Invalid URLs array' })
-      };
+      return jsonForEvent(event, { error: 'Invalid URLs array' }, 400, baseHeaders);
     }
     
     // Initialize stream processor
@@ -93,28 +80,19 @@ exports.handler = async (event, context) => {
       result = await processor.processBatch(urls);
     }
     
-    return {
-      statusCode: 200,
-      headers: headersForEvent(event, {
-        ...baseHeaders,
-        'Content-Type': 'application/json',
-      }),
-      body: JSON.stringify(result)
-    };
+    return jsonForEvent(event, result, 200, baseHeaders);
 
   } catch (error) {
     console.error('[bulk-scrape] Error:', error);
 
-    return {
-      statusCode: 500,
-      headers: headersForEvent(event, {
-        ...baseHeaders,
-        'Content-Type': 'application/json',
-      }),
-      body: JSON.stringify({
+    return jsonForEvent(
+      event,
+      {
         error: 'Internal server error',
-        message: error.message
-      })
-    };
+        message: error.message,
+      },
+      500,
+      baseHeaders,
+    );
   }
 };

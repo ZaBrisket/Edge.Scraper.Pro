@@ -7,11 +7,12 @@ const {
   envInt,
   buildUA,
   readBodyWithLimit,
+  jsonForEvent,
 } = require('./_lib/http.js');
 const MANewsExtractor = require('../../src/lib/extractors/ma-news-extractor');
 const MAUrlDiscovery = require('../../src/lib/discovery/ma-url-discovery');
 const newsSources = require('../../src/config/ma-news-sources');
-const { headersForEvent, preflight } = require('./_lib/cors');
+const { preflight } = require('./_lib/cors');
 
 const extractor = new MANewsExtractor();
 const discovery = new MAUrlDiscovery();
@@ -20,17 +21,6 @@ const DEFAULT_TIMEOUT = envInt('HTTP_DEADLINE_MS', 18_000, { min: 5_000, max: 30
 const MAX_BYTES = envInt('MA_NEWS_MAX_BYTES', 1_500_000, { min: 100_000, max: 4_000_000 });
 const DEFAULT_CONCURRENCY = 3;
 const decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
-
-function jsonResponse(event, body, status = 200) {
-  return {
-    statusCode: status,
-    headers: headersForEvent(event, {
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Content-Type': 'application/json; charset=utf-8',
-    }),
-    body: JSON.stringify(body),
-  };
-}
 
 function normalizeSources(rawSources) {
   const seen = new Set();
@@ -169,13 +159,14 @@ async function processTask(task) {
 }
 
 exports.handler = async (event = {}) => {
-  const preflightResponse = preflight(event, { 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' });
+  const baseHeaders = {};
+  const preflightResponse = preflight(event, baseHeaders);
   if (preflightResponse) {
     return preflightResponse;
   }
 
   if (event.httpMethod !== 'POST') {
-    return jsonResponse(event, { success: false, error: 'Method not allowed. Use POST.' }, 405);
+    return jsonForEvent(event, { success: false, error: 'Method not allowed. Use POST.' }, 405, baseHeaders);
   }
 
   let payload = {};
@@ -186,7 +177,7 @@ exports.handler = async (event = {}) => {
         : event.body;
       payload = JSON.parse(rawBody || '{}');
     } catch (err) {
-      return jsonResponse(event, { success: false, error: 'INVALID_JSON', detail: err?.message || null }, 400);
+      return jsonForEvent(event, { success: false, error: 'INVALID_JSON', detail: err?.message || null }, 400, baseHeaders);
     }
   }
 
@@ -299,7 +290,7 @@ exports.handler = async (event = {}) => {
   const maDetected = successes.filter((r) => Number(r?.data?.confidence || 0) >= minConfidenceNumber).length;
   const dealsWithValue = successes.filter((r) => r?.data?.dealValue).length;
 
-  return jsonResponse(event, {
+  return jsonForEvent(event, {
     success: true,
     mode,
     stats: {
@@ -313,5 +304,5 @@ exports.handler = async (event = {}) => {
     minConfidence: minConfidenceNumber,
     results,
     timestamp: new Date().toISOString(),
-  });
+  }, 200, baseHeaders);
 };

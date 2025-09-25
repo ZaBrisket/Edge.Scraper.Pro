@@ -6,7 +6,7 @@ const adaptiveRateLimiter = new AdaptiveRateLimiter();
 // Listen to metrics for logging (optional)
 adaptiveRateLimiter.on('metrics', (metrics) => {
   if (process.env.DEBUG_RATE_LIMITER === 'true') {
-    console.log('[RateLimiter Metrics]', JSON.stringify(metrics, null, 2));
+    console.debug('[RateLimiter Metrics]', JSON.stringify(metrics, null, 2));
   }
 });
 

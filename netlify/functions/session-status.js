@@ -3,13 +3,11 @@
  */
 
 const SessionManager = require('../../src/lib/session-manager');
-const { headersForEvent, preflight } = require('./_lib/cors');
+const { preflight } = require('./_lib/cors');
+const { jsonForEvent } = require('./_lib/http');
 
 exports.handler = async (event, context) => {
-  const baseHeaders = {
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Content-Type': 'application/json',
-  };
+  const baseHeaders = {};
   const preflightResponse = preflight(event, baseHeaders);
   if (preflightResponse) {
     return preflightResponse;
@@ -20,37 +18,21 @@ exports.handler = async (event, context) => {
   // Parse query parameters
   const { sessionId } = event.queryStringParameters || {};
 
-  if (event.httpMethod === 'GET') {
+  if ((event.httpMethod || '').toUpperCase() === 'GET') {
     try {
       if (sessionId) {
         // Get specific session stats
         const stats = await sessionManager.getSessionStats(sessionId);
-        return {
-          statusCode: 200,
-          headers: headersForEvent(event, baseHeaders),
-          body: JSON.stringify(stats)
-        };
+        return jsonForEvent(event, stats, 200, baseHeaders);
       } else {
         // List all sessions
         const sessions = await sessionManager.listSessions();
-        return {
-          statusCode: 200,
-          headers: headersForEvent(event, baseHeaders),
-          body: JSON.stringify({ sessions })
-        };
+        return jsonForEvent(event, { sessions }, 200, baseHeaders);
       }
     } catch (error) {
-      return {
-        statusCode: 404,
-        headers: headersForEvent(event, baseHeaders),
-        body: JSON.stringify({ error: error.message })
-      };
+      return jsonForEvent(event, { error: error.message }, 404, baseHeaders);
     }
   }
 
-  return {
-    statusCode: 405,
-    headers: headersForEvent(event, baseHeaders),
-    body: JSON.stringify({ error: 'Method not allowed' })
-  };
+  return jsonForEvent(event, { error: 'Method not allowed' }, 405, baseHeaders);
 };

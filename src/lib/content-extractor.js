@@ -147,7 +147,7 @@ class ContentExtractor {
       }
     }
     
-    console.log(`[ContentExtractor] Detected type: ${bestType} (score: ${bestScore}) for ${url}`);
+    console.info(`[ContentExtractor] Detected type: ${bestType} (score: ${bestScore}) for ${url}`);
     return bestType;
   }
   
@@ -167,7 +167,7 @@ class ContentExtractor {
       
       // Fallback to generic extractor
       if (contentType !== 'generic') {
-        console.log(`[ContentExtractor] Falling back to generic extractor`);
+        console.info('[ContentExtractor] Falling back to generic extractor');
         return this.extractors.generic.extract(url, html);
       }
       

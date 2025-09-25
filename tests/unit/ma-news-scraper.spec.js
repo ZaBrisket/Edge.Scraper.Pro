@@ -11,23 +11,32 @@ const mockExtractFromHTML = jest.fn();
 const mockGetSourceByUrl = jest.fn();
 
 jest.mock('../../netlify/functions/_lib/http.js', () => {
-  function createHeaders(extra = {}) {
+  function createHeaders(origin = '*', extra = {}) {
     const base = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, X-API-Key',
+      'Access-Control-Allow-Origin': origin || '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key, Range',
+      Vary: 'Origin',
       ...extra,
     };
-    const entries = new Map(Object.entries(base));
     return {
+      ...base,
       forEach(callback) {
-        entries.forEach((value, key) => callback(value, key));
+        Object.entries(base).forEach(([key, value]) => callback(value, key));
       },
     };
   }
 
   return {
-    corsHeaders: jest.fn((extra = {}) => createHeaders(extra)),
+    corsHeaders: jest.fn((extra = {}) => createHeaders('*', extra)),
+    jsonForEvent: jest.fn((event, body, status = 200, extra = {}) => ({
+      statusCode: status,
+      headers: {
+        ...createHeaders(event?.headers?.origin || event?.headers?.Origin || '*', extra),
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      body: JSON.stringify(body),
+    })),
     safeParseUrl: mockSafeParseUrl,
     isBlockedHostname: mockIsBlockedHostname,
     followRedirectsSafely: mockFollowRedirectsSafely,

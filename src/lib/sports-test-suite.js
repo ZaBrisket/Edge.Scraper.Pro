@@ -71,7 +71,7 @@ class SportsScraperTestSuite {
    * Run complete test suite
    */
   async runFullTestSuite() {
-    console.log('🏈 Starting Sports Scraper Test Suite...\n');
+    console.info('🏈 Starting Sports Scraper Test Suite...\n');
 
     const startTime = Date.now();
     const results = {
@@ -85,27 +85,27 @@ class SportsScraperTestSuite {
 
     try {
       // Test 1: Content Extraction Accuracy
-      console.log('📊 Testing Content Extraction Accuracy...');
+      console.info('📊 Testing Content Extraction Accuracy...');
       results.details.extractionAccuracy = await this.testExtractionAccuracy();
 
       // Test 2: Structured Data Quality
-      console.log('🔍 Testing Structured Data Quality...');
+      console.info('🔍 Testing Structured Data Quality...');
       results.details.structuredDataQuality = await this.testStructuredDataQuality();
 
       // Test 3: Sports-Specific Validation
-      console.log('⚡ Testing Sports Validation...');
+      console.info('⚡ Testing Sports Validation...');
       results.details.sportsValidation = await this.testSportsValidation();
 
       // Test 4: Export Functionality
-      console.log('📤 Testing Export Functionality...');
+      console.info('📤 Testing Export Functionality...');
       results.details.exportFunctionality = await this.testExportFunctionality();
 
       // Test 5: Performance Benchmarks
-      console.log('🚀 Running Performance Benchmarks...');
+      console.info('🚀 Running Performance Benchmarks...');
       results.details.performance = await this.testPerformance();
 
       // Test 6: Edge Cases and Error Handling
-      console.log('🛡️ Testing Edge Cases...');
+      console.info('🛡️ Testing Edge Cases...');
       results.details.edgeCases = await this.testEdgeCases();
 
       // Compile overall results
@@ -795,43 +795,43 @@ class SportsScraperTestSuite {
    * Print formatted test results
    */
   printTestResults(results) {
-    console.log('\n' + '='.repeat(60));
-    console.log('🏈 SPORTS SCRAPER TEST RESULTS');
-    console.log('='.repeat(60));
+    console.info('\n' + '='.repeat(60));
+    console.info('🏈 SPORTS SCRAPER TEST RESULTS');
+    console.info('='.repeat(60));
 
-    console.log(`\n📊 OVERALL SUMMARY:`);
-    console.log(`Total Tests: ${results.totalTests}`);
-    console.log(
+    console.info(`\n📊 OVERALL SUMMARY:`);
+    console.info(`Total Tests: ${results.totalTests}`);
+    console.info(
       `Passed: ${results.passed} (${((results.passed / results.totalTests) * 100).toFixed(1)}%)`
     );
-    console.log(
+    console.info(
       `Failed: ${results.failed} (${((results.failed / results.totalTests) * 100).toFixed(1)}%)`
     );
-    console.log(`Total Time: ${results.performance.totalTime}ms`);
+    console.info(`Total Time: ${results.performance.totalTime}ms`);
 
-    console.log(`\n🎯 TEST CATEGORY BREAKDOWN:`);
+    console.info(`\n🎯 TEST CATEGORY BREAKDOWN:`);
     Object.entries(results.details).forEach(([category, categoryResults]) => {
       if (categoryResults.totalTests) {
         const passRate = ((categoryResults.passed / categoryResults.totalTests) * 100).toFixed(1);
-        console.log(
+        console.info(
           `${category}: ${categoryResults.passed}/${categoryResults.totalTests} (${passRate}%)`
         );
       }
     });
 
     if (results.recommendations.length > 0) {
-      console.log(`\n💡 RECOMMENDATIONS:`);
+      console.info(`\n💡 RECOMMENDATIONS:`);
       results.recommendations.forEach((rec, index) => {
         const priority = rec.priority === 'high' ? '🔴' : '🟡';
-        console.log(`${priority} ${rec.category.toUpperCase()}: ${rec.message}`);
+        console.info(`${priority} ${rec.category.toUpperCase()}: ${rec.message}`);
       });
     }
 
-    console.log('\n' + '='.repeat(60));
+    console.info('\n' + '='.repeat(60));
 
     const overallGrade = this.calculateOverallGrade(results);
-    console.log(`🏆 OVERALL GRADE: ${overallGrade}`);
-    console.log('='.repeat(60) + '\n');
+    console.info(`🏆 OVERALL GRADE: ${overallGrade}`);
+    console.info('='.repeat(60) + '\n');
   }
 
   /**

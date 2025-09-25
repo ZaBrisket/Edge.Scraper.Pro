@@ -3,13 +3,16 @@
   "version": "3.0.0",
   "description": "Professional web scraper with sports data extraction",
   "main": "public/index.html",
+  "engines": {
+    "node": ">=18.18.0"
+  },
   "scripts": {
     "test": "npm run test:unit && npm run test:integration && npm run test:e2e && npm run test:nda && npm run test:contamination",
     "test:nda": "jest --config jest.nda.config.js --runInBand",
     "test:unit": "jest --config jest.config.js --runInBand",
     "test:integration": "playwright test tests/integration/",
     "test:e2e": "playwright test tests/e2e/",
-    "test:contamination": "node tools/contamination-scan.js",
+    "test:contamination": "npm run scan:contamination",
     "build": "npm run build:nda-docx && npm run build:nda && npm run build:functions",
     "build:nda-docx": "node tools/build-nda-docx.js",
     "build:nda": "node tools/build-nda-policy.js",
@@ -22,7 +25,9 @@
     "validate": "node src/lib/validators/pfr-validator.js",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "scan:contamination": "node scripts/contamination-scan.mjs",
+    "report:branches": "node scripts/report-branches.mjs"
   },
   "dependencies": {
     "@mozilla/readability": "^0.5.0",
@@ -57,8 +62,12 @@
     "http-server": "^14.1.1",
     "husky": "^9.1.7",
     "jest": "^30.1.3",
+    "lint-staged": "^15.2.7",
     "netlify-cli": "^17.0.0",
     "ts-jest": "^29.4.4",
     "typescript": "^5.9.2"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs}": "node scripts/lint-staged-guard.mjs"
   }
 }
