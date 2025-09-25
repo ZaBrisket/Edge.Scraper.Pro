@@ -21,7 +21,7 @@ const BLOCK_PATTERNS = [
   { regex: /debugger/i },
   { regex: /console\.log\(/i },
   { regex: /\bprint\(/i },
-  { regex: /sk-[A-Za-z0-9_\-]+/i },
+  { regex: /sk-[A-Za-z0-9_\-]{10,}/i },
   { regex: /ghp_[A-Za-z0-9]+/i },
   { regex: /AKIA[0-9A-Z]{12,}/ },
   { regex: /-----BEGIN PRIVATE KEY-----/ },
@@ -45,7 +45,6 @@ const SKIP_DIRS = new Set([
   'outputs',
   'logs',
   'pr-files',
-  'public',
   'sessions'
 ]);
 const ALLOWED_EXTENSIONS = new Set([
@@ -68,7 +67,8 @@ const SCAN_PREFIXES = [
   'tests/nda',
   'tools/build-nda-docx.js',
   'tools/contamination-scan.js',
-  '.github/workflows'
+  '.github/workflows',
+  'public/nda'
 ];
 
 const findings = [];

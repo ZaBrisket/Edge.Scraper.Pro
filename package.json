@@ -14,7 +14,7 @@
     "build:nda-docx": "node tools/build-nda-docx.js",
     "build:nda": "node tools/build-nda-policy.js",
     "build:nonces": "node tools/build-nonces.js",
-    "build:functions": "cd netlify/functions && npm run build || echo 'No function build needed'",
+    "build:functions": "if [ -f netlify/functions/package.json ]; then (cd netlify/functions && npm run build); else echo 'No function build needed'; fi",
     "serve": "npx http-server public -p 8080",
     "dev": "netlify dev",
     "clean": "rm -rf node_modules build dist",

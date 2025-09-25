@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import { XMLParser } from "fast-xml-parser";
-import { DocxExportRequest, DocxExportResponse, DocxParseResult } from "./types";
+import type { DocxExportRequest, DocxExportResponse, DocxParseResult } from "./types";
 
 export interface Run {
   text: string;
@@ -360,11 +360,12 @@ function buildTrackedRun(original: string, replacement: string, author: string, 
 }
 
 function getTimestamp(tz?: string): string {
+  const now = new Date();
   if (!tz) {
-    return new Date().toISOString();
+    return now.toISOString();
   }
+
   try {
-    const date = new Date();
     const formatter = new Intl.DateTimeFormat("en-GB", {
       timeZone: tz,
       year: "numeric",
@@ -375,15 +376,44 @@ function getTimestamp(tz?: string): string {
       second: "2-digit",
       hour12: false
     });
-    const parts = formatter.formatToParts(date).reduce<Record<string, string>>((acc, part) => {
+    const parts = formatter.formatToParts(now).reduce<Record<string, string>>((acc, part) => {
       if (part.type !== "literal") {
         acc[part.type] = part.value;
       }
       return acc;
     }, {});
-    return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}.000Z`;
+
+    const year = Number(parts.year);
+    const month = Number(parts.month);
+    const day = Number(parts.day);
+    const hour = Number(parts.hour);
+    const minute = Number(parts.minute);
+    const second = Number(parts.second);
+
+    if (
+      Number.isNaN(year) ||
+      Number.isNaN(month) ||
+      Number.isNaN(day) ||
+      Number.isNaN(hour) ||
+      Number.isNaN(minute) ||
+      Number.isNaN(second)
+    ) {
+      return now.toISOString();
+    }
+
+    const iso = `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
+    const assumedUtc = Date.UTC(year, month - 1, day, hour, minute, second);
+    const offsetMinutes = Math.round((assumedUtc - now.getTime()) / 60000);
+    const sign = offsetMinutes >= 0 ? "+" : "-";
+    const total = Math.abs(offsetMinutes);
+    const offsetHours = Math.floor(total / 60)
+      .toString()
+      .padStart(2, "0");
+    const offsetMins = (total % 60).toString().padStart(2, "0");
+
+    return `${iso}${sign}${offsetHours}:${offsetMins}`;
   } catch (_) {
-    return new Date().toISOString();
+    return now.toISOString();
   }
 }
 
