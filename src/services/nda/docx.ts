@@ -1,6 +1,6 @@
-import JSZip from "jszip";
-import { XMLParser } from "fast-xml-parser";
-import type { DocxExportRequest, DocxExportResponse, DocxParseResult } from "./types";
+import JSZip from 'jszip';
+import { XMLParser } from 'fast-xml-parser';
+import type { DocxExportRequest, DocxExportResponse, DocxParseResult } from './types';
 
 export interface Run {
   text: string;
@@ -359,62 +359,8 @@ function buildTrackedRun(original: string, replacement: string, author: string, 
   return `${del}${ins}`;
 }
 
-function getTimestamp(tz?: string): string {
-  const now = new Date();
-  if (!tz) {
-    return now.toISOString();
-  }
-
-  try {
-    const formatter = new Intl.DateTimeFormat("en-GB", {
-      timeZone: tz,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false
-    });
-    const parts = formatter.formatToParts(now).reduce<Record<string, string>>((acc, part) => {
-      if (part.type !== "literal") {
-        acc[part.type] = part.value;
-      }
-      return acc;
-    }, {});
-
-    const year = Number(parts.year);
-    const month = Number(parts.month);
-    const day = Number(parts.day);
-    const hour = Number(parts.hour);
-    const minute = Number(parts.minute);
-    const second = Number(parts.second);
-
-    if (
-      Number.isNaN(year) ||
-      Number.isNaN(month) ||
-      Number.isNaN(day) ||
-      Number.isNaN(hour) ||
-      Number.isNaN(minute) ||
-      Number.isNaN(second)
-    ) {
-      return now.toISOString();
-    }
-
-    const iso = `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
-    const assumedUtc = Date.UTC(year, month - 1, day, hour, minute, second);
-    const offsetMinutes = Math.round((assumedUtc - now.getTime()) / 60000);
-    const sign = offsetMinutes >= 0 ? "+" : "-";
-    const total = Math.abs(offsetMinutes);
-    const offsetHours = Math.floor(total / 60)
-      .toString()
-      .padStart(2, "0");
-    const offsetMins = (total % 60).toString().padStart(2, "0");
-
-    return `${iso}${sign}${offsetHours}:${offsetMins}`;
-  } catch (_) {
-    return now.toISOString();
-  }
+function getTimestamp(_: string | undefined): string {
+  return new Date().toISOString();
 }
 
 function buildNormalization(text: string): { normalized: string; map: NormalizationEntry[] } {

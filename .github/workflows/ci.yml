@@ -22,7 +22,7 @@ jobs:
       - name: Git grep contamination patterns
         run: |
           set -e
-          PATTERN='(BEGIN PROMPT|END PROMPT|placeholder|lorem ipsum|TODO|FIXME|HACK|BUG|XXX|WIP|@ts-ignore|eslint-disable|ts-nocheck|debugger|console\\.log\\(|\\bprint\\(|sk-[A-Za-z0-9_-]{10,}|ghp_|AKIA|-----BEGIN PRIVATE KEY-----|it\\.skip|describe\\.skip|test\\.skip|\\bxit\\b|\\bxdescribe\\b|\\bpending\\b|<<<<<<<|=======|>>>>>>>|^Resolved$)'
+          PATTERN='(BEGIN PROMPT|END PROMPT|placeholder|lorem ipsum|TODO|FIXME|HACK|BUG|XXX|WIP|@ts-ignore|eslint-disable|ts-nocheck|debugger|console\\.log\\(|\\bprint\\(|sk-[A-Za-z0-9_-]{10,}|ghp_|AKIA|-----BEGIN PRIVATE KEY-----|it\\.skip|describe\\.skip|test\\.skip|\\bxit\\b|\\bxdescribe\\b|\\bpending\\b|<<<<<<<|=======|>>>>>>>|^Resolved$|chatgpt-codex-connector|cursor\\[bot\]|Comment on line|Write a reply)'
           if git grep -nI -E "$PATTERN" -- ':!package-lock.json' ':!yarn.lock' ':!pnpm-lock.yaml' ':!node_modules/**' ':!dist/**' ':!build/**' ':!coverage/**' ':!outputs/**' ':!sessions/**' \
             src netlify/functions tests tools .github/workflows public/nda; then
             echo 'Contamination pattern detected by git grep.'
