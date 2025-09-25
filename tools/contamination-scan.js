@@ -117,22 +117,23 @@ function scanFile(filePath, relativePath) {
   if (path.resolve(filePath) === __filename) {
     return;
   }
+  const relPath = relativePath || path.relative(ROOT, filePath);
   const lines = content.split(/\r?\n/);
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
-    if (relativePath.startsWith('.github/workflows') && line.includes('PATTERN=')) {
+    if (relPath.startsWith('.github/workflows') && line.includes('PATTERN=')) {
       continue;
     }
     for (const pattern of BLOCK_PATTERNS) {
       if (pattern.exact) {
         if (line.trim() === 'Resolved') {
-          findings.push({ file: relativePath, line: i + 1, text: line.trim() });
+          findings.push({ file: relPath, line: i + 1, text: line.trim() });
           break;
         }
         continue;
       }
       if (pattern.regex.test(line)) {
-        findings.push({ file: relativePath, line: i + 1, text: line.trim() });
+        findings.push({ file: relPath, line: i + 1, text: line.trim() });
         break;
       }
     }

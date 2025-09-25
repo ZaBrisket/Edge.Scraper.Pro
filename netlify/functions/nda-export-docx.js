@@ -7,16 +7,14 @@ try {
   ({ exportTrackedChanges } = require('../../build/nda/docx.js'));
 } catch (err) {
   throw new Error(
-    'nda-export-docx: missing compiled NDA docx bundle. Run "npm run build:nda-docx" (or the full build) before deploying.'
+    'nda-export-docx: missing compiled NDA docx bundle. Run "npm run build" before deploying.'
   );
 }
 
 exports.handler = async (event) => {
   const started = Date.now();
   try {
-    if (event.httpMethod !== 'POST') {
-      return json(405, { error: 'Method Not Allowed' });
-    }
+    if (event.httpMethod !== 'POST') return json(405, { error: 'Method Not Allowed' });
 
     const { correlationId, base64, edits, author, tz } = JSON.parse(event.body || '{}');
 
@@ -37,7 +35,7 @@ exports.handler = async (event) => {
     const meta = {
       ms: Date.now() - started,
       sizeKB: Number((Buffer.from(result.base64, 'base64').length / 1024).toFixed(2)),
-      edits: Array.isArray(edits) ? edits.length : 0,
+      edits: edits.length,
       skipped: Array.isArray(result.skipped) ? result.skipped.length : 0,
     };
 
@@ -55,7 +53,7 @@ function json(statusCode, body, extraHeaders) {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
-      ...extraHeaders,
+      ...(extraHeaders || {}),
     },
     body: JSON.stringify(body),
   };
