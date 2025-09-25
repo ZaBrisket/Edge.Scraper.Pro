@@ -214,6 +214,11 @@
   const btnCsv = $('#exportCsvBtn');
   const btnXlsx = $('#exportExcelBtn');
 
+  if (!fileInput || !mapDiv || !tableBody || !btnCsv || !btnXlsx) {
+    console.warn('Targets UI: required elements missing, aborting setup.');
+    return;
+  }
+
   if (global.Papa && typeof global.Papa === 'object') {
     global.Papa.SCRIPT_PATH = '/vendor/papaparse.min.js';
   }
