@@ -21,6 +21,7 @@ const MAX_REDIRECTS = envInt('FETCH_URL_MAX_REDIRECTS', 5, { min: 0, max: 10 });
 const BLOCK_DOWNGRADE = envBool('FETCH_URL_BLOCK_DOWNGRADE', false);
 const PUBLIC_API_KEY = (process.env.PUBLIC_API_KEY ?? '').trim();
 const BYPASS_AUTH = envBool('BYPASS_AUTH', false);
+const ACCESS_CONTROL_EXPOSE = 'Server-Timing, Content-Length, ETag';
 
 const COMMON_HEADERS = {
   'User-Agent': buildUA(),
@@ -43,14 +44,16 @@ function buildServerTiming({ head, get, redirects }) {
   return parts.length > 0 ? parts.join(', ') : undefined;
 }
 
-function errorJson(status, code, message, extra = {}, headers = {}) {
+function errorJson(status, code, message, extra = {}, headers = {}, originHeader = '') {
   return json(
     { error: { code, message }, ...extra },
     status,
     {
       'Netlify-CDN-Cache-Control': 'private, max-age=0, no-store',
+      'Access-Control-Expose-Headers': ACCESS_CONTROL_EXPOSE,
       ...headers,
     },
+    originHeader,
   );
 }
 
@@ -82,33 +85,34 @@ async function handleRequest(request) {
   let headDuration;
   let getDuration;
   let redirectCount = 0;
+  const origin = request.headers.get('origin') || '';
 
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders() });
+    return new Response(null, { status: 204, headers: corsHeaders({}, origin) });
   }
 
   if (!BYPASS_AUTH) {
     const incomingKey = (request.headers.get('x-api-key') || '').trim();
     if (!PUBLIC_API_KEY || incomingKey !== PUBLIC_API_KEY) {
-      return errorJson(401, 'UNAUTHORIZED', 'Missing or invalid X-API-Key header');
+      return errorJson(401, 'UNAUTHORIZED', 'Missing or invalid X-API-Key header', {}, {}, origin);
     }
   }
 
   const requestUrl = new URL(request.url);
   const urlParam = requestUrl.searchParams.get('url');
   if (!urlParam) {
-    return errorJson(400, 'MISSING_URL', 'Query param "url" is required');
+    return errorJson(400, 'MISSING_URL', 'Query param "url" is required', {}, {}, origin);
   }
 
   let target;
   try {
     target = safeParseUrl(urlParam);
   } catch {
-    return errorJson(400, 'INVALID_URL', 'URL must be absolute and begin with http(s)://');
+    return errorJson(400, 'INVALID_URL', 'URL must be absolute and begin with http(s)://', {}, {}, origin);
   }
 
   if (isBlockedHostname(target.hostname)) {
-    return errorJson(403, 'BLOCKED_HOST', `Hostname "${target.hostname}" is not allowed`);
+    return errorJson(403, 'BLOCKED_HOST', `Hostname "${target.hostname}" is not allowed`, {}, {}, origin);
   }
 
   const urlHash = hash32(target.href);
@@ -138,6 +142,7 @@ async function handleRequest(request) {
         `Content-Length ${contentLength}B exceeds cap ${MAX_BYTES}B`,
         { url: target.href, contentLength, maxBytes: MAX_BYTES },
         serverTiming ? { 'Server-Timing': serverTiming } : {},
+        origin,
       );
     }
   } catch (error) {
@@ -199,12 +204,13 @@ async function handleRequest(request) {
         'Redirect target host is not allowed',
         { location: error?.location },
         headers,
+        origin,
       );
     }
 
     if (error?.code === 'REDIRECT_NO_LOCATION') {
       console.error('metric=fetch_url outcome=fail kind=redirect_no_location url_hash=%s', urlHash);
-      return errorJson(502, 'REDIRECT_NO_LOCATION', 'Redirect response missing Location header', {}, headers);
+      return errorJson(502, 'REDIRECT_NO_LOCATION', 'Redirect response missing Location header', {}, headers, origin);
     }
 
     if (error?.code === 'TOO_MANY_REDIRECTS') {
@@ -213,17 +219,17 @@ async function handleRequest(request) {
         redirectCount,
         urlHash,
       );
-      return errorJson(502, 'TOO_MANY_REDIRECTS', 'Exceeded redirect limit', {}, headers);
+      return errorJson(502, 'TOO_MANY_REDIRECTS', 'Exceeded redirect limit', {}, headers, origin);
     }
 
     if (error?.code === 'DOWNGRADE_BLOCKED') {
       console.error('metric=fetch_url outcome=fail kind=downgrade_blocked url_hash=%s', urlHash);
-      return errorJson(502, 'DOWNGRADE_BLOCKED', 'HTTPS to HTTP redirect blocked', { location: error?.location }, headers);
+      return errorJson(502, 'DOWNGRADE_BLOCKED', 'HTTPS to HTTP redirect blocked', { location: error?.location }, headers, origin);
     }
 
     if (error?.code === 'INVALID_SCHEME' || error?.code === 'INVALID_URL') {
       console.error('metric=fetch_url outcome=fail kind=redirect_invalid url_hash=%s', urlHash);
-      return errorJson(502, error.code, 'Redirect target URL is invalid', {}, headers);
+      return errorJson(502, error.code, 'Redirect target URL is invalid', {}, headers, origin);
     }
 
     console.error(
@@ -232,7 +238,7 @@ async function handleRequest(request) {
       urlHash,
       error?.message || 'unknown',
     );
-    return errorJson(timeout ? 504 : 502, timeout ? 'UPSTREAM_TIMEOUT' : 'UPSTREAM_ERROR', error?.message || 'Fetch failed', {}, headers);
+    return errorJson(timeout ? 504 : 502, timeout ? 'UPSTREAM_TIMEOUT' : 'UPSTREAM_ERROR', error?.message || 'Fetch failed', {}, headers, origin);
   }
 
   const contentType = upstreamResponse.headers.get('content-type') || 'application/octet-stream';
@@ -253,10 +259,11 @@ async function handleRequest(request) {
         `Response exceeded ${MAX_BYTES}B limit`,
         { url: finalUrl.href || finalUrl.toString(), maxBytes: MAX_BYTES },
         headers,
+        origin,
       );
     }
     console.error('metric=fetch_url outcome=fail kind=read_error url_hash=%s', urlHash);
-    return errorJson(502, 'READ_ERROR', 'Failed to read upstream response', {}, headers);
+    return errorJson(502, 'READ_ERROR', 'Failed to read upstream response', {}, headers, origin);
   }
 
   const responseHeaders = corsHeaders({
@@ -264,7 +271,8 @@ async function handleRequest(request) {
     'Content-Length': String(bodyBuffer.byteLength),
     'Cache-Control': 'public, max-age=0, must-revalidate',
     'Netlify-CDN-Cache-Control': `public, max-age=${CDN_MAX_AGE}, stale-while-revalidate=${CDN_SWR}`,
-  });
+    'Access-Control-Expose-Headers': ACCESS_CONTROL_EXPOSE,
+  }, origin);
 
   for (const key of ['etag', 'last-modified']) {
     const value = upstreamResponse.headers.get(key);

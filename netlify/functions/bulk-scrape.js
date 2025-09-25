@@ -4,23 +4,66 @@
 
 const StreamProcessor = require('../../src/lib/stream-processor');
 const { fetchWithEnhancedClient } = require('../../src/lib/http/simple-enhanced-client');
-const ContentExtractor = require('../../src/lib/content-extractor'); // Will create in Fix 3
+const { headersForEvent, preflight } = require('./_lib/cors');
+
+let CachedExtractor;
+
+function loadContentExtractor() {
+  if (CachedExtractor) {
+    return CachedExtractor;
+  }
+  try {
+    CachedExtractor = require('../../src/lib/content-extractor');
+  } catch (err) {
+    console.warn('bulk-scrape: falling back to basic content extractor', err);
+    CachedExtractor = class BasicContentExtractor {
+      extract(url, html) {
+        const text = String(html || '')
+          .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+          .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        const titleMatch = String(html || '').match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+        return {
+          url,
+          title: titleMatch ? titleMatch[1].trim() : null,
+          content: text,
+        };
+      }
+    };
+  }
+  return CachedExtractor;
+}
 
 exports.handler = async (event, context) => {
-  // Only accept POST requests
+  const baseHeaders = { 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' };
+  const preflightResponse = preflight(event, baseHeaders);
+  if (preflightResponse) {
+    return preflightResponse;
+  }
+
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: headersForEvent(event, {
+        ...baseHeaders,
+        'Content-Type': 'application/json',
+      }),
       body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
-  
+
   try {
-    const { urls, sessionId, resume } = JSON.parse(event.body);
+    const { urls, sessionId, resume } = JSON.parse(event.body || '{}');
     
     if (!urls || !Array.isArray(urls)) {
       return {
         statusCode: 400,
+        headers: headersForEvent(event, {
+          ...baseHeaders,
+          'Content-Type': 'application/json',
+        }),
         body: JSON.stringify({ error: 'Invalid URLs array' })
       };
     }
@@ -36,8 +79,8 @@ exports.handler = async (event, context) => {
         const response = await fetchWithEnhancedClient(url);
         const html = await response.text();
         
-        // Extract content (will be implemented in Fix 3)
-        const extractor = new ContentExtractor();
+        const Extractor = loadContentExtractor();
+        const extractor = new Extractor();
         return extractor.extract(url, html);
       }
     });
@@ -52,17 +95,22 @@ exports.handler = async (event, context) => {
     
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: headersForEvent(event, {
+        ...baseHeaders,
+        'Content-Type': 'application/json',
+      }),
       body: JSON.stringify(result)
     };
-    
+
   } catch (error) {
     console.error('[bulk-scrape] Error:', error);
-    
+
     return {
       statusCode: 500,
+      headers: headersForEvent(event, {
+        ...baseHeaders,
+        'Content-Type': 'application/json',
+      }),
       body: JSON.stringify({
         error: 'Internal server error',
         message: error.message

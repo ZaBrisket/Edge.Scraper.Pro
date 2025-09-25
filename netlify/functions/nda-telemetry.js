@@ -1,13 +1,17 @@
 // Netlify Function: Anonymized telemetry (console-only)
 const { checkRateLimit } = require('./_lib/rate-limit');
+const { headersForEvent, preflight } = require('./_lib/cors');
 
 exports.handler = async (event) => {
 try {
-  if (event.httpMethod !== 'POST') return json(405, { error: 'Method Not Allowed' });
+  const baseHeaders = { 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' };
+  const preflightResponse = preflight(event, baseHeaders);
+  if (preflightResponse) return preflightResponse;
+  if (event.httpMethod !== 'POST') return json(event, 405, { error: 'Method Not Allowed' });
   const { correlationId, event: name, payload } = JSON.parse(event.body || '{}');
   const rate = checkRateLimit(event, { limit: 120, windowMs: 60_000 });
   if (!rate.allowed) {
-    return json(429, { error: 'Too many telemetry events.', correlationId }, { 'Retry-After': String(rate.retryAfter) });
+    return json(event, 429, { error: 'Too many telemetry events.', correlationId }, { 'Retry-After': String(rate.retryAfter) });
   }
   console.info(JSON.stringify({
     ts: new Date().toISOString(),
@@ -16,10 +20,10 @@ try {
     event: name,
     payload: sanitize(payload)
   }));
-  return json(200, { ok: true });
+  return json(event, 200, { ok: true });
 } catch (err) {
   console.warn('Telemetry function error', err);
-  return json(200, { ok: false });
+  return json(event, 200, { ok: false });
 }
 };
 function sanitize(x) {
@@ -29,16 +33,17 @@ try {
   return JSON.parse(s);
 } catch { return {}; }
 }
-function json(statusCode, body, extraHeaders) {
+function json(event, statusCode, body, extraHeaders) {
   return {
     statusCode,
-    headers: {
+    headers: headersForEvent(event, {
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Content-Type': 'application/json',
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
       'X-XSS-Protection': '1; mode=block',
       ...(extraHeaders || {})
-    },
+    }),
     body: JSON.stringify(body)
   };
 }

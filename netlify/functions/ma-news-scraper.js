@@ -1,7 +1,6 @@
 const { TextDecoder } = require('node:util');
 const PQueue = require('p-queue').default;
 const {
-  corsHeaders,
   safeParseUrl,
   isBlockedHostname,
   followRedirectsSafely,
@@ -12,6 +11,7 @@ const {
 const MANewsExtractor = require('../../src/lib/extractors/ma-news-extractor');
 const MAUrlDiscovery = require('../../src/lib/discovery/ma-url-discovery');
 const newsSources = require('../../src/config/ma-news-sources');
+const { headersForEvent, preflight } = require('./_lib/cors');
 
 const extractor = new MANewsExtractor();
 const discovery = new MAUrlDiscovery();
@@ -21,29 +21,13 @@ const MAX_BYTES = envInt('MA_NEWS_MAX_BYTES', 1_500_000, { min: 100_000, max: 4_
 const DEFAULT_CONCURRENCY = 3;
 const decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
 
-function headersToObject(headers) {
-  const out = {};
-  if (!headers || typeof headers.forEach !== 'function') {
-    return out;
-  }
-  headers.forEach((value, key) => {
-    out[key] = value;
-  });
-  return out;
-}
-
-function baseHeaders(extra = {}) {
-  return corsHeaders({
-    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    ...extra,
-  });
-}
-
-function jsonResponse(body, status = 200) {
-  const headers = baseHeaders({ 'Content-Type': 'application/json; charset=utf-8' });
+function jsonResponse(event, body, status = 200) {
   return {
     statusCode: status,
-    headers: headersToObject(headers),
+    headers: headersForEvent(event, {
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Content-Type': 'application/json; charset=utf-8',
+    }),
     body: JSON.stringify(body),
   };
 }
@@ -185,14 +169,13 @@ async function processTask(task) {
 }
 
 exports.handler = async (event = {}) => {
-  const headers = headersToObject(baseHeaders());
-
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers, body: '' };
+  const preflightResponse = preflight(event, { 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' });
+  if (preflightResponse) {
+    return preflightResponse;
   }
 
   if (event.httpMethod !== 'POST') {
-    return jsonResponse({ success: false, error: 'Method not allowed. Use POST.' }, 405);
+    return jsonResponse(event, { success: false, error: 'Method not allowed. Use POST.' }, 405);
   }
 
   let payload = {};
@@ -203,7 +186,7 @@ exports.handler = async (event = {}) => {
         : event.body;
       payload = JSON.parse(rawBody || '{}');
     } catch (err) {
-      return jsonResponse({ success: false, error: 'INVALID_JSON', detail: err?.message || null }, 400);
+      return jsonResponse(event, { success: false, error: 'INVALID_JSON', detail: err?.message || null }, 400);
     }
   }
 
@@ -316,7 +299,7 @@ exports.handler = async (event = {}) => {
   const maDetected = successes.filter((r) => Number(r?.data?.confidence || 0) >= minConfidenceNumber).length;
   const dealsWithValue = successes.filter((r) => r?.data?.dealValue).length;
 
-  return jsonResponse({
+  return jsonResponse(event, {
     success: true,
     mode,
     stats: {
