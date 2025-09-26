@@ -44,11 +44,21 @@
         }
         
         .nav a:visited { color: #551A8B; }
-        .nav a.active { 
+        .nav a.active {
             text-decoration: none;
             border-bottom: 2px solid #000;
             padding-bottom: 2px;
             color: #000;
+        }
+
+        html.is-embedded .header {
+            justify-content: flex-start;
+            border-bottom: none;
+            margin-bottom: 16px;
+        }
+
+        html.is-embedded .nav {
+            display: none;
         }
         
         /* Typography */
@@ -1629,6 +1639,22 @@
     
     <script>
     (function(){
+        if (window.self !== window.top) {
+            document.documentElement.classList.add('is-embedded');
+
+            var nav = document.querySelector('.nav');
+            if (nav) {
+                nav.setAttribute('aria-hidden', 'true');
+                nav.querySelectorAll('a').forEach(function(link){
+                    link.setAttribute('tabindex', '-1');
+                    link.addEventListener('click', function(event){
+                        event.preventDefault();
+                        event.stopPropagation();
+                    });
+                });
+            }
+        }
+
         window.addEventListener('message', function(event){
             if (!event || event.origin !== window.location.origin) return;
             var data = event.data || {};
