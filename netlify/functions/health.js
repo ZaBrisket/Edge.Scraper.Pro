@@ -8,7 +8,10 @@ exports.handler = async (event = {}) => {
     return preflightResponse;
   }
 
-  if ((event.httpMethod || 'GET').toUpperCase() !== 'GET') {
+  const method =
+    typeof event.httpMethod === 'string' ? event.httpMethod.trim().toUpperCase() : null;
+
+  if (method !== 'GET') {
     return jsonForEvent(event, { error: 'Method not allowed' }, 405, baseHeaders);
   }
 

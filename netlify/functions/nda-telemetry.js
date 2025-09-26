@@ -15,7 +15,10 @@ exports.handler = async (event = {}) => {
     return preflightResponse;
   }
 
-  if ((event.httpMethod || 'POST').toUpperCase() !== 'POST') {
+  const method =
+    typeof event.httpMethod === 'string' ? event.httpMethod.trim().toUpperCase() : null;
+
+  if (method !== 'POST') {
     return respond(event, { error: 'Method Not Allowed' }, 405);
   }
 
