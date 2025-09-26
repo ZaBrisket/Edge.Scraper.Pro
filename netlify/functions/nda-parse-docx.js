@@ -1,99 +1,187 @@
-// Netlify Function: Parse .docx → paragraphs with validation & clean errors.
+'use strict';
+
 const JSZip = require('jszip');
 const { XMLParser } = require('fast-xml-parser');
 const { checkRateLimit } = require('./_lib/rate-limit');
-const { headersForEvent, preflight } = require('./_lib/cors');
+const { preflight } = require('./_lib/cors');
+const { jsonForEvent } = require('./_lib/http');
 
 const MAX_MB = Number(process.env.NDA_MAX_DOCX_MB || 5);
 const MAX_BYTES = MAX_MB * 1024 * 1024;
 
-exports.handler = async (event) => {
-try {
-  const baseHeaders = { 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' };
+exports.handler = async (event = {}) => {
+  const baseHeaders = {
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+  };
   const preflightResponse = preflight(event, baseHeaders);
-  if (preflightResponse) return preflightResponse;
-  if (event.httpMethod !== 'POST') return json(event, 405, { error: 'Method Not Allowed' });
-  const { correlationId, filename, mime, base64 } = JSON.parse(event.body || '{}');
-  const ctx = { correlationId: safeId(correlationId), t: Date.now() };
+  if (preflightResponse) {
+    return preflightResponse;
+  }
 
-  // Validate inputs
+  if ((event.httpMethod || 'POST').toUpperCase() !== 'POST') {
+    return respond(event, { error: 'Method Not Allowed' }, 405);
+  }
+
+  let payload = {};
+  try {
+    payload = JSON.parse(event.body || '{}');
+  } catch (error) {
+    return respond(event, { error: 'Invalid JSON payload', detail: error?.message || null }, 400);
+  }
+
+  const { correlationId, filename, base64 } = payload;
+  const ctx = { correlationId: safeId(correlationId) };
+
   if (!base64 || typeof base64 !== 'string') {
-    return json(event, 400, { error: 'Invalid base64 data', correlationId: ctx.correlationId });
+    return respond(event, { error: 'Invalid base64 data', correlationId: ctx.correlationId }, 400);
   }
+
   if (correlationId && correlationId.length > 24) {
-    return json(event, 400, { error: 'Invalid correlation ID', correlationId: ctx.correlationId });
+    return respond(event, { error: 'Invalid correlation ID', correlationId: ctx.correlationId }, 400);
   }
+
   try {
     Buffer.from(base64, 'base64');
   } catch {
-    return json(event, 400, { error: 'Malformed base64 encoding', correlationId: ctx.correlationId });
+    return respond(event, { error: 'Malformed base64 encoding', correlationId: ctx.correlationId }, 400);
   }
 
   const rate = checkRateLimit(event, { limit: 30, windowMs: 60_000 });
   if (!rate.allowed) {
-    return json(event, 429, { error: 'Too many requests. Please retry shortly.', correlationId: ctx.correlationId }, { 'Retry-After': String(rate.retryAfter) });
-  }
-  if (!filename || !base64) return json(event, 400, { error: 'Missing filename or base64', correlationId: ctx.correlationId });
-
-  if (!/\.docx$/i.test(filename)) return json(event, 400, { error: 'Only .docx files are accepted', correlationId: ctx.correlationId });
-  if (/\.docm$/i.test(filename)) return json(event, 400, { error: 'Macro-enabled files (.docm) are not allowed', correlationId: ctx.correlationId });
-
-  const buf = Buffer.from(String(base64), 'base64');
-  if (buf.byteLength > MAX_BYTES) return json(event, 413, { error: `File too large. Limit ${MAX_MB} MB.`, correlationId: ctx.correlationId });
-
-  // Quick macro content type check in [Content_Types].xml
-  const zip = await JSZip.loadAsync(buf);
-  const ct = await safeText(zip, '[Content_Types].xml');
-  if (ct && /vnd\.ms-word\.vbaProject/i.test(ct)) {
-    return json(event, 400, { error: 'Macros detected and blocked', correlationId: ctx.correlationId });
+    return respond(
+      event,
+      { error: 'Too many requests. Please retry shortly.', correlationId: ctx.correlationId },
+      429,
+      { 'Retry-After': String(rate.retryAfter) },
+    );
   }
 
-  // Pages count from docProps/app.xml
-  let pages;
-  const appXml = await safeText(zip, 'docProps/app.xml');
-  if (appXml) {
-    try {
-      const parser = new XMLParser({ ignoreAttributes: false });
-      const j = parser.parse(appXml);
-      const p = j.Properties && j.Properties.Pages; // schema varies; best-effort
-      if (typeof p === 'number') pages = p;
-    } catch (_) {}
+  if (!filename) {
+    return respond(event, { error: 'Missing filename', correlationId: ctx.correlationId }, 400);
   }
 
-  // Extract paragraph text from word/document.xml
-  const docXml = await safeText(zip, 'word/document.xml');
-  if (!docXml) return json(event, 400, { error: 'Invalid .docx: missing word/document.xml', correlationId: ctx.correlationId });
-  const pTexts = [];
-  const chunks = docXml.split(/<w:p\b/); chunks.shift();
-  chunks.forEach(chunk => {
-    const seg = "<w:p " + chunk;
-    const ts = Array.from(seg.matchAll(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g)).map(m => decodeXml(m[1]));
-    const joined = ts.join('');
-    const cleaned = joined.replace(/\s+/g, ' ').trim();
-    if (cleaned) pTexts.push(cleaned);
-  });
+  if (!/\.docx$/i.test(filename)) {
+    return respond(event, { error: 'Only .docx files are accepted', correlationId: ctx.correlationId }, 400);
+  }
 
-  return json(event, 200, { paragraphs: pTexts, meta: { pages }, notes: [], correlationId: ctx.correlationId });
-} catch (e) {
-  const body = JSON.parse(event.body || '{}');
-  return json(event, 500, { error: 'Parser error', detail: String(e && e.message || e), correlationId: safeId(body.correlationId) });
-}
+  if (/\.docm$/i.test(filename)) {
+    return respond(event, { error: 'Macro-enabled files (.docm) are not allowed', correlationId: ctx.correlationId }, 400);
+  }
+
+  try {
+    const buffer = Buffer.from(String(base64), 'base64');
+    if (buffer.byteLength > MAX_BYTES) {
+      return respond(
+        event,
+        { error: `File too large. Limit ${MAX_MB} MB.`, correlationId: ctx.correlationId },
+        413,
+      );
+    }
+
+    const zip = await JSZip.loadAsync(buffer);
+
+    const contentTypes = await safeText(zip, '[Content_Types].xml');
+    if (contentTypes && /vnd\.ms-word\.vbaProject/i.test(contentTypes)) {
+      return respond(event, { error: 'Macros detected and blocked', correlationId: ctx.correlationId }, 400);
+    }
+
+    const appXml = await safeText(zip, 'docProps/app.xml');
+    let pages;
+    if (appXml) {
+      try {
+        const parser = new XMLParser({ ignoreAttributes: false });
+        const parsed = parser.parse(appXml);
+        const maybePages = parsed?.Properties?.Pages;
+        if (typeof maybePages === 'number') {
+          pages = maybePages;
+        }
+      } catch {
+        // ignore metadata parse failures
+      }
+    }
+
+    const docXml = await safeText(zip, 'word/document.xml');
+    if (!docXml) {
+      return respond(
+        event,
+        { error: 'Invalid .docx: missing word/document.xml', correlationId: ctx.correlationId },
+        400,
+      );
+    }
+
+    const paragraphs = [];
+    const chunks = docXml.split(/<w:p\b/i);
+    chunks.shift();
+    for (const chunk of chunks) {
+      const segment = `<w:p ${chunk}`;
+      const texts = Array.from(segment.matchAll(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g)).map((match) => decodeXml(match[1]));
+      const joined = texts.join('');
+      const cleaned = joined.replace(/\s+/g, ' ').trim();
+      if (cleaned) {
+        paragraphs.push(cleaned);
+      }
+    }
+
+    return respond(
+      event,
+      {
+        paragraphs,
+        meta: { pages },
+        notes: [],
+        correlationId: ctx.correlationId,
+      },
+      200,
+    );
+  } catch (error) {
+    const fallbackBody = safeJson(event.body);
+    return respond(
+      event,
+      {
+        error: 'Parser error',
+        detail: String(error?.message || error),
+        correlationId: safeId(fallbackBody?.correlationId),
+      },
+      500,
+    );
+  }
 };
 
-function json(event, statusCode, body, extraHeaders) {
-  return {
-    statusCode,
-    headers: headersForEvent(event, {
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Content-Type': 'application/json',
-      'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY',
-      'X-XSS-Protection': '1; mode=block',
-      ...(extraHeaders || {})
-    }),
-    body: JSON.stringify(body)
-  };
+function respond(event, body, statusCode, extraHeaders = {}) {
+  return jsonForEvent(event, body, statusCode, {
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    ...extraHeaders,
+  });
 }
-function safeId(id) { return String(id || '').slice(0, 24) || Math.random().toString(36).slice(2, 10).toUpperCase(); }
-async function safeText(zip, path) { const f = zip.file(path); if (!f) return null; return f.async('text'); }
-function decodeXml(s) { return s.replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,"&"); }
+
+function safeId(id) {
+  const value = String(id || '').trim();
+  if (!value) return Math.random().toString(36).slice(2, 10).toUpperCase();
+  return value.slice(0, 24);
+}
+
+async function safeText(zip, path) {
+  const file = zip.file(path);
+  if (!file) return null;
+  return file.async('text');
+}
+
+function decodeXml(str) {
+  return String(str)
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
+function safeJson(raw) {
+  try {
+    return JSON.parse(raw || '{}');
+  } catch {
+    return {};
+  }
+}

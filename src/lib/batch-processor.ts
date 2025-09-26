@@ -594,10 +594,10 @@ export class BatchProcessor {
 
 // Graceful shutdown handler
 process.on('SIGINT', () => {
-  console.log('Received SIGINT, shutting down gracefully...');
+  console.info('Received SIGINT, shutting down gracefully...');
 
   for (const [batchId, processor] of activeBatches.entries()) {
-    console.log(`Stopping batch processor: ${batchId}`);
+    console.info(`Stopping batch processor: ${batchId}`);
     processor.stop();
   }
 
@@ -606,10 +606,10 @@ process.on('SIGINT', () => {
 });
 
 process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, shutting down gracefully...');
+  console.info('Received SIGTERM, shutting down gracefully...');
 
   for (const [batchId, processor] of activeBatches.entries()) {
-    console.log(`Stopping batch processor: ${batchId}`);
+    console.info(`Stopping batch processor: ${batchId}`);
     processor.stop();
   }
 

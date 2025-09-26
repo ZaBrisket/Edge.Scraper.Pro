@@ -15,7 +15,7 @@ test.describe('Targets canonical route', () => {
       throw new Error('Target Lists App frame not found');
     }
     const fileInput = frame.locator('#fileInput');
-    const samplePath = path.join(process.cwd(), 'outputs', 'test_targets_sample.csv');
+    const samplePath = path.join(process.cwd(), 'outputs', 'samples', 'targets_synthetic.csv');
 
     await fileInput.setInputFiles(samplePath);
 
@@ -58,11 +58,10 @@ test.describe('Targets canonical route', () => {
       await excelButton.click();
       const maybeDownload = await pendingDownload;
       expect(maybeDownload).toBeNull();
-      await expect(frame.locator('.toast-banner')).toContainText(/Excel export unavailable/i);
+      await expect(frame.locator('.toast-banner')).toContainText(/XLSX export unavailable/i);
     }
 
-    const syntheticPath = path.join(process.cwd(), 'outputs', 'samples', 'targets_synthetic.csv');
-    await fileInput.setInputFiles(syntheticPath);
+    await fileInput.setInputFiles(samplePath);
 
     await expect.poll(async () => frame.locator('#resultsTable tbody tr').count(), {
       message: 'expected parsed target rows from synthetic sample',

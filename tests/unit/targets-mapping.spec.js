@@ -10,6 +10,10 @@ describe('Targets mapping heuristics', () => {
     expect(mapping.extractCanonicalWebsite(raw)).toBe('https://www.acme.com');
   });
 
+  test('extractCanonicalWebsite normalizes bare domains to https origin', () => {
+    expect(mapping.extractCanonicalWebsite('acme.com')).toBe('https://acme.com');
+  });
+
   test('extractCanonicalWebsite returns null when only aggregator host present', () => {
     const raw = 'https://app.sourcescrub.com/companies/12345';
     expect(mapping.extractCanonicalWebsite(raw)).toBeNull();
@@ -30,5 +34,19 @@ describe('Targets mapping heuristics', () => {
       },
     ];
     expect(mapping.pickColumn('website', headers, rows)).toBe('Website');
+  });
+
+  test('normalizeRows omits aggregator-only websites', () => {
+    const rows = [
+      {
+        Company: 'Aggregator Only',
+        Website: 'https://app.sourcescrub.com/company/123',
+        Description: 'Example company',
+      },
+    ];
+    const normalized = mapping.normalizeRows(rows, { setSummary: jest.fn() });
+    expect(normalized).toHaveLength(1);
+    expect(normalized[0].Website).toBe('');
+    expect(normalized[0]['Company Name']).toBe('Aggregator Only');
   });
 });

@@ -495,7 +495,7 @@ class SportsContentExtractor {
           }
         }
       } catch (e) {
-        if (this.debug) console.log('Error parsing table:', e.message);
+        if (this.debug) console.debug('Error parsing table:', e.message);
       }
     });
 

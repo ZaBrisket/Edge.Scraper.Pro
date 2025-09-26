@@ -3,12 +3,11 @@
  */
 
 const AdaptiveRateLimiter = require('../../src/lib/http/adaptive-rate-limiter');
-const { headersForEvent, preflight } = require('./_lib/cors');
+const { preflight } = require('./_lib/cors');
+const { jsonForEvent } = require('./_lib/http');
 
 exports.handler = async (event, context) => {
   const baseHeaders = {
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Content-Type': 'application/json',
     'Cache-Control': 'no-cache',
   };
   const preflightResponse = preflight(event, baseHeaders);
@@ -18,11 +17,7 @@ exports.handler = async (event, context) => {
 
   // Only allow GET requests
   if (event.httpMethod !== 'GET') {
-    return {
-      statusCode: 405,
-      headers: headersForEvent(event, baseHeaders),
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+    return jsonForEvent(event, { error: 'Method not allowed' }, 405, baseHeaders);
   }
 
   // Get metrics from the global rate limiter
@@ -32,9 +27,5 @@ exports.handler = async (event, context) => {
     global: {}
   };
   
-  return {
-    statusCode: 200,
-    headers: headersForEvent(event, baseHeaders),
-    body: JSON.stringify(metrics, null, 2)
-  };
+  return jsonForEvent(event, metrics, 200, baseHeaders);
 };

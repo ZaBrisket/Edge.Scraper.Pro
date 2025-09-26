@@ -166,7 +166,7 @@ class AdaptiveRateLimiter extends EventEmitter {
       state.pauseUntil = Date.now() + retryMs;
       state.retryAfterMs = retryMs;
       
-      console.log(`[RateLimiter] Domain ${state.hostname} hit 429, pausing for ${retryMs}ms (Retry-After header)`);
+      console.warn(`[RateLimiter] Domain ${state.hostname} hit 429, pausing for ${retryMs}ms (Retry-After header)`);
     } else {
       // Exponential backoff without Retry-After header
       const backoffMs = Math.min(
@@ -175,7 +175,7 @@ class AdaptiveRateLimiter extends EventEmitter {
       );
       state.pauseUntil = Date.now() + backoffMs;
       
-      console.log(`[RateLimiter] Domain ${state.hostname} hit 429, pausing for ${backoffMs}ms (exponential backoff)`);
+      console.warn(`[RateLimiter] Domain ${state.hostname} hit 429, pausing for ${backoffMs}ms (exponential backoff)`);
     }
     
     // Reduce rate
@@ -242,7 +242,7 @@ class AdaptiveRateLimiter extends EventEmitter {
     
     this.globalMetrics.totalAdjustments++;
     
-    console.log(`[RateLimiter] Adjusted ${state.hostname} rate: ${oldRate.toFixed(2)} → ${newRate.toFixed(2)} RPS (${reason})`);
+    console.info(`[RateLimiter] Adjusted ${state.hostname} rate: ${oldRate.toFixed(2)} → ${newRate.toFixed(2)} RPS (${reason})`);
   }
 
   parseRetryAfter(retryAfter) {

@@ -1,6 +1,6 @@
 const { TextEncoder } = require('node:util');
 const net = require('node:net');
-const { headersForOrigin } = require('./cors');
+const { headersForOrigin, headersForEvent } = require('./cors');
 
 const TEXT_ENCODER = new TextEncoder();
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
@@ -83,6 +83,18 @@ function json(body, status = 200, extraHeaders = {}, originHeader = '') {
     ...extraHeaders,
   });
   return new Response(JSON.stringify(body), { status, headers });
+}
+
+function jsonForEvent(event, body, status = 200, extra = {}) {
+  const headers = headersForEvent(event, {
+    'Content-Type': 'application/json; charset=utf-8',
+    ...extra,
+  });
+  return {
+    statusCode: status,
+    headers,
+    body: JSON.stringify(body),
+  };
 }
 
 /**
@@ -379,6 +391,7 @@ module.exports = {
   envInt,
   corsHeaders,
   json,
+  jsonForEvent,
   safeParseUrl,
   isBlockedHostname,
   fetchWithTimeout,

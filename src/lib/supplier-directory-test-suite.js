@@ -22,7 +22,7 @@ class SupplierDirectoryTestSuite {
    * Run all tests
    */
   async runAllTests() {
-    console.log('🧪 Starting Supplier Directory Extractor Test Suite\n');
+    console.info('🧪 Starting Supplier Directory Extractor Test Suite\n');
 
     // Test cases
     this.addTest('Basic Table Extraction', () => this.testBasicTableExtraction());
@@ -55,13 +55,13 @@ class SupplierDirectoryTestSuite {
    */
   async runTest(test) {
     this.results.total++;
-    console.log(`Running: ${test.name}...`);
+    console.info(`Running: ${test.name}...`);
 
     try {
       await test.testFunction();
       this.results.passed++;
       this.results.details.push({ name: test.name, status: 'PASSED' });
-      console.log(`✅ ${test.name} - PASSED\n`);
+      console.info(`✅ ${test.name} - PASSED\n`);
     } catch (error) {
       this.results.failed++;
       this.results.details.push({
@@ -69,7 +69,7 @@ class SupplierDirectoryTestSuite {
         status: 'FAILED',
         error: error.message,
       });
-      console.log(`❌ ${test.name} - FAILED: ${error.message}\n`);
+      console.info(`❌ ${test.name} - FAILED: ${error.message}\n`);
     }
   }
 
@@ -367,29 +367,29 @@ class SupplierDirectoryTestSuite {
    * Print test results
    */
   printResults() {
-    console.log('📊 Test Results Summary');
-    console.log('======================');
-    console.log(`Total Tests: ${this.results.total}`);
-    console.log(`Passed: ${this.results.passed}`);
-    console.log(`Failed: ${this.results.failed}`);
-    console.log(
+    console.info('📊 Test Results Summary');
+    console.info('======================');
+    console.info(`Total Tests: ${this.results.total}`);
+    console.info(`Passed: ${this.results.passed}`);
+    console.info(`Failed: ${this.results.failed}`);
+    console.info(
       `Success Rate: ${((this.results.passed / this.results.total) * 100).toFixed(1)}%\n`
     );
 
     if (this.results.failed > 0) {
-      console.log('❌ Failed Tests:');
+      console.info('❌ Failed Tests:');
       this.results.details
         .filter(detail => detail.status === 'FAILED')
         .forEach(detail => {
-          console.log(`  - ${detail.name}: ${detail.error}`);
+          console.info(`  - ${detail.name}: ${detail.error}`);
         });
-      console.log('');
+      console.info('');
     }
 
     if (this.results.passed === this.results.total) {
-      console.log('🎉 All tests passed!');
+      console.info('🎉 All tests passed!');
     } else {
-      console.log('⚠️  Some tests failed. Please review the issues above.');
+      console.info('⚠️  Some tests failed. Please review the issues above.');
     }
   }
 }

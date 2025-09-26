@@ -65,7 +65,7 @@ class SessionManager {
     await fs.writeFile(sessionFile, JSON.stringify(session, null, 2));
     
     this.currentSession = session;
-    console.log(`[SessionManager] Created session: ${sessionId}`);
+    console.info(`[SessionManager] Created session: ${sessionId}`);
     
     // Clean up old sessions
     await this.cleanupOldSessions();
@@ -88,8 +88,8 @@ class SessionManager {
       }
       
       this.currentSession = session;
-      console.log(`[SessionManager] Loaded session: ${sessionId}`);
-      console.log(`  Progress: ${session.currentIndex}/${session.totalUrls} URLs`);
+      console.info(`[SessionManager] Loaded session: ${sessionId}`);
+      console.info(`  Progress: ${session.currentIndex}/${session.totalUrls} URLs`);
       
       return session;
       
@@ -154,7 +154,7 @@ class SessionManager {
     // Save to disk
     await fs.writeFile(sessionFile, JSON.stringify(session, null, 2));
     
-    console.log(`[SessionManager] Checkpoint saved at index ${session.currentIndex}`);
+    console.info(`[SessionManager] Checkpoint saved at index ${session.currentIndex}`);
   }
   
   async completeSession(outputFile) {
@@ -171,9 +171,9 @@ class SessionManager {
     const sessionFile = path.join(this.sessionsDir, `${session.id}.json`);
     await fs.writeFile(sessionFile, JSON.stringify(session, null, 2));
     
-    console.log(`[SessionManager] Session completed: ${session.id}`);
-    console.log(`  Success: ${session.results.successCount}/${session.totalUrls}`);
-    console.log(`  Duration: ${(session.results.totalTime / 1000).toFixed(1)}s`);
+    console.info(`[SessionManager] Session completed: ${session.id}`);
+    console.info(`  Success: ${session.results.successCount}/${session.totalUrls}`);
+    console.info(`  Duration: ${(session.results.totalTime / 1000).toFixed(1)}s`);
     
     return session;
   }
@@ -219,7 +219,7 @@ class SessionManager {
       throw new Error(`Cannot resume session with status: ${session.status}`);
     }
     
-    console.log(`[SessionManager] Resuming from index ${session.currentIndex}`);
+    console.info(`[SessionManager] Resuming from index ${session.currentIndex}`);
     
     // Return remaining URLs
     const remainingUrls = session.urls.slice(session.currentIndex);
@@ -298,7 +298,7 @@ class SessionManager {
     for (const session of sessions) {
       if (session.expired && session.status !== 'complete') {
         await fs.unlink(session.file);
-        console.log(`[SessionManager] Removed expired session: ${path.basename(session.file)}`);
+        console.info(`[SessionManager] Removed expired session: ${path.basename(session.file)}`);
       }
     }
     
@@ -307,7 +307,7 @@ class SessionManager {
       const toRemove = sessions.slice(0, sessions.length - this.maxSessions);
       for (const session of toRemove) {
         await fs.unlink(session.file);
-        console.log(`[SessionManager] Removed old session: ${path.basename(session.file)}`);
+        console.info(`[SessionManager] Removed old session: ${path.basename(session.file)}`);
       }
     }
   }

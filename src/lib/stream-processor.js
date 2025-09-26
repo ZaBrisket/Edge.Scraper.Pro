@@ -56,11 +56,11 @@ class StreamProcessor {
       `${this.sessionId}_metadata.json`
     );
     
-    console.log(`[StreamProcessor] Starting batch processing`);
-    console.log(`  Session ID: ${this.sessionId}`);
-    console.log(`  Total URLs: ${urls.length}`);
-    console.log(`  Chunk size: ${this.chunkSize}`);
-    console.log(`  Output file: ${outputFile}`);
+    console.info(`[StreamProcessor] Starting batch processing`);
+    console.info(`  Session ID: ${this.sessionId}`);
+    console.info(`  Total URLs: ${urls.length}`);
+    console.info(`  Chunk size: ${this.chunkSize}`);
+    console.info(`  Output file: ${outputFile}`);
     
     // Create write stream for results
     const writeStream = require('fs').createWriteStream(outputFile, {
@@ -74,7 +74,7 @@ class StreamProcessor {
         const chunkIndex = Math.floor(i / this.chunkSize);
         const chunk = urls.slice(i, Math.min(i + this.chunkSize, urls.length));
         
-        console.log(`[StreamProcessor] Processing chunk ${chunkIndex + 1}/${this.stats.totalChunks}`);
+        console.info(`[StreamProcessor] Processing chunk ${chunkIndex + 1}/${this.stats.totalChunks}`);
         
         // Process chunk
         const chunkResults = await this.processChunk(chunk, chunkIndex);
@@ -115,7 +115,7 @@ class StreamProcessor {
       // Save final metadata
       await this.saveFinalMetadata(metadataFile, outputFile);
       
-      console.log(`[StreamProcessor] Batch processing complete`);
+      console.info(`[StreamProcessor] Batch processing complete`);
       this.reportFinalStats();
       
       return {
@@ -175,7 +175,7 @@ class StreamProcessor {
     await Promise.all(processing);
     
     const chunkDuration = Date.now() - chunkStartTime;
-    console.log(`  Chunk processed in ${chunkDuration}ms`);
+    console.info(`  Chunk processed in ${chunkDuration}ms`);
     
     return results;
   }
@@ -225,23 +225,23 @@ class StreamProcessor {
     
     this.stats.peakMemoryMB = Math.max(this.stats.peakMemoryMB, heapUsedMB);
     
-    console.log(`  Memory: ${heapUsedMB}MB (peak: ${this.stats.peakMemoryMB}MB)`);
+    console.info(`  Memory: ${heapUsedMB}MB (peak: ${this.stats.peakMemoryMB}MB)`);
     
     // Force garbage collection if available and memory is high
     if (heapUsedMB > this.maxMemoryMB && this.enableGC) {
       if (global.gc) {
-        console.log(`  Triggering garbage collection...`);
+        console.info(`  Triggering garbage collection...`);
         global.gc();
         
         // Check memory after GC
         const afterGC = Math.round(process.memoryUsage().heapUsed / 1048576);
-        console.log(`  Memory after GC: ${afterGC}MB`);
+        console.info(`  Memory after GC: ${afterGC}MB`);
       }
     }
     
     // If memory is still critically high, pause briefly
     if (heapUsedMB > this.maxMemoryMB * 1.5) {
-      console.log(`  Memory critical, pausing for 2 seconds...`);
+      console.info(`  Memory critical, pausing for 2 seconds...`);
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
   }
@@ -309,10 +309,10 @@ class StreamProcessor {
     const urlsPerSecond = (this.stats.processedUrls / (elapsed / 1000)).toFixed(2);
     const eta = ((this.stats.totalUrls - this.stats.processedUrls) / urlsPerSecond).toFixed(0);
     
-    console.log(`  Progress: ${progress}% (${this.stats.processedUrls}/${this.stats.totalUrls})`);
-    console.log(`  Speed: ${urlsPerSecond} URLs/sec`);
-    console.log(`  ETA: ${eta} seconds`);
-    console.log(`  Failed: ${this.stats.failedUrls}`);
+    console.info(`  Progress: ${progress}% (${this.stats.processedUrls}/${this.stats.totalUrls})`);
+    console.info(`  Speed: ${urlsPerSecond} URLs/sec`);
+    console.info(`  ETA: ${eta} seconds`);
+    console.info(`  Failed: ${this.stats.failedUrls}`);
   }
   
   reportFinalStats() {
@@ -320,15 +320,15 @@ class StreamProcessor {
     const successRate = ((this.stats.processedUrls - this.stats.failedUrls) / 
                         this.stats.processedUrls * 100).toFixed(1);
     
-    console.log('\n=== Final Statistics ===');
-    console.log(`Total URLs: ${this.stats.totalUrls}`);
-    console.log(`Processed: ${this.stats.processedUrls}`);
-    console.log(`Failed: ${this.stats.failedUrls}`);
-    console.log(`Success Rate: ${successRate}%`);
-    console.log(`Duration: ${(duration / 1000).toFixed(1)} seconds`);
-    console.log(`Average Speed: ${(this.stats.processedUrls / (duration / 1000)).toFixed(2)} URLs/sec`);
-    console.log(`Peak Memory: ${this.stats.peakMemoryMB}MB`);
-    console.log(`Data Written: ${(this.stats.bytesWritten / 1048576).toFixed(2)}MB`);
+    console.info('\n=== Final Statistics ===');
+    console.info(`Total URLs: ${this.stats.totalUrls}`);
+    console.info(`Processed: ${this.stats.processedUrls}`);
+    console.info(`Failed: ${this.stats.failedUrls}`);
+    console.info(`Success Rate: ${successRate}%`);
+    console.info(`Duration: ${(duration / 1000).toFixed(1)} seconds`);
+    console.info(`Average Speed: ${(this.stats.processedUrls / (duration / 1000)).toFixed(2)} URLs/sec`);
+    console.info(`Peak Memory: ${this.stats.peakMemoryMB}MB`);
+    console.info(`Data Written: ${(this.stats.bytesWritten / 1048576).toFixed(2)}MB`);
   }
   
   async resume(sessionId, urls) {
@@ -341,8 +341,8 @@ class StreamProcessor {
         throw new Error('Session cannot be resumed');
       }
       
-      console.log(`[StreamProcessor] Resuming session ${sessionId}`);
-      console.log(`  Previously processed: ${metadata.processedCount} URLs`);
+      console.info(`[StreamProcessor] Resuming session ${sessionId}`);
+      console.info(`  Previously processed: ${metadata.processedCount} URLs`);
       
       // Update session info
       this.sessionId = sessionId;

@@ -146,7 +146,7 @@ class RetryManager {
       attempt++;
       
       try {
-        console.log(`[RetryManager] Attempt ${attempt}/${maxAttempts} for ${url}`);
+        console.info(`[RetryManager] Attempt ${attempt}/${maxAttempts} for ${url}`);
         
         // Execute the function
         const result = await fn(url);
@@ -154,7 +154,7 @@ class RetryManager {
         // Success - update metrics
         if (attempt > 1) {
           this.metrics.successfulRetries++;
-          console.log(`[RetryManager] Retry successful on attempt ${attempt}`);
+          console.info(`[RetryManager] Retry successful on attempt ${attempt}`);
         }
         
         // Clear retry history on success
@@ -181,11 +181,11 @@ class RetryManager {
         this.metrics.totalRetries++;
         this.metrics.byErrorType[errorType] = (this.metrics.byErrorType[errorType] || 0) + 1;
         
-        console.log(`[RetryManager] Error type: ${errorType}, Strategy: ${strategy.strategy}`);
+        console.warn(`[RetryManager] Error type: ${errorType}, Strategy: ${strategy.strategy}`);
         
         // Check if we should retry
         if (!strategy.canRetry || attempt >= Math.min(maxAttempts, strategy.maxRetries)) {
-          console.log(`[RetryManager] Max retries reached or non-retryable error`);
+          console.warn('[RetryManager] Max retries reached or non-retryable error');
           break;
         }
         
@@ -203,7 +203,7 @@ class RetryManager {
         
         // Calculate delay
         const delay = this.calculateDelay(strategy, attempt);
-        console.log(`[RetryManager] Waiting ${delay}ms before retry`);
+        console.info(`[RetryManager] Waiting ${delay}ms before retry`);
         
         // Wait before retry
         await this.sleep(delay);
@@ -306,13 +306,13 @@ class RetryManager {
         
       case 'rotate_user_agent':
         // This would be handled in the fetch options
-        console.log(`[RetryManager] Rotating user agent for ${url}`);
+        console.info(`[RetryManager] Rotating user agent for ${url}`);
         return url;
         
       case 'downgrade_to_http':
         if (url.startsWith('https://')) {
           const httpUrl = url.replace('https://', 'http://');
-          console.log(`[RetryManager] Downgrading to HTTP: ${httpUrl}`);
+          console.warn(`[RetryManager] Downgrading to HTTP: ${httpUrl}`);
           return httpUrl;
         }
         return url;
@@ -350,7 +350,7 @@ class RetryManager {
       const history = this.retryHistory.get(url) || [];
       const tried = history.some(h => h.url === variant);
       if (!tried) {
-        console.log(`[RetryManager] Trying URL variant: ${variant}`);
+        console.info(`[RetryManager] Trying URL variant: ${variant}`);
         return variant;
       }
     }

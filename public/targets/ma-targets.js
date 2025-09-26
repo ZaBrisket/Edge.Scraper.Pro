@@ -1,7 +1,11 @@
-(function (global) {
-  // --- Intelligent column detection -------------------------------------------------
+;(function (global) {
+  'use strict';
+
+  // ---------------------------------------------------------------------------
+  // Heuristics & helpers (shared between browser bundle and Node tests)
+  // ---------------------------------------------------------------------------
   const FIELD_SYNONYMS = {
-    companyName: [/^(company|legal)\s*name$/i, /^name$/i, /^firm$/i, /^organization$/i, /^org$/i, /^account\s*name$/i],
+    companyName: [/^(company|legal)\s*name$/i, /^company$/i, /^name$/i, /^firm$/i, /^organization$/i, /^org$/i, /^account\s*name$/i],
     website: [/^web\s*site$/i, /^website$/i, /^url$/i, /homepage/i, /domain/i, /company\s*site/i, /\bsite\b/i],
     description: [/^description$/i, /profile|overview|about|summary/i],
     specialties: [/specialt(y|ies)/i, /capabilit/i, /competenc/i, /expertise/i, /service\s*lines?/i, /focus\s*areas?/i],
@@ -27,11 +31,11 @@
   function headerScore(field, header) {
     const h = String(header || '').trim();
     const pats = FIELD_SYNONYMS[field] || [];
-    let s = 0;
+    let score = 0;
     for (const re of pats) {
-      if (re.test(h)) s += 2;
+      if (re.test(h)) score += 2;
     }
-    return s;
+    return score;
   }
 
   function valueShapeStats(values) {
@@ -39,25 +43,29 @@
     let paraish = 0;
     let total = 0;
     const hostCounts = Object.create(null);
-    for (const v of values) {
-      if (v == null) continue;
-      const s = String(v).trim();
+
+    for (const raw of values) {
+      if (raw == null) continue;
+      const s = String(raw).trim();
       if (!s) continue;
       total += 1;
+
       if (URL_RE.test(s)) {
         urlish += 1;
         try {
           const candidate = s.includes('://') ? s : `https://${s}`;
           const u = new URL(candidate);
           hostCounts[u.hostname] = (hostCounts[u.hostname] || 0) + 1;
-        } catch (err) {
-          // ignore invalid URLs
+        } catch {
+          // ignore invalid URL inputs
         }
       }
+
       if (s.length >= 40 && /\s/.test(s)) {
         paraish += 1;
       }
     }
+
     return {
       total,
       urlishPct: total ? urlish / total : 0,
@@ -70,25 +78,27 @@
     if (!raw) return null;
     let s = String(raw).trim();
     if (!s) return null;
+
     try {
       const candidate = s.includes('://') ? s : `https://${s}`;
       const u0 = new URL(candidate);
       if (!AGGREGATOR_HOSTS.has(u0.hostname)) {
         return u0.origin;
       }
+
       for (const key of ['url', 'u', 'target', 'redirect', 'targetUrl', 'website']) {
         const q = u0.searchParams.get(key);
-        if (q) {
-          const next = q.includes('://') ? q : `https://${q}`;
-          const u1 = new URL(next);
-          if (!AGGREGATOR_HOSTS.has(u1.hostname)) {
-            return u1.origin;
-          }
+        if (!q) continue;
+        const next = q.includes('://') ? q : `https://${q}`;
+        const u1 = new URL(next);
+        if (!AGGREGATOR_HOSTS.has(u1.hostname)) {
+          return u1.origin;
         }
       }
-    } catch (err) {
-      // Fall through to null when parsing fails
+    } catch {
+      // ignore parsing failures
     }
+
     return null;
   }
 
@@ -96,10 +106,12 @@
     let best = null;
     let bestScore = -1;
     const usableHeaders = (headers || []).filter((h) => h && h !== '__parsed_extra');
-    for (const h of usableHeaders) {
-      const vals = rows.map((r) => (r ? r[h] : undefined)).slice(0, 200);
+
+    for (const header of usableHeaders) {
+      const vals = rows.map((row) => (row ? row[header] : undefined)).slice(0, 200);
       const shape = valueShapeStats(vals);
-      let score = headerScore(field, h);
+      let score = headerScore(field, header);
+
       if (field === 'website') {
         score += Math.round(shape.urlishPct * 6);
         const topHost = Object.entries(shape.hostCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
@@ -109,11 +121,13 @@
       } else if (field === 'description' || field === 'specialties' || field === 'products') {
         score += Math.round(shape.paraishPct * 4);
       }
+
       if (score > bestScore) {
         bestScore = score;
-        best = h;
+        best = header;
       }
     }
+
     return bestScore > 0 ? best : null;
   }
 
@@ -129,9 +143,19 @@
     };
   }
 
+  function summaryLines(mapping) {
+    const order = ['companyName', 'website', 'description', 'specialties', 'products', 'endMarkets', 'industries'];
+    const lines = ['Auto-mapped columns:'];
+    for (const key of order) {
+      lines.push(`${key}: ${mapping[key] ?? 'not found'}`);
+    }
+    return lines;
+  }
+
   function normalizeRows(rawRows, options = {}) {
     const rows = Array.isArray(rawRows) ? rawRows.filter((row) => row && typeof row === 'object') : [];
     const setSummary = typeof options.setSummary === 'function' ? options.setSummary : null;
+
     if (rows.length === 0) {
       const emptyMapping = {
         companyName: null,
@@ -145,9 +169,11 @@
       if (setSummary) setSummary(summaryLines(emptyMapping));
       return [];
     }
-    const headers = Object.keys(rows[0] || {}).filter((key) => key && key !== '__parsed_extra');
+
+    const headers = Object.keys(rows[0]).filter((key) => key && key !== '__parsed_extra');
     const mapping = buildMapping(headers, rows);
     if (setSummary) setSummary(summaryLines(mapping));
+
     const normalized = [];
     for (const row of rows) {
       const nameRaw = mapping.companyName ? row[mapping.companyName] : '';
@@ -157,6 +183,7 @@
       const marketRaw = mapping.endMarkets ? row[mapping.endMarkets] : '';
       const industryRaw = mapping.industries ? row[mapping.industries] : '';
       const websiteRaw = mapping.website ? row[mapping.website] : null;
+
       const name = typeof nameRaw === 'string' ? nameRaw.trim() : String(nameRaw || '').trim();
       const website = extractCanonicalWebsite(websiteRaw);
       const desc = typeof descRaw === 'string' ? descRaw.trim() : String(descRaw || '').trim();
@@ -165,6 +192,7 @@
       const mkts = (typeof marketRaw === 'string' ? marketRaw.trim() : String(marketRaw || '').trim())
         || (typeof industryRaw === 'string' ? industryRaw.trim() : String(industryRaw || '').trim());
       const summary = desc || specs || prods || mkts || 'Provides industry-related services (details not specified).';
+
       if (!name && !website && !summary) continue;
       normalized.push({
         'Company Name': name || '—',
@@ -172,16 +200,8 @@
         Summary: summary,
       });
     }
-    return normalized;
-  }
 
-  function summaryLines(mapping) {
-    const order = ['companyName', 'website', 'description', 'specialties', 'products', 'endMarkets', 'industries'];
-    const lines = ['Auto-mapped columns:'];
-    for (const key of order) {
-      lines.push(`${key}: ${mapping[key] ? mapping[key] : 'not found'}`);
-    }
-    return lines;
+    return normalized;
   }
 
   const mappingAPI = {
@@ -193,6 +213,7 @@
     extractCanonicalWebsite,
     pickColumn,
     buildMapping,
+    summaryLines,
     normalizeRows,
   };
 
@@ -203,6 +224,9 @@
 
   global.TargetsMapping = mappingAPI;
 
+  // ---------------------------------------------------------------------------
+  // Browser wiring for interactive UI
+  // ---------------------------------------------------------------------------
   if (typeof document === 'undefined') {
     return;
   }
@@ -214,97 +238,131 @@
   const btnCsv = $('#exportCsvBtn');
   const btnXlsx = $('#exportExcelBtn');
 
+  let toastTimer = null;
+  let latestRows = [];
+
   if (!fileInput || !mapDiv || !tableBody || !btnCsv || !btnXlsx) {
     console.warn('Targets UI: required elements missing, aborting setup.');
     return;
   }
 
-  if (global.Papa && typeof global.Papa === 'object') {
-    // Required so Papa Parse can locate its worker script if worker mode is toggled on later.
-    global.Papa.SCRIPT_PATH = '/vendor/papaparse.min.js';
-  }
+  fileInput.addEventListener('change', async (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
 
-  let toastTimer = null;
-  let latestRows = [];
+    updateSummary('Parsing…');
+    tableBody.innerHTML = '';
+    latestRows = [];
+    btnCsv.disabled = true;
+    btnXlsx.disabled = true;
 
-  if (fileInput) {
-    fileInput.addEventListener('change', async (event) => {
-      const file = event.target.files && event.target.files[0];
-      if (!file) return;
-      if (mapDiv) mapDiv.textContent = 'Parsing…';
-      tableBody.innerHTML = '';
-      latestRows = [];
-      btnCsv.disabled = true;
-      btnXlsx.disabled = true;
+    try {
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      if (ext === 'csv') {
+        await parseCsv(file);
+      } else if (ext === 'xlsx' || ext === 'xls') {
+        await parseXlsx(file);
+      } else {
+        throw new Error('Unsupported file type. Use CSV/XLSX.');
+      }
+    } catch (error) {
+      console.error(error);
+      const message = error?.message || String(error);
+      updateSummary(`Error: ${message}`);
+      showToast(message, 'error');
+    }
+  });
+
+  btnCsv.addEventListener('click', () => {
+    if (!latestRows.length) return;
+    const csv = toCsv(latestRows, ['Company Name', 'Website', 'Summary']);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    downloadBlob(blob, 'ma_targets_standardized.csv');
+  });
+
+  btnXlsx.addEventListener('click', () => {
+    if (!latestRows.length) return;
+
+    if (!hasExcelSupport()) {
+      showToast('XLSX export unavailable (XLSX not loaded). Downloading CSV instead.', 'error');
+      if (!btnCsv.disabled) {
+        btnCsv.click();
+      }
+      return;
+    }
+
+    const worksheet = global.XLSX.utils.json_to_sheet(latestRows, {
+      header: ['Company Name', 'Website', 'Summary'],
+    });
+    const workbook = global.XLSX.utils.book_new();
+    global.XLSX.utils.book_append_sheet(workbook, worksheet, 'Targets');
+    const buffer = global.XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    downloadBlob(blob, 'ma_targets_standardized.xlsx');
+  });
+
+  async function parseCsv(file) {
+    if (!global.Papa || typeof global.Papa.parse !== 'function') {
+      throw new Error('CSV parser (Papa Parse) not loaded.');
+    }
+
+    await new Promise((resolve, reject) => {
       try {
-        const ext = (file.name.split('.').pop() || '').toLowerCase();
-        if (ext === 'csv') {
-          await parseCsv(file);
-        } else if (ext === 'xlsx' || ext === 'xls') {
-          await parseXlsx(file);
-        } else {
-          throw new Error('Unsupported file type. Use CSV/XLSX.');
-        }
+        global.Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          worker: false,
+          complete: (result) => {
+            try {
+              const data = Array.isArray(result.data) ? result.data : [];
+              finish(data);
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          },
+          error: (err) => reject(err),
+        });
       } catch (err) {
-        console.error(err);
-        if (mapDiv) mapDiv.textContent = `Error: ${err.message || String(err)}`;
+        reject(err);
       }
     });
   }
 
-  async function parseCsv(file) {
-    return new Promise((resolve, reject) => {
-      global.Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        worker: false,
-        complete: (result) => {
-          try {
-            const records = Array.isArray(result.data) ? result.data : [];
-            finish(records);
-          } catch (err) {
-            console.error(err);
-            if (mapDiv) mapDiv.textContent = `Error: ${err.message || String(err)}`;
-          }
-          resolve();
-        },
-        error: (err) => reject(err),
-      });
-    });
-  }
-
   async function parseXlsx(file) {
-    try {
-      const buf = await file.arrayBuffer();
-      const wb = global.XLSX.read(buf, { type: 'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const records = global.XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
-      finish(records);
-    } catch (err) {
-      console.error(err);
-      if (mapDiv) mapDiv.textContent = `Error: ${err.message || String(err)}`;
+    if (!global.XLSX || typeof global.XLSX.read !== 'function') {
+      throw new Error('XLSX library not loaded.');
     }
+
+    const buffer = await file.arrayBuffer();
+    const workbook = global.XLSX.read(buffer, { type: 'array' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const records = global.XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
+    finish(records);
   }
 
   function finish(records) {
-    const normalized = normalizeRows(records, {
-      setSummary: (lines) => {
-        if (mapDiv) mapDiv.textContent = lines.join('\n');
+    latestRows = normalizeRows(records, {
+      setSummary(lines) {
+        updateSummary(lines.join('\n'));
       },
     });
-    latestRows = normalized;
     renderTable(latestRows);
-    const hasRows = latestRows && latestRows.length > 0;
+
+    const hasRows = latestRows.length > 0;
     btnCsv.disabled = !hasRows;
     btnXlsx.disabled = !hasRows;
   }
 
   function renderTable(rows) {
     tableBody.innerHTML = '';
-    if (!rows || !rows.length) {
+    if (!rows || rows.length === 0) {
       return;
     }
-    const frag = document.createDocumentFragment();
+
+    const fragment = document.createDocumentFragment();
     for (const row of rows) {
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -312,9 +370,38 @@
         <td>${escapeHtml(row.Website || '')}</td>
         <td>${escapeHtml(row.Summary || '')}</td>
       `;
-      frag.appendChild(tr);
+      fragment.appendChild(tr);
     }
-    tableBody.appendChild(frag);
+
+    tableBody.appendChild(fragment);
+  }
+
+  function toCsv(rows, headers) {
+    const escapeCell = (value) => {
+      let cell = String(value == null ? '' : value);
+      if (/^[=+\-@]/.test(cell)) cell = `'${cell}`;
+      if (cell.includes('"') || cell.includes(',') || cell.includes('\n')) {
+        cell = `"${cell.replace(/"/g, '""')}"`;
+      }
+      return cell;
+    };
+
+    const out = [headers.join(',')];
+    for (const row of rows) {
+      out.push(headers.map((header) => escapeCell(row[header])).join(','));
+    }
+    return out.join('\n');
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
   }
 
   function escapeHtml(value) {
@@ -327,61 +414,13 @@
     }[char]));
   }
 
-  btnCsv.addEventListener('click', () => {
-    const csv = toCsv(latestRows, ['Company Name', 'Website', 'Summary']);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    download(url, 'ma_targets_standardized.csv');
-  });
-
-  btnXlsx.addEventListener('click', () => {
-    if (!hasExcelSupport()) {
-      showToast('Excel export unavailable (ExcelJS not loaded). Downloading CSV instead.', 'error');
-      if (!btnCsv.disabled) btnCsv.click();
-      return;
-    }
-    const ws = global.XLSX.utils.json_to_sheet(latestRows, { header: ['Company Name', 'Website', 'Summary'] });
-    const wb = global.XLSX.utils.book_new();
-    global.XLSX.utils.book_append_sheet(wb, ws, 'Targets');
-    const out = global.XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    download(url, 'ma_targets_standardized.xlsx');
-  });
-
-  function toCsv(rows, headers) {
-    const escapeCell = (value) => {
-      let s = String(value == null ? '' : value);
-      if (/^[=+\-@]/.test(s)) s = `'${s}`;
-      if (s.includes('"') || s.includes(',') || s.includes('\n')) {
-        s = `"${s.replace(/"/g, '""')}"`;
-      }
-      return s;
-    };
-    const out = [];
-    out.push(headers.join(','));
-    for (const row of rows || []) {
-      out.push(headers.map((header) => escapeCell(row[header])).join(','));
-    }
-    return out.join('\n');
-  }
-
-  function download(url, filename) {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }
-
   function hasExcelSupport() {
-    return !!(
-      global.XLSX
-      && global.XLSX.utils
-      && typeof global.XLSX.utils.json_to_sheet === 'function'
-    );
+    return Boolean(global.XLSX && global.XLSX.utils && typeof global.XLSX.utils.json_to_sheet === 'function');
+  }
+
+  function updateSummary(text) {
+    if (!mapDiv) return;
+    mapDiv.textContent = text;
   }
 
   function showToast(message, tone) {
@@ -393,10 +432,14 @@
       toast.setAttribute('aria-live', 'polite');
       document.body.appendChild(toast);
     }
+
     toast.textContent = message;
     toast.dataset.tone = tone || 'info';
     toast.classList.add('is-visible');
-    if (toastTimer) clearTimeout(toastTimer);
+
+    if (toastTimer) {
+      clearTimeout(toastTimer);
+    }
     toastTimer = setTimeout(() => {
       toast.classList.remove('is-visible');
     }, 4000);
