@@ -176,24 +176,43 @@ class EnhancedFetchClient {
     if (!robotsContent) return true;
 
     const lines = robotsContent.split('\n').map(line => line.trim());
+    const normalizedTargetAgent = userAgent.toLowerCase();
     let isRelevantSection = false;
     const allowRules = [];
     const disallowRules = [];
 
     const evaluateRules = () => {
-      for (const rule of allowRules) {
-        if (this.matchesRule(path, rule)) {
-          return true;
+      let bestMatch = null;
+
+      const considerRule = (rule, type) => {
+        if (!this.matchesRule(path, rule)) {
+          return;
         }
+
+        const specificity = this.getRuleSpecificity(rule);
+
+        if (
+          !bestMatch ||
+          specificity > bestMatch.specificity ||
+          (specificity === bestMatch.specificity && type === 'allow' && bestMatch.type !== 'allow')
+        ) {
+          bestMatch = { type, specificity };
+        }
+      };
+
+      for (const rule of allowRules) {
+        considerRule(rule, 'allow');
       }
 
       for (const rule of disallowRules) {
-        if (this.matchesRule(path, rule)) {
-          return false;
-        }
+        considerRule(rule, 'disallow');
       }
 
-      return null;
+      if (!bestMatch) {
+        return null;
+      }
+
+      return bestMatch.type === 'allow';
     };
 
     for (const line of lines) {
@@ -215,7 +234,8 @@ class EnhancedFetchClient {
         disallowRules.length = 0;
 
         const ua = line.substring(11).trim();
-        isRelevantSection = ua === '*' || userAgent.includes(ua);
+        const normalizedUa = ua.toLowerCase();
+        isRelevantSection = ua === '*' || normalizedTargetAgent.includes(normalizedUa);
         continue;
       }
 
@@ -259,9 +279,18 @@ class EnhancedFetchClient {
         .replace(/\*/g, '.*'); // Replace * with .*
       return new RegExp('^' + regexPattern).test(path);
     }
-    
+
     // Simple prefix match for rules without wildcards
     return path.startsWith(rule);
+  }
+
+  /**
+   * Determine the specificity of a robots.txt rule for tie-breaking
+   * @param {string} rule - Rule pattern
+   * @returns {number} Specificity score
+   */
+  getRuleSpecificity(rule) {
+    return rule.replace(/\*/g, '').length;
   }
 
   /**
