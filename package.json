@@ -57,8 +57,11 @@
   "devDependencies": {
     "@playwright/test": "^1.55.1",
     "@types/jest": "^30.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.44.1",
+    "@typescript-eslint/parser": "^8.44.1",
     "esbuild": "^0.24.0",
     "eslint": "^9.35.0",
+    "eslint-plugin-prettier": "^5.5.4",
     "http-server": "^14.1.1",
     "husky": "^9.1.7",
     "jest": "^30.1.3",
