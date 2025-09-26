@@ -14,25 +14,36 @@
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav">Menu</button>
       <nav id="primary-nav" class="site-nav" aria-label="Primary">
         <a href="/" data-nav="home">Home</a>
-        <a href="/scrape/" data-nav="scrape">Scrape</a>
-        <a href="/sports/" data-nav="sports">Sports</a>
-        <a href="/companies/" data-nav="companies">Companies</a>
-        <a href="/targets/" data-nav="targets">Target Lists</a>
-        <a href="/nda/" data-nav="nda">NDA</a>
+        <a href="/scrape/" data-nav="scrape">Scraper</a>
+        <a href="/targets/" data-nav="targets">M&amp;A Target Lists</a>
+        <a href="/nda/" data-nav="nda">NDA Reviewer</a>
       </nav>
     </div>
   </header>
 
   <main id="main" class="container">
     <h1>Tools</h1>
-    <p class="banner">Brutalist, fast, and consistent across the suite.</p>
 
     <section class="grid" aria-label="Tool grid">
-      <article class="card"><h3>New Scraper</h3><p>Bulk URL extraction with progress & exports.</p><a class="btn" href="/scrape/">Open Scraper</a></article>
-      <article class="card"><h3>Sports Scraper</h3><p>Preconfigured for sports stats (PFR/PBP-aware).</p><a class="btn" href="/sports/">Open Sports</a></article>
-      <article class="card"><h3>Company Scraper</h3><p>Directory/company‑centric extraction defaults.</p><a class="btn" href="/companies/">Open Companies</a></article>
-      <article class="card"><h3>Target List Processor</h3><p>Upload SourceScrub CSV → filter & export.</p><a class="btn" href="/targets/">Open Target Lists</a></article>
-      <article class="card"><h3>NDA Reviewer</h3><p>Analyze DOCX/paste → redlines & export.</p><a class="btn" href="/nda/">Open NDA Reviewer</a></article>
+      <article class="card">
+        <h3>M&amp;A Target List Builder</h3>
+        <a class="btn" href="/targets/">Open Target Lists</a>
+      </article>
+      <article class="card">
+        <h3>NDA Reviewer</h3>
+        <a class="btn" href="/nda/">Open NDA Reviewer</a>
+      </article>
+      <article class="card">
+        <h3>Scraper Suite</h3>
+        <a class="btn" href="/scrape/">Open Scraper</a>
+        <p class="card-subheading">Choose a mode</p>
+        <ul class="card-links">
+          <li><a href="/scrape/">General</a></li>
+          <li><a href="/scrape/app.html#news">News</a></li>
+          <li><a href="/sports/">Sports</a></li>
+          <li><a href="/companies/">Companies</a></li>
+        </ul>
+      </article>
     </section>
   </main>
 

@@ -38,6 +38,10 @@ main{padding:var(--g4) 0}
 .card{grid-column:span 12;border:1px solid var(--border);padding:var(--g4);background:var(--bg)}
 .card h3{margin:0 0 var(--g2);font-size:20px}
 .card p{margin:0 0 var(--g3);font-size:14px;opacity:.85}
+.card-subheading{margin:var(--g3) 0 var(--g2);font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.65}
+.card-links{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:var(--g2)}
+.card-links li{margin:0}
+.card-links a{font-weight:600;text-decoration:none;font-size:14px}
 @media (min-width: 720px){ .card{grid-column:span 6} }
 @media (min-width: 1000px){ .card{grid-column:span 4} }
 

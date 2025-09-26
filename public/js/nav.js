@@ -11,9 +11,7 @@
   function activeKey(path){
     path = normalizePath(path);
     if (path === '/') return 'home';
-    if (path.startsWith('/scrape')) return 'scrape';
-    if (path.startsWith('/sports')) return 'sports';
-    if (path.startsWith('/companies')) return 'companies';
+    if (path.startsWith('/scrape') || path.startsWith('/sports') || path.startsWith('/companies')) return 'scrape';
     if (path.startsWith('/targets')) return 'targets';
     if (path.startsWith('/nda')) return 'nda';
     return '';
