@@ -176,71 +176,89 @@ class EnhancedFetchClient {
     if (!robotsContent) return true;
 
     const lines = robotsContent.split('\n').map(line => line.trim());
-    let currentUserAgent = null;
+    const normalizedTargetAgent = userAgent.toLowerCase();
     let isRelevantSection = false;
     const allowRules = [];
     const disallowRules = [];
 
+    const evaluateRules = () => {
+      let bestMatch = null;
+
+      const considerRule = (rule, type) => {
+        if (!this.matchesRule(path, rule)) {
+          return;
+        }
+
+        const specificity = this.getRuleSpecificity(rule);
+
+        if (
+          !bestMatch ||
+          specificity > bestMatch.specificity ||
+          (specificity === bestMatch.specificity && type === 'allow' && bestMatch.type !== 'allow')
+        ) {
+          bestMatch = { type, specificity };
+        }
+      };
+
+      for (const rule of allowRules) {
+        considerRule(rule, 'allow');
+      }
+
+      for (const rule of disallowRules) {
+        considerRule(rule, 'disallow');
+      }
+
+      if (!bestMatch) {
+        return null;
+      }
+
+      return bestMatch.type === 'allow';
+    };
+
     for (const line of lines) {
       if (line.startsWith('#') || !line) continue;
 
-      if (line.toLowerCase().startsWith('user-agent:')) {
+      const normalizedLine = line.toLowerCase();
+
+      if (normalizedLine.startsWith('user-agent:')) {
         // If we were in a relevant section, process the rules we collected
         if (isRelevantSection && (allowRules.length > 0 || disallowRules.length > 0)) {
-          // Check Allow rules first (they override Disallow)
-          for (const rule of allowRules) {
-            if (this.matchesRule(path, rule)) {
-              return true;
-            }
-          }
-          
-          // Then check Disallow rules
-          for (const rule of disallowRules) {
-            if (this.matchesRule(path, rule)) {
-              return false;
-            }
+          const decision = evaluateRules();
+          if (decision !== null) {
+            return decision;
           }
         }
-        
+
         // Reset for new user agent section
         allowRules.length = 0;
         disallowRules.length = 0;
-        
+
         const ua = line.substring(11).trim();
-        currentUserAgent = ua;
-        isRelevantSection = ua === '*' || userAgent.includes(ua);
+        const normalizedUa = ua.toLowerCase();
+        isRelevantSection = ua === '*' || normalizedTargetAgent.includes(normalizedUa);
         continue;
       }
 
       if (!isRelevantSection) continue;
 
-      if (line.toLowerCase().startsWith('allow:')) {
+      if (normalizedLine.startsWith('allow:')) {
         const allowedPath = line.substring(6).trim();
         if (allowedPath) {
           allowRules.push(allowedPath);
         }
-      } else if (line.toLowerCase().startsWith('disallow:')) {
+      } else if (normalizedLine.startsWith('disallow:')) {
         const disallowedPath = line.substring(9).trim();
         if (disallowedPath) {
           disallowRules.push(disallowedPath);
         }
       }
     }
-    
+
     // Process the last section
     if (isRelevantSection) {
-      // Check Allow rules first (they override Disallow)
-      for (const rule of allowRules) {
-        if (this.matchesRule(path, rule)) {
-          return true;
-        }
-      }
-      
-      // Then check Disallow rules
-      for (const rule of disallowRules) {
-        if (this.matchesRule(path, rule)) {
-          return false;
-        }
+      const decision = evaluateRules();
+      if (decision !== null) {
+        return decision;
       }
     }
 
@@ -261,9 +279,18 @@ class EnhancedFetchClient {
         .replace(/\*/g, '.*'); // Replace * with .*
       return new RegExp('^' + regexPattern).test(path);
     }
-    
+
     // Simple prefix match for rules without wildcards
     return path.startsWith(rule);
+  }
+
+  /**
+   * Determine the specificity of a robots.txt rule for tie-breaking
+   * @param {string} rule - Rule pattern
+   * @returns {number} Specificity score
+   */
+  getRuleSpecificity(rule) {
+    return rule.replace(/\*/g, '').length;
   }
 
   /**
@@ -407,9 +434,10 @@ class EnhancedFetchClient {
 
     try {
       // Add referer header
+      const refererOrigin = `${parsed.protocol}//${parsed.host}/`;
       const requestHeaders = {
         ...options.headers,
-        Referer: `${parsed.protocol}//${parsed.host}/`,
+        Referer: refererOrigin,
       };
 
       // First attempt with original URL
@@ -444,12 +472,15 @@ class EnhancedFetchClient {
         canonicalizationResult = await this.canonicalizer.canonicalizeUrl(
           url,
           (variantUrl, variantOptions) => {
+            const variantUrlObj = new URL(variantUrl);
+            const variantReferer = `${variantUrlObj.protocol}//${variantUrlObj.host}/`;
+
             return this.baseFetch(variantUrl, {
               ...options,
               ...variantOptions,
               headers: {
                 ...requestHeaders,
-                Referer: `${new URL(variantUrl).protocol}//${new URL(variantUrl).host}/`,
+                Referer: variantReferer,
               },
             });
           }
@@ -459,11 +490,14 @@ class EnhancedFetchClient {
           resolvedUrl = canonicalizationResult.canonicalUrl;
 
           // Fetch the canonical URL
+          const resolvedUrlObj = new URL(resolvedUrl);
+          const resolvedReferer = `${resolvedUrlObj.protocol}//${resolvedUrlObj.host}/`;
+
           response = await this.baseFetch(resolvedUrl, {
             ...options,
             headers: {
               ...requestHeaders,
-              Referer: `${new URL(resolvedUrl).protocol}//${new URL(resolvedUrl).host}/`,
+              Referer: resolvedReferer,
             },
           });
 
@@ -581,7 +615,6 @@ class EnhancedFetchClient {
         // Attempt pagination discovery if enabled and response is successful
         if (this.options.enablePaginationDiscovery && result.response.ok) {
           try {
-            const html = await result.response.text();
             const paginationResult = await this.paginationDiscovery.discoverPagination(
               result.resolvedUrl,
               (paginationUrl, paginationOptions) => this.baseFetch(paginationUrl, paginationOptions)

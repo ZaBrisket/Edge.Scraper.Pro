@@ -6,7 +6,7 @@ import process from 'node:process';
 const files = process.argv.slice(2);
 const patterns = [
   { name: '.only usage', regex: /\b(?:it|describe|test)\.only\b/ },
-  { name: 'debugger statement', regex: /\bdebugger\b/ },
+  { name: 'debugger statement', regex: /(?<!-)\bdebugger\b/ },
 ];
 
 const ignored = new Set([
